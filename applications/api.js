@@ -24,8 +24,8 @@ app.use(function *(next) {
 app.use(router(app));
 
 app.use(mount('/v1', api.v1.middleware()));
-app.use(mount('/v2', api.v2.middleware()));
+// app.use(mount('/v2', api.v2.middleware()));
 
-app.redirect('/', '/api/v2'); // show info page instead
+app.redirect('/', '/api/v1'); // show info page instead
 
 module.exports = app;
