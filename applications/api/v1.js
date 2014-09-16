@@ -95,42 +95,100 @@ api.post('/events', function *(next) {
   var document = yield parse(this);
 
   // var document = {
-  //   id: 2,
-  //   total: 20,
-  //   availability: 2,
-  //   show: "Wicked",
-  //   date: "18 Sep, 19:30",
-  //   theatre: "Drury Lane Theatre",
-  //   priceband: "BestAvailable",
-  //   starttime: 1360916300,
-  //   endtime: 1360917300,
-  //   facevalue: 45,
-  //   discount_price: 34.5,
-  //   location: "VictoriaStreet, London, SW1E5EA",
-  //   longitude: 51.496522,
-  //   latitude: -0.142543,
-  //   metadata: "GRpWkWY5W0c",
-  //   synopsis: "synopsis",
-  //   reviews: [
+  //   "id": 2,
+  //   "total": 20,
+  //   "availability": 2,
+  //   "show": "Wicked",
+  //   "date": "18 Sep, 19:30",
+  //   "theatre": "Drury Lane Theatre",
+  //   "priceband": "Best Available",
+  //   "starttime": 1360916300,
+  //   "endtime": 1360917300,
+  //   "facevalue": 45,
+  //   "discount_price": 34.5,
+  //   "location": "Victoria Street, London, SW1E5EA",
+  //   "longitude": 51.496522,
+  //   "latitude": -0.142543,
+  //   "metadata": "GRpWkWY5W0c",
+  //   "synopsis": "synopsis",
+  //   "reviews": [
   //     {
-  //       review: "review1",
-  //       name: "The Daily Telegraph"
+  //       "name": "The Daily Telegraph",
+  //       "comments": "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Proin feugiat, lectus vel pharetra sodales, turpis felis mollis sapien, faucibus porta lorem mauris id augue."
   //     },
   //     {
-  //       review: "review2",
-  //       name: "The Daily Telegraph"
+  //       "name": "The Daily Mail",
+  //       "comments": "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Proin feugiat, lectus vel pharetra sodales, turpis felis mollis sapien, faucibus porta lorem mauris id augue."
   //     },
   //     {
-  //       review: "review3",
-  //       name: "The Daily Telegraph"
+  //       "name": "The Daily Beagle",
+  //       "comments": "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Proin feugiat, lectus vel pharetra sodales, turpis felis mollis sapien, faucibus porta lorem mauris id augue."
   //     }
   //   ],
-  //   imgurl: [
-  //     "imgurl1",
-  //     "imgurl2",
-  //     "imgurl3",
-  //     "imgurl4"
-  //   ]
+  //   "images": {
+  //     "featured": [
+  //       {
+  //         "size": "thumbnail",
+  //         "url": "http://placehold.it/320x180"
+  //       },
+  //       {
+  //         "size": "small",
+  //         "url": "http://placehold.it/640x320"
+  //       },
+  //       {
+  //         "size": "medium",
+  //         "url": "http://placehold.it/1280x640"
+  //       },
+  //       {
+  //         "size": "large",
+  //         "url": "http://placehold.it/1920x1080"
+  //       }
+  //     ],
+  //     "standard": [
+  //       {
+  //         "thumbnail": {
+  //           "url": "http://placehold.it/320x180"
+  //         },
+  //         "small": {
+  //           "url": "http://placehold.it/640x320"
+  //         },
+  //         "medium": {
+  //           "url": "http://placehold.it/1280x640"
+  //         },
+  //         "large": {
+  //           "url": "http://placehold.it/1920x1080"
+  //         }
+  //       },
+  //       {
+  //         "thumbnail": {
+  //           "url": "http://placehold.it/320x180"
+  //         },
+  //         "small": {
+  //           "url": "http://placehold.it/640x320"
+  //         },
+  //         "medium": {
+  //           "url": "http://placehold.it/1280x640"
+  //         },
+  //         "large": {
+  //           "url": "http://placehold.it/1920x1080"
+  //         }
+  //       },
+  //       {
+  //         "thumbnail": {
+  //           "url": "http://placehold.it/320x180"
+  //         },
+  //         "small": {
+  //           "url": "http://placehold.it/640x320"
+  //         },
+  //         "medium": {
+  //           "url": "http://placehold.it/1280x640"
+  //         },
+  //         "large": {
+  //           "url": "http://placehold.it/1920x1080"
+  //         }
+  //       }
+  //     ]
+  //   }
   // };
 
   var result = yield events.insert(document);
