@@ -41,7 +41,7 @@ app.use(session());
 
 // set koa to listen on specified port
 if (!module.parent) {
-  app.listen(packageJson.config.server.koa.port); // The app.listen(...) method is simply sugar for the following:
+  app.listen(config.server.koa.port); // The app.listen(...) method is simply sugar for the following:
 }
 
-console.info('main Koa application now running on http://localhost:' + packageJson.config.server.koa.port);
+console.info('main Koa application now running on http://localhost:' + config.server.koa.port);
