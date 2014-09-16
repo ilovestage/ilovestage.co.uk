@@ -180,12 +180,12 @@
         "server": {
           "database": {
             "protocol": "mongodb",
-            "host": "troup.mongohq.com",
-            "name": "",
-            "port": 10026,
+            "host": "127.0.0.1",
+            "name": "ilovestage",
+            "port": 27017,
             "credentials": {
-              "username": "nodejitsu",
-              "password": ""
+              "username": null,
+              "password": null
             }
           },
           "koa": {
