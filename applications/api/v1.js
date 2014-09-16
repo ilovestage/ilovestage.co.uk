@@ -6,6 +6,7 @@ var co = require('co');
 var parse = require('co-body');
 var koa = require('koa');
 var logger = require('koa-logger');
+// var qs = require('qs');
 var request = require('koa-request');
 var router = require('koa-router');
 // var rdfstore = require('rdfstore');
@@ -17,6 +18,7 @@ var db = new database(packageJson.config.server.database);
 var users = db.collection('users');
 var ingredients = db.collection('ingredients');
 
+require('koa-qs')(app)
 
 // logger
 app.use(function *(next) {
