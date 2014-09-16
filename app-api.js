@@ -23,10 +23,10 @@ app.use(function *(next) {
   var start = new Date();
   yield next;
   var ms = new Date() - start;
-  console.log('%s %s - %s', this.method, this.url, ms);
+  // console.log('%s %s - %s', this.method, this.url, ms);
 
-  console.log(this, this.request, this.response);
-  console.log(this.request.header);
+  // console.log(this, this.request, this.response);
+  // console.log(this.request.header);
 });
 
 // use koa-router
