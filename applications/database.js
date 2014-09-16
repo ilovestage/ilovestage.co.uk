@@ -1,4 +1,5 @@
 var packageJson = require(__dirname + '/../package.json');
+var config = packageJson.config.environment[process.env.NODE_ENV || 'development'];
 
 var co = require('co');
 var wrap = require('co-monk');
@@ -15,15 +16,19 @@ var application = function(configuration) {
     var connectionString = '';
 
     if(!configuration) {
-      configuration = packageJson.config.server.database;
+      configuration = config.server.database;
     }
 
     connectionString += configuration.protocol;
     connectionString += '://';
-    connectionString += configuration.credentials.username;
-    connectionString += ':';
-    connectionString += configuration.credentials.password;
-    connectionString += '@';
+
+    if((configuration.credentials.username !== null) && (configuration.credentials.password)) {
+      connectionString += configuration.credentials.username;
+      connectionString += ':';
+      connectionString += configuration.credentials.password;
+      connectionString += '@';
+    }
+
     connectionString += configuration.host;
     connectionString += ':';
     connectionString += configuration.port;

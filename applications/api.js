@@ -1,4 +1,5 @@
 var packageJson = require(__dirname + '/../package.json');
+var config = packageJson.config.environment[process.env.NODE_ENV || 'development'];
 
 var co = require('co');
 var koa = require('koa');

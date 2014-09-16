@@ -1,4 +1,5 @@
 var packageJson = require(__dirname + '/../../package.json');
+var config = packageJson.config.environment[process.env.NODE_ENV || 'development'];
 
 var _ = require('lodash');
 var koa = require('koa');
@@ -28,7 +29,8 @@ var render = views('source/views', {
 
 var defaults = {
   lang: 'en',
-  packageJson: packageJson,
+  // packageJson: packageJson,
+  config: config,
   ngApp: 'general'
 };
 

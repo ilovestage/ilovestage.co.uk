@@ -1,4 +1,5 @@
 var packageJson = require(__dirname + '/../package.json');
+var config = packageJson.config.environment[process.env.NODE_ENV || 'development'];
 
 var co = require('co');
 var koa = require('koa');
@@ -48,6 +49,6 @@ socket.on('connection', function(socket) {
 });
 
 //Run server
-server.listen(packageJson.config.server.socketio.port); //socket.io
+server.listen(config.server.socketio.port); //socket.io
 
 module.exports = app;
