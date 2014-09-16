@@ -127,33 +127,75 @@
       "build": "build",
       "source": "source"
     },
-    "server": {
-      "connect": {
-        "port": 4000
-      },
-      "database": {
-        "protocol": "mongodb",
-        "host": "troup.mongohq.com",
-        "name": "nodejitsudb1124257398",
-        "port": 10026,
-        "credentials": {
-          "username": "nodejitsu",
-          "password": "31446693dac807d62cbe52f522408bf6"
+    "environment": {
+      "development": {
+        "server": {
+          "database": {
+            "protocol": "mongodb",
+            "host": "127.0.0.1",
+            "name": "ilovestage",
+            "port": 17017,
+            "credentials": {
+              "username": null,
+              "password": null
+            }
+          },
+          "koa": {
+            "port": 5020
+          }
+        },
+        "api": {
+          "google": {
+            "key": "",
+            "domain": "ilovestage.com"
+          }
         }
       },
-      "koa": {
-        "port": 4010
+      "staging": {
+        "server": {
+          "database": {
+            "protocol": "mongodb",
+            "host": null,
+            "name": null,
+            "port": null,
+            "credentials": {
+              "username": null,
+              "password": null
+            }
+          },
+          "koa": {
+            "port": 5020
+          }
+        },
+        "api": {
+          "google": {
+            "key": "",
+            "domain": "ilovestage.com"
+          }
+        }
       },
-      "livereload": {
-        "port": 4050
-      },
-      "socketio": {
-        "port": 4020
-      }
-    },
-    "api": {
-      "google": {
-        "key": "AIzaSyABR4Vcjsg7B4HKc4BAI7ksJA4jr6-_DOc"
+      "production": {
+        "server": {
+          "database": {
+            "protocol": "mongodb",
+            "host": "troup.mongohq.com",
+            "name": "",
+            "port": 10026,
+            "credentials": {
+              "username": "nodejitsu",
+              "password": ""
+            }
+          },
+          "koa": {
+            "port": 5020
+          }
+        },
+        "api": {
+          "google": {
+            "key": "",
+            "domain": "ilovestage.com"
+          }
+        }
       }
     }
   }
