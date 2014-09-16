@@ -1,6 +1,8 @@
 var packageJson = require(__dirname + '/../../package.json');
 var config = packageJson.config.environment[process.env.NODE_ENV || 'development'];
 
+var version = 1.0;
+
 var _ = require('lodash');
 var co = require('co');
 var parse = require('co-body');
@@ -9,14 +11,13 @@ var logger = require('koa-logger');
 // var qs = require('qs');
 var request = require('koa-request');
 var router = require('koa-router');
-// var rdfstore = require('rdfstore');
 var should = require('should');
 var database = require(__dirname + '/../database');
 
 var app = koa();
-var db = new database(packageJson.config.server.database);
+var db = new database(config.server.database);
 var users = db.collection('users');
-var ingredients = db.collection('ingredients');
+var events = db.collection('events');
 
 require('koa-qs')(app)
 
@@ -30,328 +31,256 @@ app.use(function *(next) {
 
 var api = new router();
 
-function* freebaseSearch (query) {
-  // example: 'https://www.googleapis.com/freebase/v1/topic/en/barack_obama?filter=/type/object/key&limit=1';
-
-  var service_url = 'https://www.googleapis.com/freebase/v1/search';
-
-  var parameters = {
-    // domain: '/food/food',
-    // '*': null,
-    filter: '(any type:/food/food type:/biology/organism_classification type:/base/foodrecipes/recipe_ingredient)',
-    key: packageJson.config.api.google.key,
-    output:'(/biology/organism_classification/scientific_name:master /common/topic/description:master description:wikipedia /common/topic/image:wikipedia /common/topic/official_website:master /food/food/energy:master  /food/food/usda_id:master)',
-    query: query,
-    stemmed: 'true'
-  };
-
-  var querystring = '';
-  _(parameters).forEach(function(value, key) {
-    querystring += key + '=' + encodeURIComponent(value) + '&';
-  });
-
-  var url = service_url + '?' + querystring;
-  // console.log('url', url);
-  var response = yield request(url);
-
-  var info = JSON.parse(response.body);
-
-  return info;
-}
-
-function* freebaseTopic (topicId) {
-  // example: 'https://www.googleapis.com/freebase/v1/topic/en/barack_obama?filter=/type/object/key&limit=1';
-
-  // topicId format: '/m/0d6lp'
-
-  var service_url = 'https://www.googleapis.com/freebase/v1/topic';
-
-  var parameters = {
-    filter: 'suggest',
-    key: packageJson.config.api.google.key,
-    limit: '1'
-  };
-
-  var querystring = '';
-  _(parameters).forEach(function(value, key) {
-    querystring += key + '=' + encodeURIComponent(value) + '&';
-  });
-
-  var url = service_url + topicId + '?' + querystring;
-
-  var response = yield request(url);
-
-  var info = JSON.parse(response.body);
-
-  return info;
-}
-
-function* freebaseMetawebQuery (name) {
-  // example: https://www.googleapis.com/freebase/v1/mqlread?query=[{"type":"/food/food","name":"Pomelo","!/food/nutrition_fact/food":[{"*": null}]}]
-
-  var service_url = 'https://www.googleapis.com/freebase/v1/mqlread';
-
-  var parameters = {
-    key: packageJson.config.api.google.key,
-    query: '[{"type": "/food/food","name": "' + encodeURIComponent(name) + '","!/food/nutrition_fact/food": [{"*": null}]}]'
-  };
-
-  var querystring = '';
-  _(parameters).forEach(function(value, key) {
-    querystring += key + '=' + value + '&';
-  });
-
-  var url = service_url + '?' + querystring;
-
-  var response = yield request(url);
-
-  var info = JSON.parse(response.body);
-
-  return info;
-}
-
 api.get('/', function *(next) {
   yield next;
-  this.body = 'Welcome to the API v1 application';
+  this.body = packageJson.name + ' API version ' + version.toFixed(1);
   this.type = 'application/json';
 });
 
-api.get('/ingredients', function *(next) {
-  // yield ingredients.remove({});
-  var res = yield ingredients.find({});
-  this.body = res;
-  this.type = 'application/json';
-});
+// Routes: Events
 
-api.post('/ingredients', function *(next) {
-  // console.log(this);
-  var ingredient = yield parse(this);
-  // console.log('ingredient', ingredient);
+api.get('/events', function *(next) {
+  var status = null;
+  var errorMessage = null;
+  var queryParameters = null;
+  var result = null;
 
-  var ingredientName = ingredient.name;
+  var mydate1 = new Date('Jun 07, 1954');
+  var mydate2 = new Date(2014,9,7);
+  var mydate3 = new Date('2013-12-12T16:00:00.000Z');
 
-  var result = yield ingredients.findOne({
-    name: ingredientName
-  });
+  console.log('mydate1', mydate1.getDate(), mydate1.getMonth(), mydate1.getFullYear());
+  console.log('mydate2', mydate2.getDate(), mydate2.getMonth(), mydate2.getFullYear());
+  console.log('mydate3', mydate3.getDate(), mydate3.getMonth(), mydate3.getFullYear());
 
-  // console.log('db result', result, result.should.have.length(1));
-  // console.log('db result', result);
-
-  if(!result || result.length !== 1) {
-    var search = yield freebaseSearch (ingredientName);
-    var document = search.result[0];
-
-    document.created_on = new Date;
-    document.updated_on = new Date;
-
-    document.images = {};
-
-    var metawebQuery = yield freebaseMetawebQuery (ingredientName);
-
-    var nutrition_facts = null;
-
-    if(metawebQuery && metawebQuery.result && metawebQuery.result[0] && metawebQuery.result[0]['!/food/nutrition_fact/food']) {
-      nutrition_facts = metawebQuery.result[0]['!/food/nutrition_fact/food'];
+  if((typeof this.query.year !== 'undefined') && (typeof this.query.month !== 'undefined') && (typeof this.query.day !== 'undefined')) {
+    console.log('select event by parameters');
+    queryParameters = {
+      year: this.query.year,
+      month: this.query.month,
+      day: this.query.day
     }
-
-    if(nutrition_facts && nutrition_facts.length > 0) {
-      document.nutrition_facts = nutrition_facts;
-    }
-
-    var page_images_url = 'http://en.wikipedia.org/w/api.php?action=query&titles=' + ingredientName + '&prop=pageimages&format=json&pithumbsize=100';
-
-    var page_images_request = yield request(page_images_url);
-
-    var page_images = JSON.parse(page_images_request.body);
-
-    // console.log('page_images', page_images);
-    if(page_images && page_images.query) {
-      // console.log('page_images.query.pages', page_images.query.pages);
-
-      var jsonObj = page_images.query.pages;
-      var firstProp = null;
-      for(var key in jsonObj) {
-          if(jsonObj.hasOwnProperty(key)) {
-              firstProp = jsonObj[key];
-              break;
-          }
-      }
-
-      // console.log('firstProp', firstProp);
-
-      // document.images.thumbnail = page_images.query.pages['379788'].thumbnail.source;
-      if(firstProp) {
-        // console.log('firstProp.thumbnail', firstProp.thumbnail);
-        document.images.thumbnail = firstProp.thumbnail.source;
-      }
-
-    }
-
-    // console.log('document', document);
-    var result = yield ingredients.insert(document);
+  } else if(typeof this.query !== 'undefined') {
+    console.log('select all events');
+    queryParameters = {};
+  } else {
+    status = 400;
   }
 
-  // console.log('freebase result', result);
-
-  this.body = result;
-  this.type = 'application/json';
-});
-
-api.get('/ingredients/:id', function *(next) {
-  var ingredientId = this.params.id;
-
-  var result = yield ingredients.findOne({
-    _id: ingredientId
-  });
-
-  this.body = result;
-  this.type = 'application/json';
-});
-
-api.put('/ingredients/:id', function *(next) {
-  var ingredientId = this.params.id;
-
-  var body = yield parse(this);
-  // console.log('body', body);
-
-  var result = yield ingredients.updateById(ingredientId, body);
-
-  this.body = result;
-  this.type = 'application/json';
-});
-
-api.del('/ingredients/:id', function *(next) {
-  var ingredientId = this.params.id;
-
-  var lookup = yield ingredients.findOne({
-    _id: ingredientId
-  });
-
-  var result = yield ingredients.remove({
-    _id: ingredientId
-  });
-
-  // console.log('ingredientId', ingredientId, 'lookup', lookup, 'result', result);
-
-  this.body = result;
-  this.type = 'application/json';
-});
-
-api.get('/ingredients/create/:name', function *(next) {
-  var ingredientName = this.params.name;
-
-  var result = yield ingredients.findOne({
-    name: ingredientName
-  });
-
-  // console.log('db result', result, result.should.have.length(1));
-  // console.log('db result', result);
-
-  if(!result || result.length !== 1) {
-    var search = yield freebaseSearch (ingredientName);
-    var document = search.result[0];
-
-    var result = yield ingredients.insert(document);
+  if(queryParameters) {
+    result = yield events.find(queryParameters);
+    // result = yield events.find(queryParameters).limit(20);
   }
 
-  // console.log('freebase result', result);
+  if(!result || result.length < 1) {
+    status = 404;
+  } else {
+    status = 200;
+  }
 
-  this.body = result;
+  //handle error messages from monk and pass into response below
+
+  var body = {
+    status: status, // use HTTP status code
+    error: errorMessage,
+    result: result
+  };
+
+  this.body = body;
+  this.status = status;
   this.type = 'application/json';
 });
 
-api.get('/ingredients/:name/nutrition', function *(next) {
-  var name = this.params.name;
+api.post('/events', function *(next) {
+  var document = yield parse(this);
 
-  var result = yield freebaseMetawebQuery (name);
-  this.body = result;
-  this.type = 'application/json';
-});
-
-api.get('/ingredients/:name/activity', function *(next) {
-  var res = yield ingredients.find({
-    name: this.params.name
-  });
-  this.body = res;
-  this.type = 'application/json';
-});
-
-api.del('/ingredients', function *(next) {
-  var res = yield ingredients.remove();
-
-  this.body = res;
-  this.type = 'application/json';
-});
-
-
-// Routes: Users
-
-api.get('/users', function *(next) {
-  var res = yield users.find({});
-  this.body = res;
-});
-
-api.get('/users/:username', function *(next) {
-  var res = yield users.findOne(this.params.id);
-  var res = yield users.find({
-    username: this.params.username
-  });
-  this.body = res;
-});
-
-api.get('/users/:username/activity', function *(next) {
-  var res = yield users.find({
-    username: this.params.username
-  });
-  this.body = res;
-});
-
-api.post('/users/create', function *(next) {
-  // console.log(this);
-  var body = yield parse(this);
-  // console.log('body', body);
-
-  // var data = {
-  //   username: this.params.username,
-  //   name: this.params.name,
-  //   emailAddress: this.params.emailAddress,
-  //   birthDate: this.params.birthDate,
-  //   signupDate: this.params.signupDate,
-  //   updateDate: this.params.updateDate
+  // var document = {
+  //   id: 2,
+  //   total: 20,
+  //   availability: 2,
+  //   show: "Wicked",
+  //   date: "18 Sep, 19:30",
+  //   theatre: "Drury Lane Theatre",
+  //   priceband: "BestAvailable",
+  //   starttime: 1360916300,
+  //   endtime: 1360917300,
+  //   facevalue: 45,
+  //   discount_price: 34.5,
+  //   location: "VictoriaStreet, London, SW1E5EA",
+  //   longitude: 51.496522,
+  //   latitude: -0.142543,
+  //   metadata: "GRpWkWY5W0c",
+  //   synopsis: "synopsis",
+  //   reviews: [
+  //     {
+  //       review: "review1",
+  //       name: "The Daily Telegraph"
+  //     },
+  //     {
+  //       review: "review2",
+  //       name: "The Daily Telegraph"
+  //     },
+  //     {
+  //       review: "review3",
+  //       name: "The Daily Telegraph"
+  //     }
+  //   ],
+  //   imgurl: [
+  //     "imgurl1",
+  //     "imgurl2",
+  //     "imgurl3",
+  //     "imgurl4"
+  //   ]
   // };
 
-  var res = yield users.insert(body, function (err, doc) {
-    // console.log('err', err, 'doc', doc);
-    if (err) {
-      this.body = 'Unable to process request';
-      this.status = 400;
-      throw err;
-    } else {
-      this.body = res;
-      this.status = 201; // change to be set only on success
+  var result = yield events.insert(document);
+
+  this.body = result;
+  this.type = 'application/json';
+});
+
+api.get('/events/:id', function *(next) {
+  var eventId = this.params.id;
+
+  var result = yield events.findOne({
+    _id: eventId
+  });
+
+  this.body = result;
+  this.type = 'application/json';
+});
+
+api.put('/events/:id', function *(next) {
+  var eventId = this.params.id;
+
+  var body = yield parse(this);
+  // console.log('body', body);
+
+  var result = yield events.updateById(eventId, body);
+
+  this.body = result;
+  this.type = 'application/json';
+});
+
+api.del('/events/:id', function *(next) {
+  var eventId = this.params.id;
+
+  var lookup = yield events.findOne({
+    _id: eventId
+  });
+
+  var result = yield events.remove({
+    _id: eventId
+  });
+
+  this.body = result;
+  this.type = 'application/json';
+});
+
+api.get('/users', function *(next) {
+  var status = null;
+  var errorMessage = null;
+  var queryParameters = null;
+  var result = null;
+
+  console.log(this.query.email, this.query.password);
+
+  if( (typeof this.query.provider !== 'undefined') && (typeof this.query.provider_uid !== 'undefined') ) {
+    console.log('social');
+    queryParameters = {
+      provider: this.query.provider,
+      provider_uid: this.query.provider_uid
     }
-  });
+  } else if( (typeof this.query.email !== 'undefined') && (typeof this.query.password !== 'undefined') ) {
+    console.log('email');
+    queryParameters = {
+      email: this.query.email,
+      password: this.query.password
+    }
+  } else if(typeof this.query !== 'undefined') {
+    console.log('select all users');
+    queryParameters = {};
+  } else {
+    status = 400;
+  }
 
+  if(queryParameters) {
+    result = yield users.find(queryParameters);
+    // result = yield users.find(queryParameters).limit(20);
+  }
+
+  if(!result || result.length < 1) {
+    status = 404;
+  } else {
+    status = 200;
+  }
+
+  //handle error messages from monk and pass into response below
+
+  var body = {
+    status: status, // use HTTP status code
+    error: errorMessage,
+    result: result
+  };
+
+  this.body = body;
+  this.status = status;
+  this.type = 'application/json';
 });
 
-api.put('/users/:username/update', function *(next) {
-  // console.log(this.params);
-  var res = yield users.update({
-    username: this.params.username
-  });
-  this.body = res;
+api.post('/users', function *(next) {
+  var document = yield parse(this);
+
+  // var document = {
+  //   "firstname": "mijin",
+  //   "lastname": "cho",
+  //   "uid": "42043",
+  //   "email": "developer.cho@gmail.com",
+  //   "password": "mypass1234",
+  //   "provider": "twitter",
+  //   "provider_uid": "uid123",
+  //   "tickets": [
+  //     {
+  //       event: [
+  //         {
+  //           "eventid": "1",
+  //         },
+  //         {
+  //           "eventid": "2",
+  //         }
+  //       ],
+  //       total:"2",
+  //       booking_status: "booked"
+  //     },
+  //     {
+  //       event: [
+  //         {
+  //           "eventid": "3"
+  //         },
+  //         {
+  //           "eventid": "4"
+  //         }
+  //       ],
+  //       total:"2",
+  //       booking_status: "waiting"
+  //     }
+  //   ],
+  // };
+
+  var result = yield users.insert(document);
+
+  this.body = result;
+  this.type = 'application/json';
 });
 
-api.get('/users/:username/recipes', function *(next) {
-  var res = yield recipes.find({
-    username: this.params.username
-  });
-  this.body = res;
-});
+// Routes: Catch-all
 
 api.get(/^([^.]+)$/, function *(next) {
   yield next;
+
   this.body = 'API v1 - 404 not found';
+  this.status = 404;
+  this.type = 'application/json';
 }); //matches everything without an extension
 
 module.exports = api;
