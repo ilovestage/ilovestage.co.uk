@@ -92,7 +92,7 @@ api.get('/events', function *(next) {
 });
 
 api.post('/events', function *(next) {
-  var document = yield parse(this);
+  var document = yield parse.json(this);
 
   // var document = {
   //   "id": 2,
@@ -211,7 +211,7 @@ api.get('/events/:id', function *(next) {
 api.put('/events/:id', function *(next) {
   var eventId = this.params.id;
 
-  var body = yield parse(this);
+  var body = yield parse.json(this);
   // console.log('body', body);
 
   var result = yield events.updateById(eventId, body);
@@ -287,7 +287,7 @@ api.get('/users', function *(next) {
 });
 
 api.post('/users', function *(next) {
-  var document = yield parse(this);
+  var document = yield parse.json(this);
 
   // var document = {
   //   "firstname": "mijin",
@@ -307,8 +307,8 @@ api.post('/users', function *(next) {
   //           "eventid": "2",
   //         }
   //       ],
-  //       total:"2",
-  //       booking_status: "booked"
+  //       "total": "2",
+  //       "booking_status": "booked"
   //     },
   //     {
   //       event: [
@@ -319,8 +319,8 @@ api.post('/users', function *(next) {
   //           "eventid": "4"
   //         }
   //       ],
-  //       total:"2",
-  //       booking_status: "waiting"
+  //       "total":"2",
+  //       "booking_status": "waiting"
   //     }
   //   ],
   // };
