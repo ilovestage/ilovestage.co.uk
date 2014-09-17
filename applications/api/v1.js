@@ -311,9 +311,9 @@ api.put('/events/:id', function *(next) {
 api.del('/events/:id', function *(next) {
   var eventId = this.params.id;
 
-  var lookup = yield events.findOne({
-    _id: eventId
-  });
+  // var lookup = yield events.findOne({
+  //   _id: eventId
+  // });
 
   var result = yield events.remove({
     _id: eventId
