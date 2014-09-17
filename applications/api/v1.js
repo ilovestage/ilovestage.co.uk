@@ -47,6 +47,7 @@ api.get('/events', function *(next) {
   var searchParameters = {};
   var result = null;
   var status = null;
+  var limit = 20;
 
   // var mydate1 = new Date('Jun 07, 1954');
   // var mydate2 = new Date(2014,9,7);
@@ -132,9 +133,16 @@ api.get('/events', function *(next) {
 
   // console.log('searchParameters', searchParameters);
 
+  if(nestedQuery.limit && (typeof parseInt(nestedQuery.limit) === 'number')) {
+    limit = nestedQuery.limit;
+
+    if(limit > 50) {
+      limit = 50;
+    }
+  }
+
   if(searchParameters) {
-    result = yield events.find(searchParameters);
-    // result = yield events.find(searchParameters).limit(20);
+    result = yield events.find(searchParameters).limit(limit);
 
     if(!result || result.length < 1) {
       status = 404;
@@ -316,10 +324,12 @@ api.del('/events/:id', function *(next) {
 });
 
 api.get('/users', function *(next) {
+  var nestedQuery = qs.parse(this.querystring);
   var status = null;
   var errorMessage = null;
   var searchParameters = null;
   var result = null;
+  var limit = 20;
 
   console.log(this.query.email, this.query.password);
 
@@ -342,9 +352,16 @@ api.get('/users', function *(next) {
     status = 400;
   }
 
+  if(nestedQuery.limit && (typeof parseInt(nestedQuery.limit) === 'number')) {
+    limit = nestedQuery.limit;
+
+    if(limit > 50) {
+      limit = 50;
+    }
+  }
+
   if(searchParameters) {
-    result = yield users.find(searchParameters);
-    // result = yield users.find(searchParameters).limit(20);
+    result = yield users.find(searchParameters).limit(limit);
   }
 
   if(!result || result.length < 1) {
@@ -416,7 +433,10 @@ api.post('/users', function *(next) {
 api.get(/^([^.]+)$/, function *(next) {
   yield next;
 
-  this.body = 'API v1 - 404 not found';
+  this.body = {
+    status: 404,
+    error: 'Not found'
+  };
   this.status = 404;
   this.type = 'application/json';
 }); //matches everything without an extension
