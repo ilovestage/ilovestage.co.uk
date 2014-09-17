@@ -131,10 +131,10 @@ api.get('/events', function *(next) {
     searchParameters = {};
   }
 
-  // console.log('searchParameters', searchParameters);
+  // console.log('nestedQuery.limit', nestedQuery.limit);
 
   if(nestedQuery.limit && (typeof parseInt(nestedQuery.limit) === 'number')) {
-    limit = nestedQuery.limit;
+    limit = parseInt(nestedQuery.limit);
 
     if(limit > 50) {
       limit = 50;
@@ -142,7 +142,9 @@ api.get('/events', function *(next) {
   }
 
   if(searchParameters) {
-    result = yield events.find(searchParameters).limit(limit);
+    result = yield events.find(searchParameters, {
+      limit: limit
+    });
 
     if(!result || result.length < 1) {
       status = 404;
@@ -353,7 +355,7 @@ api.get('/users', function *(next) {
   }
 
   if(nestedQuery.limit && (typeof parseInt(nestedQuery.limit) === 'number')) {
-    limit = nestedQuery.limit;
+    limit = parseInt(nestedQuery.limit);
 
     if(limit > 50) {
       limit = 50;
@@ -361,7 +363,9 @@ api.get('/users', function *(next) {
   }
 
   if(searchParameters) {
-    result = yield users.find(searchParameters).limit(limit);
+    result = yield users.find(searchParameters, {
+      limit: limit
+    });
   }
 
   if(!result || result.length < 1) {
