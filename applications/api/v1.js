@@ -55,47 +55,44 @@ api.get('/events', function *(next) {
   // console.log('mydate1', mydate1.getDate(), mydate1.getMonth(), mydate1.getFullYear());
   // console.log('mydate2', mydate2.getDate(), mydate2.getMonth(), mydate2.getFullYear());
   // console.log('mydate3', mydate3.getDate(), mydate3.getMonth(), mydate3.getFullYear());
-  //
-  // console.log('this.request', this.request);
-  // console.log('this._querycache', this._querycache);
-  //
-  // console.log('this.querystring', this.querystring);
-  // console.log('this.querystring.start', this.querystring.start);
-  // console.log('this.query', this.query);
-  // console.log('this.query.start', this.query.start);
-  //
-  // console.log('qs', qs.parse(this.querystring));
-  // console.log('typeof nestedQuery.end', typeof nestedQuery.end);
 
-  // if(((typeof nestedQuery.start !== 'undefined') && ((typeof nestedQuery.start.year !== 'undefined') || (typeof nestedQuery.start.month !== 'undefined') || (typeof nestedQuery.start.day !== 'undefined') || (typeof nestedQuery.start.hour !== 'undefined') || (typeof nestedQuery.start.minute !== 'undefined') || (typeof nestedQuery.start.second !== 'undefined'))) || ((typeof nestedQuery.end !== 'undefined') && ((typeof nestedQuery.end.year !== 'undefined') || (typeof nestedQuery.end.month !== 'undefined') || (typeof nestedQuery.end.day !== 'undefined') || (typeof nestedQuery.end.hour !== 'undefined') || (typeof nestedQuery.end.minute !== 'undefined') || (typeof nestedQuery.end.second !== 'undefined')))) {
-    // console.log('select event by parameters');
+  // console.log('this.querystring', this.querystring);
+  // console.log('this.query', this.query);
+  // console.log('qs', qs.parse(this.querystring));
 
   if(nestedQuery.start || nestedQuery.end) {
-      searchParameters.starttime = {};
+    searchParameters.starttime = {};
 
     if(nestedQuery.start) {
       var dateStart = null;
 
       if(typeof nestedQuery.start === 'object') {
         dateParameters.start = {
-          year: nestedQuery.start.year,
-          month: nestedQuery.start.month,
-          day: nestedQuery.start.day,
-          hour: nestedQuery.start.hour ? nestedQuery.start.hour : 0,
-          minute: nestedQuery.start.minute ? nestedQuery.start.minute : 0,
-          second: nestedQuery.start.second ? nestedQuery.start.second : 0
+          year: parseInt(nestedQuery.start.year),
+          month: parseInt(nestedQuery.start.month),
+          date: parseInt(nestedQuery.start.date),
+          hours: parseInt(nestedQuery.start.hours) ? parseInt(nestedQuery.start.hours): 0,
+          minutes: parseInt(nestedQuery.start.minutes) ? parseInt(nestedQuery.start.minutes): 0,
+          seconds: parseInt(nestedQuery.start.seconds) ? parseInt(nestedQuery.start.seconds): 0
         };
+
+        // console.log('dateParameters.start', dateParameters.start);
 
         dateParameters.start.month -= 1;
 
-        dateStart = new Date(dateParameters.start.year, dateParameters.start.month, dateParameters.start.day);
+        dateStart = new Date(dateParameters.start.year, dateParameters.start.month, dateParameters.start.date, dateParameters.start.hours, dateParameters.start.minutes, dateParameters.start.seconds);
       } else if(typeof nestedQuery.start === 'string') {
         dateStart = new Date(nestedQuery.start);
       }
 
-      // check if dateStart is valid
+      // console.log('dateStart', dateStart);
 
-      searchParameters.starttime.$gte = dateStart;
+      if(!isNaN(dateStart.getTime())) {
+        searchParameters.starttime.$gte = dateStart;
+      } else {
+        status = 400;
+      }
+
     }
 
     if(nestedQuery.end) {
@@ -103,32 +100,34 @@ api.get('/events', function *(next) {
 
       if(typeof nestedQuery.end === 'object') {
         dateParameters.end = {
-          year: nestedQuery.end.year,
-          month: nestedQuery.end.month,
-          day: nestedQuery.end.day,
-          hour: nestedQuery.end.hour ? nestedQuery.end.hour : 0,
-          minute: nestedQuery.end.minute ? nestedQuery.end.minute : 0,
-          second: nestedQuery.end.second ? nestedQuery.end.second : 0
+          year: parseInt(nestedQuery.end.year),
+          month: parseInt(nestedQuery.end.month),
+          date: parseInt(nestedQuery.end.date),
+          hours: parseInt(nestedQuery.end.hours) ? parseInt(nestedQuery.end.hours): 0,
+          minutes: parseInt(nestedQuery.end.minutes) ? parseInt(nestedQuery.end.minutes): 0,
+          seconds: parseInt(nestedQuery.end.seconds) ? parseInt(nestedQuery.end.seconds): 0
         };
+
+        // console.log('dateParameters.end', dateParameters.end);
 
         dateParameters.end.month -= 1;
 
-        dateEnd = new Date(dateParameters.end.year, dateParameters.end.month, dateParameters.end.day);
+        dateEnd = new Date(dateParameters.end.year, dateParameters.end.month, dateParameters.end.date, dateParameters.end.hours, dateParameters.end.minutes, dateParameters.end.seconds);
       } else if(typeof nestedQuery.end === 'string') {
         dateEnd = new Date(nestedQuery.end);
       }
 
-      // check if dateEnd is valid
+      // console.log('dateEnd', dateEnd);
 
-      searchParameters.starttime.$lt = dateEnd;
+      if(!isNaN(dateEnd.getTime())) {
+        searchParameters.starttime.$lt = dateEnd;
+      } else {
+        status = 400;
+      }
+
     }
-
-  // } else if(typeof this.query !== 'undefined') {
-  //   console.log('select all events');
-  //   searchParameters = {};
   } else {
     searchParameters = {};
-    status = 400;
   }
 
   // console.log('searchParameters', searchParameters);
@@ -136,12 +135,13 @@ api.get('/events', function *(next) {
   if(searchParameters) {
     result = yield events.find(searchParameters);
     // result = yield events.find(searchParameters).limit(20);
-  }
 
-  if(!result || result.length < 1) {
-    status = 404;
-  } else {
-    status = 200;
+    if(!result || result.length < 1) {
+      status = 404;
+    } else {
+      status = 200;
+    }
+
   }
 
   //handle error messages from monk and pass into response below
