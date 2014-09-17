@@ -278,11 +278,23 @@ api.get('/events/:id', function *(next) {
 });
 
 api.put('/events/:id', function *(next) {
+  var nestedQuery = qs.parse(this.querystring);
+
   var eventId = this.params.id;
 
   var body = yield parse.json(this);
 
-  var result = yield events.updateById(eventId, body);
+  var fields = null;
+
+  if(nestedQuery.replace === 'true') {
+    fields = body;
+  } else {
+    fields = {
+      $set: body
+    };
+  }
+
+  var result = yield events.updateById(eventId, fields);
 
   this.body = result;
   this.type = 'application/json';
