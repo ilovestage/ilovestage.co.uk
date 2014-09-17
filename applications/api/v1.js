@@ -8,18 +8,19 @@ var co = require('co');
 var parse = require('co-body');
 var koa = require('koa');
 var logger = require('koa-logger');
-// var qs = require('qs');
+var qs = require('qs');
 var request = require('koa-request');
 var router = require('koa-router');
 var should = require('should');
 var database = require(__dirname + '/../database');
 
 var app = koa();
+// var app = qs(koa());
 var db = new database(config.server.database);
 var users = db.collection('users');
 var events = db.collection('events');
 
-require('koa-qs')(app)
+// require('koa-qs')(app);
 
 // logger
 app.use(function *(next) {
@@ -40,36 +41,101 @@ api.get('/', function *(next) {
 // Routes: Events
 
 api.get('/events', function *(next) {
-  var status = null;
+  var dateParameters = {};
   var errorMessage = null;
-  var queryParameters = null;
+  var nestedQuery = qs.parse(this.querystring);
+  var searchParameters = {};
   var result = null;
+  var status = null;
 
-  var mydate1 = new Date('Jun 07, 1954');
-  var mydate2 = new Date(2014,9,7);
-  var mydate3 = new Date('2013-12-12T16:00:00.000Z');
+  // var mydate1 = new Date('Jun 07, 1954');
+  // var mydate2 = new Date(2014,9,7);
+  // var mydate3 = new Date('2013-12-12T16:00:00.000Z');
 
-  console.log('mydate1', mydate1.getDate(), mydate1.getMonth(), mydate1.getFullYear());
-  console.log('mydate2', mydate2.getDate(), mydate2.getMonth(), mydate2.getFullYear());
-  console.log('mydate3', mydate3.getDate(), mydate3.getMonth(), mydate3.getFullYear());
+  // console.log('mydate1', mydate1.getDate(), mydate1.getMonth(), mydate1.getFullYear());
+  // console.log('mydate2', mydate2.getDate(), mydate2.getMonth(), mydate2.getFullYear());
+  // console.log('mydate3', mydate3.getDate(), mydate3.getMonth(), mydate3.getFullYear());
+  //
+  // console.log('this.request', this.request);
+  // console.log('this._querycache', this._querycache);
+  //
+  // console.log('this.querystring', this.querystring);
+  // console.log('this.querystring.start', this.querystring.start);
+  // console.log('this.query', this.query);
+  // console.log('this.query.start', this.query.start);
+  //
+  // console.log('qs', qs.parse(this.querystring));
+  // console.log('typeof nestedQuery.end', typeof nestedQuery.end);
 
-  if((typeof this.query.year !== 'undefined') && (typeof this.query.month !== 'undefined') && (typeof this.query.day !== 'undefined')) {
-    console.log('select event by parameters');
-    queryParameters = {
-      year: this.query.year,
-      month: this.query.month,
-      day: this.query.day
+  // if(((typeof nestedQuery.start !== 'undefined') && ((typeof nestedQuery.start.year !== 'undefined') || (typeof nestedQuery.start.month !== 'undefined') || (typeof nestedQuery.start.day !== 'undefined') || (typeof nestedQuery.start.hour !== 'undefined') || (typeof nestedQuery.start.minute !== 'undefined') || (typeof nestedQuery.start.second !== 'undefined'))) || ((typeof nestedQuery.end !== 'undefined') && ((typeof nestedQuery.end.year !== 'undefined') || (typeof nestedQuery.end.month !== 'undefined') || (typeof nestedQuery.end.day !== 'undefined') || (typeof nestedQuery.end.hour !== 'undefined') || (typeof nestedQuery.end.minute !== 'undefined') || (typeof nestedQuery.end.second !== 'undefined')))) {
+    // console.log('select event by parameters');
+
+  if(nestedQuery.start || nestedQuery.end) {
+      searchParameters.starttime = {};
+
+    if(nestedQuery.start) {
+      var dateStart = null;
+
+      if(typeof nestedQuery.start === 'object') {
+        dateParameters.start = {
+          year: nestedQuery.start.year,
+          month: nestedQuery.start.month,
+          day: nestedQuery.start.day,
+          hour: nestedQuery.start.hour ? nestedQuery.start.hour : 0,
+          minute: nestedQuery.start.minute ? nestedQuery.start.minute : 0,
+          second: nestedQuery.start.second ? nestedQuery.start.second : 0
+        };
+
+        dateParameters.start.month -= 1;
+
+        dateStart = new Date(dateParameters.start.year, dateParameters.start.month, dateParameters.start.day);
+      } else if(typeof nestedQuery.start === 'string') {
+        dateStart = new Date(nestedQuery.start);
+      }
+
+      // check if dateStart is valid
+
+      searchParameters.starttime.$gte = dateStart;
     }
-  } else if(typeof this.query !== 'undefined') {
-    console.log('select all events');
-    queryParameters = {};
+
+    if(nestedQuery.end) {
+      var dateEnd = null;
+
+      if(typeof nestedQuery.end === 'object') {
+        dateParameters.end = {
+          year: nestedQuery.end.year,
+          month: nestedQuery.end.month,
+          day: nestedQuery.end.day,
+          hour: nestedQuery.end.hour ? nestedQuery.end.hour : 0,
+          minute: nestedQuery.end.minute ? nestedQuery.end.minute : 0,
+          second: nestedQuery.end.second ? nestedQuery.end.second : 0
+        };
+
+        dateParameters.end.month -= 1;
+
+        dateEnd = new Date(dateParameters.end.year, dateParameters.end.month, dateParameters.end.day);
+      } else if(typeof nestedQuery.end === 'string') {
+        dateEnd = new Date(nestedQuery.end);
+      }
+
+      // check if dateEnd is valid
+
+      searchParameters.starttime.$lt = dateEnd;
+    }
+
+  // } else if(typeof this.query !== 'undefined') {
+  //   console.log('select all events');
+  //   searchParameters = {};
   } else {
+    searchParameters = {};
     status = 400;
   }
 
-  if(queryParameters) {
-    result = yield events.find(queryParameters);
-    // result = yield events.find(queryParameters).limit(20);
+  // console.log('searchParameters', searchParameters);
+
+  if(searchParameters) {
+    result = yield events.find(searchParameters);
+    // result = yield events.find(searchParameters).limit(20);
   }
 
   if(!result || result.length < 1) {
@@ -102,8 +168,8 @@ api.post('/events', function *(next) {
   //   "date": "18 Sep, 19:30",
   //   "theatre": "Drury Lane Theatre",
   //   "priceband": "Best Available",
-  //   "starttime": 1360916300,
-  //   "endtime": 1360917300,
+  //   "starttime": "Sat Sep 13 2014 19:00:00 GMT+0100 (BST)",
+  //   "endtime": "Sat Sep 13 2014 21:30:00 GMT+0100 (BST)",
   //   "facevalue": 45,
   //   "discount_price": 34.5,
   //   "location": "Victoria Street, London, SW1E5EA",
@@ -191,6 +257,9 @@ api.post('/events', function *(next) {
   //   }
   // };
 
+  document.starttime = new Date(document.starttime);
+  document.endtime = new Date(document.endtime);
+
   var result = yield events.insert(document);
 
   this.body = result;
@@ -212,7 +281,6 @@ api.put('/events/:id', function *(next) {
   var eventId = this.params.id;
 
   var body = yield parse.json(this);
-  // console.log('body', body);
 
   var result = yield events.updateById(eventId, body);
 
@@ -238,33 +306,33 @@ api.del('/events/:id', function *(next) {
 api.get('/users', function *(next) {
   var status = null;
   var errorMessage = null;
-  var queryParameters = null;
+  var searchParameters = null;
   var result = null;
 
   console.log(this.query.email, this.query.password);
 
   if( (typeof this.query.provider !== 'undefined') && (typeof this.query.provider_uid !== 'undefined') ) {
     console.log('social');
-    queryParameters = {
+    searchParameters = {
       provider: this.query.provider,
       provider_uid: this.query.provider_uid
     }
   } else if( (typeof this.query.email !== 'undefined') && (typeof this.query.password !== 'undefined') ) {
     console.log('email');
-    queryParameters = {
+    searchParameters = {
       email: this.query.email,
       password: this.query.password
     }
   } else if(typeof this.query !== 'undefined') {
     console.log('select all users');
-    queryParameters = {};
+    searchParameters = {};
   } else {
     status = 400;
   }
 
-  if(queryParameters) {
-    result = yield users.find(queryParameters);
-    // result = yield users.find(queryParameters).limit(20);
+  if(searchParameters) {
+    result = yield users.find(searchParameters);
+    // result = yield users.find(searchParameters).limit(20);
   }
 
   if(!result || result.length < 1) {
