@@ -39,9 +39,29 @@ app.use(mount('/', applications.api));
 app.keys = ['secrets'];
 app.use(session());
 
-// set koa to listen on specified port
-if (!module.parent) {
-  app.listen(config.server.koa.port); // The app.listen(...) method is simply sugar for the following:
-}
+// setup clustering
+var cluster = require('cluster');
+var numCPUs = require('os').cpus().length;
 
-console.info('main Koa application now running on http://localhost:' + config.server.koa.port);
+if (cluster.isMaster) {
+  // Fork workers.
+  for (var i = 0; i < numCPUs; i++) {
+    cluster.fork();
+  }
+
+  cluster.on('exit', function(worker, code, signal) {
+    // When any of the workers die the cluster module will emit the 'exit' event.
+    // This can be used to restart the worker by calling .fork() again.
+    console.log('worker ' + worker.process.pid + ' died');
+    cluster.fork();
+  });
+} else {
+  // set koa to listen on specified port
+  if (!module.parent) {
+    // app.listen(config.server.koa.port);
+    app.listen(process.env.PORT);
+
+    // console.info('main Koa application now running on http://localhost:' + config.server.koa.port);
+    console.info('main Koa application now running on http://localhost:' + process.env.PORT);
+  }
+}
