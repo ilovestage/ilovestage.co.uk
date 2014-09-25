@@ -44,7 +44,7 @@ app.use(session());
 // setup clustering
 if (cluster.isMaster) {
   // Fork workers.
-  for (var i = 0, n = os.cpus().length; i &lt; n; i += 1)
+  for (var i = 0, n = os.cpus().length; i < n; i += 1)
     cluster.fork();
   }
 
