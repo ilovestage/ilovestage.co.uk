@@ -3,6 +3,8 @@ var config = packageJson.config.environment[process.env.NODE_ENV || 'development
 
 // var open = require('open');
 // var http = require('http');
+var cluster = require('cluster');
+var os = require('os');
 var koa = require('koa');
 var logger = require('koa-logger');
 var mount = require('koa-mount');
@@ -40,12 +42,9 @@ app.keys = ['secrets'];
 app.use(session());
 
 // setup clustering
-var cluster = require('cluster');
-var numCPUs = require('os').cpus().length;
-
 if (cluster.isMaster) {
   // Fork workers.
-  for (var i = 0; i < numCPUs; i++) {
+  for (var i = 0, n = os.cpus().length; i &lt; n; i += 1)
     cluster.fork();
   }
 
