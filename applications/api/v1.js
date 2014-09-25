@@ -195,17 +195,6 @@ api.get('/events/:id', function * (next) {
 api.post('/events', function * (next) {
   var document = yield parse.json(this);
 
-  // var document = {
-  //   "showid": 1234,
-  //   "availability": 100,
-  //   "priceband": "Best Available",
-  //   "starttime": "Sat Sep 13 2014 19:00:00 GMT+0100 (BST)",
-  //   "endtime": "Sat Sep 13 2014 21:30:00 GMT+0100 (BST)",
-  //   "facevalue": 45.00,
-  //   "discountprice": 34.50
-  //   }
-  // };
-
   document.starttime = new Date(document.starttime);
   document.endtime = new Date(document.endtime);
 
@@ -322,15 +311,6 @@ api.get('/users/:id', function * (next) {
 api.post('/users', function * (next) {
   var document = yield parse.json(this);
 
-  // var document = {
-  //   "firstname": "mijin",
-  //   "lastname": "cho",
-  //   "email": "developer.cho@gmail.com",
-  //   "password": "mypass1234",
-  //   "provider": "twitter",
-  //   "provider_uid": "uid123"
-  // };
-
   var result = yield users.insert(document);
 
   this.body = result;
@@ -436,9 +416,31 @@ api.get('/bookings', function * (next) {
 });
 
 api.get('/bookings/:id', function * (next) {
+  var nestedQuery = qs.parse(this.querystring);
+
   var bookingId = this.params.id;
 
-  var result = yield bookings.findById(bookingId);
+  var result = null;
+
+  if (nestedQuery.view === 'detailed') {
+    var booking = yield bookings.findById(bookingId);
+
+    var event = yield events.findById(booking.eventid, [
+      '-_id',
+      'date',
+      'starttime',
+      'endtime',
+      'priceband',
+      'facevalue',
+      'discount_price'
+    ]);
+
+    booking.eventdetails = event;
+
+    result = booking;
+  } else {
+    result = yield bookings.findById(bookingId);
+  }
 
   this.body = result;
   this.type = 'application/json';
@@ -446,12 +448,6 @@ api.get('/bookings/:id', function * (next) {
 
 api.post('/bookings', function * (next) {
   var document = yield parse.json(this);
-
-  // var document = {
-  //   "userid": "541c5a29bdab5600004fd5fb",
-  //   "eventid": "5419ac3d8c387e0000907779",
-  //   "tickets": 8
-  // };
 
   var result = yield bookings.insert(document);
 
@@ -505,9 +501,9 @@ api.get('/shows', function * (next) {
   var result = null;
   var limit = 20;
 
-  if (typeof this.query.show !== 'undefined') {
+  if (typeof this.query.name !== 'undefined') {
     searchParameters = {
-      show: this.query.show
+      name: this.query.name
     }
   } else if (typeof this.query.theatre !== 'undefined') {
     searchParameters = {
@@ -564,93 +560,6 @@ api.get('/shows/:id', function * (next) {
 api.post('/shows', function * (next) {
   var document = yield parse.json(this);
 
-  // var document = {
-  //   "show": "Wicked",
-  //   "theatre": "Drury Lane Theatre",
-  //   "location": "Victoria Street, London, SW1E5EA",
-  //   "longitude": 51.496522,
-  //   "latitude": -0.142543,
-  //   "synopsis": "When Dorothy famously triumphed over the Wicked Witch, we only ever heard one side of the story. Gregory Maguire's acclaimed 1995 novel, 'Wicked: The Life and Times of the Wicked Witch of the West', re-imagined the Land of Oz, creating a parallel universe to the familiar story written by L. Frank Baum and first published as 'The Wonderful Wizard of Oz' in 1900.",
-  //   "reviews": [
-  //     {
-  //       "name": "The Daily Telegraph",
-  //       "comments": "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Proin feugiat, lectus vel pharetra sodales, turpis felis mollis sapien, faucibus porta lorem mauris id augue."
-  //     },
-  //     {
-  //       "name": "The Daily Mail",
-  //       "comments": "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Proin feugiat, lectus vel pharetra sodales, turpis felis mollis sapien, faucibus porta lorem mauris id augue."
-  //     },
-  //     {
-  //       "name": "The Daily Beagle",
-  //       "comments": "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Proin feugiat, lectus vel pharetra sodales, turpis felis mollis sapien, faucibus porta lorem mauris id augue."
-  //     }
-  //   ],
-  //   "images": {
-  //     "featured": [
-  //       {
-  //         "size": "thumbnail",
-  //         "url": "http://placehold.it/320x180"
-  //       },
-  //       {
-  //         "size": "small",
-  //         "url": "http://placehold.it/640x320"
-  //       },
-  //       {
-  //         "size": "medium",
-  //         "url": "http://placehold.it/1280x640"
-  //       },
-  //       {
-  //         "size": "large",
-  //         "url": "http://placehold.it/1920x1080"
-  //       }
-  //     ],
-  //     "standard": [
-  //       {
-  //         "thumbnail": {
-  //           "url": "http://placehold.it/320x180"
-  //         },
-  //         "small": {
-  //           "url": "http://placehold.it/640x320"
-  //         },
-  //         "medium": {
-  //           "url": "http://placehold.it/1280x640"
-  //         },
-  //         "large": {
-  //           "url": "http://placehold.it/1920x1080"
-  //         }
-  //       },
-  //       {
-  //         "thumbnail": {
-  //           "url": "http://placehold.it/320x180"
-  //         },
-  //         "small": {
-  //           "url": "http://placehold.it/640x320"
-  //         },
-  //         "medium": {
-  //           "url": "http://placehold.it/1280x640"
-  //         },
-  //         "large": {
-  //           "url": "http://placehold.it/1920x1080"
-  //         }
-  //       },
-  //       {
-  //         "thumbnail": {
-  //           "url": "http://placehold.it/320x180"
-  //         },
-  //         "small": {
-  //           "url": "http://placehold.it/640x320"
-  //         },
-  //         "medium": {
-  //           "url": "http://placehold.it/1280x640"
-  //         },
-  //         "large": {
-  //           "url": "http://placehold.it/1920x1080"
-  //         }
-  //       }
-  //     ]
-  //   }
-  // };
-
   var result = yield shows.insert(document);
 
   this.body = result;
@@ -695,6 +604,36 @@ api.post('/shows/:id/reviews', function * (next) {
   } else {
     fields = {
       $push: {
+        reviews: body
+      }
+    };
+  }
+
+  var result = yield shows.updateById(showId, fields);
+
+  this.body = result;
+  this.type = 'application/json';
+});
+
+api.put('/shows/:id/reviews', function * (next) {
+  var body = yield parse.json(this);
+  var nestedQuery = qs.parse(this.querystring);
+  var status = null;
+  var errorMessage = null;
+  var searchParameters = null;
+  var result = null;
+
+  var showId = this.params.id;
+
+  var fields = null;
+
+  if (nestedQuery.replace === 'true') {
+    fields = {
+      reviews: body
+    };
+  } else {
+    fields = {
+      $set: {
         reviews: body
       }
     };
