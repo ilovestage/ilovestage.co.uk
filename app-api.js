@@ -1,5 +1,6 @@
 var packageJson = require(__dirname + '/package.json');
 var config = packageJson.config.environment[process.env.NODE_ENV || 'development'];
+var port = process.env.PORT ? process.env.PORT : config.server.koa.port;
 
 // var open = require('open');
 // var http = require('http');
@@ -51,16 +52,22 @@ if (cluster.isMaster) {
   cluster.on('exit', function(worker, code, signal) {
     // When any of the workers die the cluster module will emit the 'exit' event.
     // This can be used to restart the worker by calling .fork() again.
-    console.log('worker ' + worker.process.pid + ' died');
+    console.log('Worker ' + worker.process.pid + ' died');
     cluster.fork();
   });
-} else {
-  // set koa to listen on specified port
-  if (!module.parent) {
-    // app.listen(config.server.koa.port);
-    app.listen(process.env.PORT);
 
-    // console.info('main Koa application now running on http://localhost:' + config.server.koa.port);
-    console.info('main Koa application now running on http://localhost:' + process.env.PORT);
+  cluster.on('fork', function(worker, code, signal) {
+    console.log('Worker ' + worker.process.pid + ' forked');
+  });
+
+  cluster.on('online', function(worker, code, signal) {
+    console.log('Worker ' + worker.process.pid + '  responded after it was forked');
+  });
+
+  console.info('Main application now running on http://localhost:' + port);
+} else {
+  if (!module.parent) {
+    // set koa to listen on specified port
+    app.listen(port);
   }
 }
