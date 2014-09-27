@@ -87,7 +87,7 @@ app.use(session());
 
 // mount applications
 if(environment !== 'development') {
-  switch(argv.app) {
+  switch(argv.application) {
     case 'admin':
       app.use(mount('/', applications.admin));
       portStart = 5000;
