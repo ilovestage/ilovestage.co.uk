@@ -86,51 +86,49 @@ app.keys = ['secrets'];
 app.use(session());
 
 // mount applications
+switch(argv.application) {
+  case 'admin':
+    app.use(mount('/', applications.admin));
+    portStart = 5000;
+    portEnd = 5003;
+
+    // serve static files
+    app.use(serve(__dirname + '/' + packageJson.config.path.build), {
+      defer: true
+    }); // true web root
+    app.use(serve(__dirname + '/' + packageJson.config.path.source), {
+      defer: true
+    }); // to save copying bower_components, SASS files, etc.
+  break;
+  case 'api':
+    app.use(mount('/', applications.api));
+    portStart = 5020;
+    portEnd = 5023;
+  break;
+  case 'socket':
+    app.use(mount('/', applications.socket));
+    portStart = 5040;
+    portEnd = 5043;
+  break;
+  case 'www':
+    app.use(mount('/', applications.www));
+    portStart = 5060;
+    portEnd = 5063;
+
+    // serve static files
+    app.use(serve(__dirname + '/' + packageJson.config.path.build), {
+      defer: true
+    }); // true web root
+    app.use(serve(__dirname + '/' + packageJson.config.path.source), {
+      defer: true
+    }); // to save copying bower_components, SASS files, etc.
+  break;
+}
+
 if(environment !== 'development') {
-  switch(argv.application) {
-    case 'admin':
-      app.use(mount('/', applications.admin));
-      portStart = 5000;
-      portEnd = 5003;
-
-      // serve static files
-      app.use(serve(__dirname + '/' + packageJson.config.path.build), {
-        defer: true
-      }); // true web root
-      app.use(serve(__dirname + '/' + packageJson.config.path.source), {
-        defer: true
-      }); // to save copying bower_components, SASS files, etc.
-    break;
-    case 'api':
-      app.use(mount('/', applications.api));
-      portStart = 5020;
-      portEnd = 5023;
-    break;
-    case 'socket':
-      app.use(mount('/', applications.socket));
-      portStart = 5040;
-      portEnd = 5043;
-    break;
-    case 'www':
-      app.use(mount('/', applications.www));
-      portStart = 5060;
-      portEnd = 5063;
-
-      // serve static files
-      app.use(serve(__dirname + '/' + packageJson.config.path.build), {
-        defer: true
-      }); // true web root
-      app.use(serve(__dirname + '/' + packageJson.config.path.source), {
-        defer: true
-      }); // to save copying bower_components, SASS files, etc.
-    break;
-  }
-
   clusterOnAvailablePort();
 } else {
-  // app.use(mount('/admin', applications.admin));
-  app.use(mount('/api', applications.api));
-  app.use(mount('/socket', applications.socket));
-  app.use(mount('/', applications.www));
   app.listen(port);
 }
+
+console.log('Running instance of ' + argv.application + ' application under ' + environment + ' environment.');
