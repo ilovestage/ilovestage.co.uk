@@ -29,7 +29,8 @@
   "main": "app.js",
   "scripts": {
     "start": "node --harmony app.js",
-    "debug": "node --harmony debug app.js"
+    "debug": "node --harmony debug app.js",
+    "postinstall": "bower install"
   },
   "postinstall": "bower install",
   "dependencies": {
