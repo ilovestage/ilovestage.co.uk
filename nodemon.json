@@ -1,11 +1,9 @@
 {
   "ignore": [
-    "build/*",
-    "data/*",
     "grunt/*",
     "logs/*",
     "node_modules/*",
-    "source/bower_components/*"
+    "public/bower_components/*"
   ],
   "verbose": true,
   "execMap": {
