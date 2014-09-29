@@ -5,13 +5,20 @@ var version = 1.0;
 
 var _ = require('lodash');
 var co = require('co');
+var emailTemplates = require('email-templates');
 var parse = require('co-body');
 var koa = require('koa');
 var logger = require('koa-logger');
+var nodemailer = require('nodemailer');
+var path = require('path');
 var qs = require('qs');
 var request = require('koa-request');
 var router = require('koa-router');
 var should = require('should');
+var thunkify = require('thunkify');
+
+var templatesDir = path.resolve(__dirname, '../..', 'source/emails');
+
 var database = require(__dirname + '/../database');
 
 var app = koa();
@@ -23,19 +30,65 @@ var events = db.collection('events');
 var shows = db.collection('shows');
 var users = db.collection('users');
 
+var emailTemplatesThunk = thunkify(emailTemplates);
+
+var transporter = nodemailer.createTransport({ // Prepare nodemailer transport object
+  service: 'Gmail',
+  auth: {
+    user: 'ilovestageapp@gmail.com',
+    pass: 'curtaincall'
+  }
+});
+
 // require('koa-qs')(app);
 
 // logger
-app.use(function * (next) {
+app.use(function* (next) {
   // var start = new Date;
   yield next;
   // var ms = new Date - start;
   // console.log('%s %s - %s', this.method, this.url, ms);
 });
 
+function sendEmail(layout, locals) {
+  emailTemplates(templatesDir, function (err, template) {
+    // Send a single email
+    console.log('locals', locals);
+    template(layout, locals, function (error, html, text) {
+      if (error) {
+        console.log(error);
+      } else {
+        var mailOptions = {
+          from: 'I Love Stage UK Administrator <ilovestageapp@gmail.com>', // sender address
+          to: {
+            name: locals.name.first,
+            address: locals.email
+          }, // list of receivers
+          subject: locals.subject, // Subject line
+          text: text, // plaintext body
+          html: html // html body
+        };
+
+        transporter.sendMail(mailOptions, function (error, info) {
+          if (error) {
+            console.log(error);
+            this.status = 400;
+            return error;
+          } else {
+            console.log(info.response);
+            this.status = 200;
+            return info.response;
+          }
+        });
+      }
+    });
+
+  });
+}
+
 var api = new router();
 
-api.get('/', function * (next) {
+api.get('/', function* (next) {
   yield next;
   this.body = packageJson.name + ' API version ' + version.toFixed(1);
   this.type = 'application/json';
@@ -43,7 +96,7 @@ api.get('/', function * (next) {
 
 // Routes: Events
 
-api.get('/events', function * (next) {
+api.get('/events', function* (next) {
   var dateParameters = {};
   var errorMessage = null;
   var nestedQuery = qs.parse(this.querystring);
@@ -170,7 +223,7 @@ api.get('/events', function * (next) {
   this.type = 'application/json';
 });
 
-api.del('/events/:id', function * (next) {
+api.del('/events/:id', function* (next) {
   var eventId = this.params.id;
 
   var result = yield events.remove({
@@ -181,7 +234,7 @@ api.del('/events/:id', function * (next) {
   this.type = 'application/json';
 });
 
-api.get('/events/:id', function * (next) {
+api.get('/events/:id', function* (next) {
   var eventId = this.params.id;
 
   var result = yield events.findOne({
@@ -192,7 +245,7 @@ api.get('/events/:id', function * (next) {
   this.type = 'application/json';
 });
 
-api.post('/events', function * (next) {
+api.post('/events', function* (next) {
   var document = yield parse.json(this);
 
   document.starttime = new Date(document.starttime);
@@ -204,7 +257,7 @@ api.post('/events', function * (next) {
   this.type = 'application/json';
 });
 
-api.put('/events/:id', function * (next) {
+api.put('/events/:id', function* (next) {
   var nestedQuery = qs.parse(this.querystring);
 
   var eventId = this.params.id;
@@ -229,7 +282,7 @@ api.put('/events/:id', function * (next) {
 
 // Routes: Users
 
-api.del('/users/:id', function * (next) {
+api.del('/users/:id', function* (next) {
   var userId = this.params.id;
 
   var result = yield users.remove({
@@ -240,7 +293,7 @@ api.del('/users/:id', function * (next) {
   this.type = 'application/json';
 });
 
-api.get('/users', function * (next) {
+api.get('/users', function* (next) {
     var nestedQuery = qs.parse(this.querystring);
     var status = null;
     var errorMessage = null;
@@ -299,7 +352,7 @@ api.get('/users', function * (next) {
     this.type = 'application/json';
 });
 
-api.get('/users/:id', function * (next) {
+api.get('/users/:id', function* (next) {
   var userId = this.params.id;
 
   var result = yield users.findById(userId);
@@ -308,7 +361,7 @@ api.get('/users/:id', function * (next) {
   this.type = 'application/json';
 });
 
-api.post('/users', function * (next) {
+api.post('/users', function* (next) {
   var document = yield parse.json(this);
 
   var result = yield users.insert(document);
@@ -317,7 +370,7 @@ api.post('/users', function * (next) {
   this.type = 'application/json';
 });
 
-api.put('/users/:id', function * (next) {
+api.put('/users/:id', function* (next) {
   var nestedQuery = qs.parse(this.querystring);
 
   var userId = this.params.id;
@@ -342,7 +395,7 @@ api.put('/users/:id', function * (next) {
 
 // Routes: Bookings
 
-api.del('/bookings/:id', function * (next) {
+api.del('/bookings/:id', function* (next) {
   var bookingId = this.params.id;
 
   var result = yield bookings.remove({
@@ -353,7 +406,7 @@ api.del('/bookings/:id', function * (next) {
   this.type = 'application/json';
 });
 
-api.get('/bookings', function * (next) {
+api.get('/bookings', function* (next) {
   var nestedQuery = qs.parse(this.querystring);
   var status = null;
   var errorMessage = null;
@@ -415,7 +468,7 @@ api.get('/bookings', function * (next) {
   this.type = 'application/json';
 });
 
-api.get('/bookings/:id', function * (next) {
+api.get('/bookings/:id', function* (next) {
   var nestedQuery = qs.parse(this.querystring);
 
   var bookingId = this.params.id;
@@ -446,16 +499,46 @@ api.get('/bookings/:id', function * (next) {
   this.type = 'application/json';
 });
 
-api.post('/bookings', function * (next) {
+api.get('/bookings/complete/:id', function* (next) {
+
+});
+
+api.post('/bookings', function* (next) {
   var document = yield parse.json(this);
 
   var result = yield bookings.insert(document);
+
+  if(result.tickets >= 10) {
+    var layout = 'booking-target-reached';
+
+    var user = yield users.findById(result.userId);
+
+    // var locals = {
+    //   subject: 'Booking target reached', // Subject line
+    //   email: 'karl.podger@primeordinal.com',
+    //   name: {
+    //     first: 'Karl',
+    //     last: 'Podger'
+    //   }
+    // };
+
+    var locals = {
+      subject: 'Booking target reached', // Subject line
+      email: user.email,
+      name: {
+        first: user.firstname,
+        last: user.lastname
+      }
+    };
+
+    sendEmail(layout, locals);
+  }
 
   this.body = result;
   this.type = 'application/json';
 });
 
-api.put('/bookings/:id', function * (next) {
+api.put('/bookings/:id', function* (next) {
   var nestedQuery = qs.parse(this.querystring);
 
   var bookingId = this.params.id;
@@ -482,7 +565,7 @@ api.put('/bookings/:id', function * (next) {
 
 // Routes: Shows
 
-api.del('/shows/:id', function * (next) {
+api.del('/shows/:id', function* (next) {
   var showId = this.params.id;
 
   var result = yield shows.remove({
@@ -493,7 +576,7 @@ api.del('/shows/:id', function * (next) {
   this.type = 'application/json';
 });
 
-api.get('/shows', function * (next) {
+api.get('/shows', function* (next) {
   var nestedQuery = qs.parse(this.querystring);
   var status = null;
   var errorMessage = null;
@@ -548,7 +631,7 @@ api.get('/shows', function * (next) {
   this.type = 'application/json';
 });
 
-api.get('/shows/:id', function * (next) {
+api.get('/shows/:id', function* (next) {
   var showId = this.params.id;
 
   var result = yield shows.findById(showId);
@@ -557,7 +640,7 @@ api.get('/shows/:id', function * (next) {
   this.type = 'application/json';
 });
 
-api.post('/shows', function * (next) {
+api.post('/shows', function* (next) {
   var document = yield parse.json(this);
 
   var result = yield shows.insert(document);
@@ -566,7 +649,7 @@ api.post('/shows', function * (next) {
   this.type = 'application/json';
 });
 
-api.put('/shows/:id', function * (next) {
+api.put('/shows/:id', function* (next) {
   var nestedQuery = qs.parse(this.querystring);
 
   var showId = this.params.id;
@@ -589,7 +672,7 @@ api.put('/shows/:id', function * (next) {
   this.type = 'application/json';
 });
 
-api.post('/shows/:id/reviews', function * (next) {
+api.post('/shows/:id/reviews', function* (next) {
   var body = yield parse.json(this);
   var nestedQuery = qs.parse(this.querystring);
 
@@ -615,7 +698,7 @@ api.post('/shows/:id/reviews', function * (next) {
   this.type = 'application/json';
 });
 
-api.put('/shows/:id/reviews', function * (next) {
+api.put('/shows/:id/reviews', function* (next) {
   var body = yield parse.json(this);
   var nestedQuery = qs.parse(this.querystring);
   var status = null;
@@ -647,7 +730,7 @@ api.put('/shows/:id/reviews', function * (next) {
 
 // Routes: Catch-all
 
-api.get(/^([^.]+)$/, function * (next) {
+api.get(/^([^.]+)$/, function* (next) {
   yield next;
 
   this.body = {
