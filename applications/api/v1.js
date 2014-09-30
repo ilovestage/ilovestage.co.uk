@@ -27,6 +27,7 @@ var db = new database(config.server.database);
 
 var bookings = db.collection('bookings');
 var events = db.collection('events');
+var payments = db.collection('payments');
 var shows = db.collection('shows');
 var users = db.collection('users');
 
@@ -39,6 +40,11 @@ var transporter = nodemailer.createTransport({ // Prepare nodemailer transport o
     pass: 'curtaincall'
   }
 });
+
+var emailSender = {
+  name: 'I Love Stage UK',
+  email: 'ilovestageapp@gmail.com'
+};
 
 // require('koa-qs')(app);
 
@@ -59,7 +65,7 @@ function sendEmail(layout, locals) {
         console.log(error);
       } else {
         var mailOptions = {
-          from: 'I Love Stage UK Administrator <ilovestageapp@gmail.com>', // sender address
+          from: emailSender.name + ' <' + emailSender.address + '>', // sender address
           to: {
             name: locals.name.first,
             address: locals.email
@@ -237,9 +243,30 @@ api.del('/events/:id', function* (next) {
 api.get('/events/:id', function* (next) {
   var eventId = this.params.id;
 
-  var result = yield events.findOne({
-    _id: eventId
-  });
+  var nestedQuery = qs.parse(this.querystring);
+
+  var result = null;
+
+  if (nestedQuery.view === 'detailed') {
+    var event = yield events.findById(eventId);
+
+    var show = yield shows.findById(event.showid, [
+      '-_id',
+      'name',
+      'theatre',
+      'location',
+      'synopsis',
+      'images'
+    ]);
+
+    event.showdetails = show;
+
+    result = event;
+  } else {
+    result = yield events.findOne({
+      _id: eventId
+    });
+  }
 
   this.body = result;
   this.type = 'application/json';
@@ -274,7 +301,10 @@ api.put('/events/:id', function* (next) {
     };
   }
 
-  var result = yield events.updateById(eventId, fields);
+  // var result = yield events.updateById(eventId, fields);
+  var result = yield events.findAndModify({
+    _id: eventId
+  }, fields);
 
   this.body = result;
   this.type = 'application/json';
@@ -387,7 +417,10 @@ api.put('/users/:id', function* (next) {
     };
   }
 
-  var result = yield users.updateById(userId, fields);
+  // var result = yield users.updateById(userId, fields);
+  var result = yield users.findAndModify({
+    _id: userId
+  }, fields);
 
   this.body = result;
   this.type = 'application/json';
@@ -499,8 +532,17 @@ api.get('/bookings/:id', function* (next) {
   this.type = 'application/json';
 });
 
-api.get('/bookings/complete/:id', function* (next) {
+api.get('/bookings/user/:id', function* (next) {
+  var nestedQuery = qs.parse(this.querystring);
 
+  var userId = this.params.id;
+
+  var result = yield bookings.find({
+    userid: userId
+  });
+
+  this.body = result;
+  this.type = 'application/json';
 });
 
 api.post('/bookings', function* (next) {
@@ -508,31 +550,27 @@ api.post('/bookings', function* (next) {
 
   var result = yield bookings.insert(document);
 
-  if(result.tickets >= 10) {
-    var layout = 'booking-target-reached';
-
-    var user = yield users.findById(result.userId);
-
-    // var locals = {
-    //   subject: 'Booking target reached', // Subject line
-    //   email: 'karl.podger@primeordinal.com',
-    //   name: {
-    //     first: 'Karl',
-    //     last: 'Podger'
-    //   }
-    // };
-
-    var locals = {
+  if(result.tickets >= 8) {
+    var adminLocals = {
       subject: 'Booking target reached', // Subject line
-      email: user.email,
-      name: {
-        first: user.firstname,
-        last: user.lastname
-      }
+      email: emailSender.address
     };
 
-    sendEmail(layout, locals);
+    sendEmail('admin-booking', adminLocals);
   }
+
+  var user = yield users.findById(result.userid);
+
+  var userLocals = {
+    subject: 'Booking confirmed', // Subject line
+    email: user.email,
+    name: {
+      first: user.firstname,
+      last: user.lastname
+    }
+  };
+
+  sendEmail('user-booking', userLocals);
 
   this.body = result;
   this.type = 'application/json';
@@ -555,13 +593,165 @@ api.put('/bookings/:id', function* (next) {
     };
   }
 
-  var result = yield bookings.updateById(bookingId, fields);
+  // var result = yield bookings.updateById(bookingId, fields);
+  var result = yield bookings.findAndModify({
+    _id: bookingId
+  }, fields);
+
+  // if(result && body.tickets >= 8) {
+  //   var layout = 'admin-booking';
+  //
+  //   var user = yield users.findById(result.userid);
+  //
+  //   var locals = {
+  //     subject: 'Booking target reached', // Subject line
+  //     email: user.email,
+  //     name: {
+  //       first: user.firstname,
+  //       last: user.lastname
+  //     }
+  //   };
+  //
+  //   sendEmail(layout, locals);
+  // }
+  //
+  if(result && body.tickets >= 8) {
+    var user = yield users.findById(result.userid);
+
+    var userLocals = {
+      subject: 'Booking confirmed', // Subject line
+      email: user.email,
+      name: {
+        first: user.firstname,
+        last: user.lastname
+      }
+    };
+
+    var adminLocals = {
+      subject: 'Booking target reached', // Subject line
+      email: emailSender.address
+    };
+
+    sendEmail('user-booking', userLocals);
+    sendEmail('admin-booking', adminLocals);
+  }
 
   this.body = result;
   this.type = 'application/json';
 });
 
-// Routes: Shows
+// Routes: Payments
+
+api.del('/payments/:id', function* (next) {
+  var paymentId = this.params.id;
+
+  var result = yield payments.remove({
+    _id: paymentId
+  });
+
+  this.body = result;
+  this.type = 'application/json';
+});
+
+api.get('/payments', function* (next) {
+  var nestedQuery = qs.parse(this.querystring);
+  var status = null;
+  var errorMessage = null;
+  var searchParameters = null;
+  var result = null;
+  var limit = 20;
+
+  if (typeof this.query.processor !== 'undefined') {
+    searchParameters = {
+      processor: this.query.processor
+    }
+  } else if (typeof this.query.token !== 'undefined') {
+    searchParameters = {
+      token: this.query.token
+    }
+  } else if (typeof this.query !== 'undefined') {
+    searchParameters = {};
+  } else {
+    status = 400;
+  }
+
+  if (nestedQuery.limit && (typeof parseInt(nestedQuery.limit) === 'number')) {
+    limit = parseInt(nestedQuery.limit);
+
+    if (limit > 50) {
+      limit = 50;
+    }
+  }
+
+  if (searchParameters) {
+    result = yield payments.find(searchParameters, {
+      limit: limit
+    });
+  }
+
+  if (!result || result.length < 1) {
+    status = 404;
+  } else {
+    status = 200;
+  }
+
+  //handle error messages from monk and pass into response below
+
+  var body = {
+    status: status, // use HTTP status code
+    error: errorMessage,
+    result: result
+  };
+
+  this.body = body;
+  this.status = status;
+  this.type = 'application/json';
+});
+
+api.get('/payments/:id', function* (next) {
+  var paymentId = this.params.id;
+
+  var result = yield payments.findById(paymentId);
+
+  this.body = result;
+  this.type = 'application/json';
+});
+
+api.post('/payments', function* (next) {
+  var document = yield parse.json(this);
+
+  document.time = new Date();
+
+  var result = yield payments.insert(document);
+
+  this.body = result;
+  this.type = 'application/json';
+});
+
+// api.put('/payments/:id', function* (next) {
+//   var nestedQuery = qs.parse(this.querystring);
+//
+//   var paymentId = this.params.id;
+//
+//   var body = yield parse.json(this);
+//
+//   var fields = null;
+//
+//   if (nestedQuery.replace === 'true') {
+//     fields = body;
+//   } else {
+//     fields = {
+//       $set: body
+//     };
+//   }
+//
+//   var result = yield payments.findAndModify({
+//     _id: paymentId
+//   }, fields);
+//
+//   this.body = result;
+//   this.type = 'application/json';
+// });
 
 // Routes: Shows
 
@@ -666,7 +856,10 @@ api.put('/shows/:id', function* (next) {
     };
   }
 
-  var result = yield shows.updateById(showId, fields);
+  // var result = yield shows.updateById(showId, fields);
+  var result = yield shows.findAndModify({
+    _id: showId
+  }, fields);
 
   this.body = result;
   this.type = 'application/json';
@@ -692,7 +885,10 @@ api.post('/shows/:id/reviews', function* (next) {
     };
   }
 
-  var result = yield shows.updateById(showId, fields);
+  // var result = yield shows.updateById(showId, fields);
+  var result = yield shows.findAndModify({
+    _id: showId
+  }, fields);
 
   this.body = result;
   this.type = 'application/json';
@@ -722,7 +918,10 @@ api.put('/shows/:id/reviews', function* (next) {
     };
   }
 
-  var result = yield shows.updateById(showId, fields);
+  // var result = yield shows.updateById(showId, fields);
+  var result = yield shows.findAndModify({
+    _id: showId
+  }, fields);
 
   this.body = result;
   this.type = 'application/json';
