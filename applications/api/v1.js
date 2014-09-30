@@ -31,7 +31,7 @@ var payments = db.collection('payments');
 var shows = db.collection('shows');
 var users = db.collection('users');
 
-var emailTemplatesThunk = thunkify(emailTemplates);
+// var emailTemplatesThunk = thunkify(emailTemplates);
 
 var transporter = nodemailer.createTransport({ // Prepare nodemailer transport object
   service: 'Gmail',
