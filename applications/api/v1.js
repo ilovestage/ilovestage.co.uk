@@ -15,7 +15,7 @@ var qs = require('qs');
 var request = require('koa-request');
 var router = require('koa-router');
 var should = require('should');
-var thunkify = require('thunkify');
+// var thunkify = require('thunkify');
 
 var templatesDir = path.resolve(__dirname, '../..', 'source/emails');
 
