@@ -9,6 +9,7 @@ var emailTemplates = require('email-templates');
 var parse = require('co-body');
 var koa = require('koa');
 var logger = require('koa-logger');
+var moment = require('moment');
 var nodemailer = require('nodemailer');
 var path = require('path');
 var qs = require('qs');
@@ -461,6 +462,10 @@ api.get('/bookings', function* (next) {
       email: this.query.email,
       password: this.query.password
     }
+  } else if ((typeof this.query.range !== 'undefined') && (typeof this.query.units !== 'undefined')) {
+    var d = new Date();
+    var myvar1 = moment(d).subtract(this.query.range, this.query.units).toDate(); // "3 months after d"
+    console.log('myvar1', myvar1);
   } else if (typeof this.query !== 'undefined') {
     console.log('select all bookings');
     searchParameters = {};
