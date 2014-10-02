@@ -89,8 +89,8 @@ app.use(session());
 switch(argv.application) {
   case 'admin':
     app.use(mount('/', applications.admin));
-    portStart = 5000;
-    portEnd = 5003;
+    portStart = 5100;
+    portEnd = 5103;
 
     // serve static files
     app.use(serve(__dirname + '/' + packageJson.config.path.build), {
@@ -107,13 +107,13 @@ switch(argv.application) {
   break;
   case 'socket':
     app.use(mount('/', applications.socket));
-    portStart = 5040;
-    portEnd = 5043;
+    portStart = 5200;
+    portEnd = 5203;
   break;
   case 'www':
     app.use(mount('/', applications.www));
-    portStart = 5060;
-    portEnd = 5063;
+    portStart = 5000;
+    portEnd = 5003;
 
     // serve static files
     app.use(serve(__dirname + '/' + packageJson.config.path.build), {
@@ -131,4 +131,4 @@ if(environment !== 'development') {
   app.listen(port);
 }
 
-console.log('Running instance of ' + argv.application + ' application under ' + environment + ' environment.');
+console.log('Running instance of ' + argv.application + ' application under ' + environment + ' environment on port ' + port + '.');
