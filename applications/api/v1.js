@@ -334,16 +334,15 @@ api.get('/users', function* (next) {
 
     console.log(this.query.email, this.query.password);
 
-    if ((typeof this.query.provider !== 'undefined') && (typeof this.query.provider_uid !== 'undefined')) {
-      searchParameters = {
-        provider: this.query.provider,
-        provider_uid: this.query.provider_uid
-      }
+    if ((typeof this.query.provider !== 'undefined') && (typeof this.query.uid !== 'undefined') && (typeof this.query.token !== 'undefined')) {
+      searchParameters = {};
+      searchParameters['strategies.' + this.query.provider + '.uid'] = this.query.uid;
+      searchParameters['strategies.' + this.query.provider + '.token'] = this.query.token;
     } else if ((typeof this.query.email !== 'undefined') && (typeof this.query.password !== 'undefined')) {
       searchParameters = {
-        email: this.query.email,
-        password: this.query.password
-      }
+        'strategies.local.email': this.query.email,
+        'strategies.local.password': this.query.password
+      };
     } else if (typeof this.query !== 'undefined') {
       searchParameters = {};
     } else {
