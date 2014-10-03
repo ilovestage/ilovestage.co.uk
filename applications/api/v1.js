@@ -8,6 +8,7 @@ var co = require('co');
 var emailTemplates = require('email-templates');
 var parse = require('co-body');
 var koa = require('koa');
+var Kaiseki = require('kaiseki');
 var logger = require('koa-logger');
 var moment = require('moment');
 var nodemailer = require('nodemailer');
@@ -31,6 +32,11 @@ var events = db.collection('events');
 var payments = db.collection('payments');
 var shows = db.collection('shows');
 var users = db.collection('users');
+
+// instantiate kaiseki
+var APP_ID = 'mtsgkSQ5au4mNdKOwoVhP7lmAu6pS2qlWsVTLoHL';
+var REST_API_KEY = 'CjmGYUFMt0J3wzZGr5xL11FxDIzzS8KlZUzd1GgM';
+var kaiseki = new Kaiseki(APP_ID, REST_API_KEY);
 
 // var emailTemplatesThunk = thunkify(emailTemplates);
 
@@ -811,8 +817,20 @@ api.put('/bookings/:id', function* (next) {
       email: emailSender.address
     });
 
+    var notification = {
+      channels: [''],
+      data: {
+        alert: 'Booking target reached for booking reference #' + result._id
+      }
     };
 
+    kaiseki.sendPushNotification(notification, function(err, res, body, success) {
+      if (success) {
+        console.log('Push notification successfully sent:', body);
+      } else {
+        console.log('Could not send push notification:', err);
+      }
+    });
   }
 
   if (!result || result.length < 1) {
