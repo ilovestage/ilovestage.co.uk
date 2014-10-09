@@ -80,6 +80,7 @@
     "qs": "2.2.4",
     "should": "^4.0.4",
     "socket.io": "^1.0.4",
+    "stripe": "^2.8.0",
     "strongloop": "^2.9.1",
     "thunkify": "^2.1.2",
     "underscore": "^1.6.0",
@@ -163,6 +164,9 @@
           "google": {
             "key": "",
             "domain": "ilovestage.com"
+          },
+          "stripe": {
+            "key": "sk_test_jPWMsPFPKWQgn2HlAhWfs09B"
           }
         }
       },
@@ -189,6 +193,9 @@
           "google": {
             "key": "",
             "domain": "ilovestage.com"
+          },
+          "stripe": {
+            "key": "sk_test_jPWMsPFPKWQgn2HlAhWfs09B"
           }
         }
       },
@@ -215,6 +222,9 @@
           "google": {
             "key": "",
             "domain": "ilovestage.com"
+          },
+          "stripe": {
+            "key": "sk_live_UINfCzU5LSdkaPoIDETge6iS"
           }
         }
       }
