@@ -1,22 +1,26 @@
+'use strict';
+
 var packageJson = require(__dirname + '/../../package.json');
 var config = packageJson.config.environment[process.env.NODE_ENV || 'development'];
 
 var version = 1.0;
 
-var _ = require('lodash');
-var co = require('co');
+// var _ = require('lodash');
+// var co = require('co');
 var emailTemplates = require('email-templates');
 var parse = require('co-body');
+// var bodyParser = require('koa-bodyparser');
 var koa = require('koa');
 var Kaiseki = require('kaiseki');
-var logger = require('koa-logger');
+// var logger = require('koa-logger');
 var moment = require('moment');
 var nodemailer = require('nodemailer');
 var path = require('path');
 var qs = require('qs');
-var request = require('koa-request');
+// var request = require('koa-request');
 var router = require('koa-router');
-var should = require('should');
+// var should = require('should');
+var stripe = require('stripe')(config.api.stripe.key);
 // var thunkify = require('thunkify');
 
 var templatesDir = path.resolve(__dirname, '../..', 'source/emails');
@@ -56,12 +60,14 @@ var emailSender = {
 // require('koa-qs')(app);
 
 // logger
-app.use(function* (next) {
+// app.use(function* (next) {
   // var start = new Date;
-  yield next;
   // var ms = new Date - start;
   // console.log('%s %s - %s', this.method, this.url, ms);
-});
+  // yield next;
+// });
+
+// app.use(bodyParser());
 
 function sendEmail(layout, locals) {
   emailTemplates(templatesDir, function (err, template) {
@@ -99,36 +105,7 @@ function sendEmail(layout, locals) {
   });
 }
 
-var api = new router();
-
-api.get('/', function* (next) {
-  yield next;
-  var errorMessage = null;
-  var status = 200;
-
-  var body = {
-    'status': status, // use HTTP status code
-    'error': errorMessage,
-    'originalUrl': this.request.originalUrl,
-    'result': packageJson.name + ' API version ' + version.toFixed(1)
-  };
-
-  this.body = body;
-  this.status = status;
-  this.type = 'application/json';
-});
-
-// Routes: Events
-
-api.get('/events', function* (next) {
-  var dateParameters = {};
-  var errorMessage = null;
-  var nestedQuery = qs.parse(this.querystring);
-  var searchParameters = {};
-  var result = null;
-  var status = null;
-  var limit = 20;
-
+function handleDateQuery(nestedQuery) {
   // var mydate1 = new Date('Jun 07, 1954');
   // var mydate2 = new Date(2014,9,7);
   // var mydate3 = new Date('2013-12-12T16:00:00.000Z');
@@ -140,6 +117,10 @@ api.get('/events', function* (next) {
   // console.log('this.querystring', this.querystring);
   // console.log('this.query', this.query);
   // console.log('qs', qs.parse(this.querystring));
+  var currentDate = new Date();
+  var dateParameters = {};
+  var searchParameters = {};
+  var status = null;
 
   if (nestedQuery.start || nestedQuery.end) {
     searchParameters.starttime = {};
@@ -207,11 +188,61 @@ api.get('/events', function* (next) {
       }
 
     }
-  } else {
-    searchParameters = {};
+  } else if (nestedQuery.range && nestedQuery.units && nestedQuery.timeframe) {
+    // console.log('in ranged query');
+    searchParameters.starttime = {};
+
+    if(nestedQuery.timeframe === 'past') {
+      var rangeStart = moment(currentDate).subtract(nestedQuery.range, nestedQuery.units).toDate(); // e.g. (3, 'months') gives "3 months before currentDate"
+
+      searchParameters.starttime.$gte = rangeStart;
+      searchParameters.starttime.$lt = currentDate;
+    } else if(nestedQuery.timeframe === 'future') {
+      var rangeEnd = moment(currentDate).add(nestedQuery.range, nestedQuery.units).toDate(); // e.g. (3, 'months') gives "3 months after currentDate"
+
+      searchParameters.starttime.$gte = currentDate;
+      searchParameters.starttime.$lt = rangeEnd;
+    }
+
+    // console.log('searchParameters', searchParameters);
   }
 
-  // console.log('nestedQuery.limit', nestedQuery.limit);
+  return {
+    status: status,
+    dateParameters: dateParameters,
+    searchParameters: searchParameters
+  };
+
+}
+
+var api = new router();
+
+api.get('/', function* (next) {
+  var errorMessage = null;
+  var status = 200;
+
+  var body = {
+    'status': status, // use HTTP status code
+    'error': errorMessage,
+    'originalUrl': this.request.originalUrl,
+    'result': packageJson.name + ' API version ' + version.toFixed(1)
+  };
+
+  this.body = body;
+  this.status = status;
+  this.type = 'application/json';
+  yield next;
+});
+
+// Routes: Events
+
+api.get('/events', function* (next) {
+  var errorMessage = null;
+  var limit = 50;
+  var nestedQuery = qs.parse(this.querystring);
+  var result = null;
+  var searchParameters = handleDateQuery(nestedQuery).searchParameters;
+  var status = handleDateQuery(nestedQuery).status;
 
   if (nestedQuery.limit && (typeof parseInt(nestedQuery.limit) === 'number')) {
     limit = parseInt(nestedQuery.limit);
@@ -221,7 +252,45 @@ api.get('/events', function* (next) {
     }
   }
 
-  if (searchParameters) {
+  if (typeof nestedQuery.showname !== 'undefined') {
+    var show = yield shows.findOne({
+      name: nestedQuery.showname
+    }, {
+      fields: {
+        '_id': 1
+      }
+    });
+
+    if (!show || show.length < 1) {
+      errorMessage = 'No results found for show with name \'' + nestedQuery.showname + '\'.';
+      status = 404;
+    } else {
+      searchParameters.showid = show._id.toString();
+
+      result = yield events.find(searchParameters, {
+        limit: limit
+      });
+    }
+  } else if (typeof nestedQuery.showid !== 'undefined') {
+    var show = yield shows.findOne({
+      _id: nestedQuery.showid
+    }, {
+      fields: {
+        '_id': 1
+      }
+    });
+
+    if (!show || show.length < 1) {
+      errorMessage = 'No results found for show with id \'' + nestedQuery.showid + '\'.';
+      status = 404;
+    } else {
+      searchParameters.showid = show._id.toString();
+
+      result = yield events.find(searchParameters, {
+        limit: limit
+      });
+    }
+  } else {
     result = yield events.find(searchParameters, {
       limit: limit
     });
@@ -247,7 +316,9 @@ api.get('/events', function* (next) {
 
 api.del('/events/:id', function* (next) {
   var errorMessage = null;
-  var status = null;
+  var nestedQuery = qs.parse(this.querystring);
+  var searchParameters = handleDateQuery(nestedQuery).searchParameters;
+  var status = handleDateQuery(nestedQuery).status;
   var eventId = this.params.id;
 
   var result = yield events.remove({
@@ -284,14 +355,16 @@ api.get('/events/:id', function* (next) {
   if (nestedQuery.view === 'detailed') {
     var event = yield events.findById(eventId);
 
-    var show = yield shows.findById(event.showid, [
-      '-_id',
-      'name',
-      'theatre',
-      'location',
-      'synopsis',
-      'images'
-    ]);
+    var show = yield shows.findById(event.showid, {
+      fields: {
+        '-_id': 1,
+        'name': 1,
+        'theatre': 1,
+        'location': 1,
+        'synopsis': 1,
+        'images': 1
+      }
+    });
 
     event.showdetails = show;
 
@@ -420,26 +493,21 @@ api.del('/users/:id', function* (next) {
 });
 
 api.get('/users', function* (next) {
-  var nestedQuery = qs.parse(this.querystring);
-  var status = null;
   var errorMessage = null;
-  var searchParameters = null;
-  var result = null;
-  var limit = 20;
-console.log('here Karl', this);
-  console.log(this.query.email, this.query.password);
+  var limit = 50;
+  var nestedQuery = qs.parse(this.querystring);
+  var searchParameters = handleDateQuery(nestedQuery).searchParameters;
+  var status = handleDateQuery(nestedQuery).status;
 
-  if ((typeof this.query.provider !== 'undefined') && (typeof this.query.uid !== 'undefined') && (typeof this.query.token !== 'undefined')) {
-    searchParameters = {};
-    searchParameters['strategies.' + this.query.provider + '.uid'] = this.query.uid;
-    searchParameters['strategies.' + this.query.provider + '.token'] = this.query.token;
-  } else if ((typeof this.query.email !== 'undefined') && (typeof this.query.password !== 'undefined')) {
-    searchParameters = {
-      'strategies.local.email': this.query.email,
-      'strategies.local.password': this.query.password
-    };
+  // console.log(nestedQuery.email, nestedQuery.password);
+
+  if ((typeof nestedQuery.provider !== 'undefined') && (typeof nestedQuery.uid !== 'undefined') && (typeof nestedQuery.token !== 'undefined')) {
+    searchParameters['strategies.' + nestedQuery.provider + '.uid'] = nestedQuery.uid;
+    searchParameters['strategies.' + nestedQuery.provider + '.token'] = nestedQuery.token;
+  } else if ((typeof nestedQuery.email !== 'undefined') && (typeof nestedQuery.password !== 'undefined')) {
+    searchParameters['strategies.local.email'] = nestedQuery.email;
+    searchParameters['strategies.local.password'] = nestedQuery.password;
   } else {
-    searchParameters = {};
     status = 400;
   }
 
@@ -451,11 +519,15 @@ console.log('here Karl', this);
     }
   }
 
-  if (searchParameters) {
-    result = yield users.find(searchParameters, {
-      limit: limit
-    });
-  }
+  var result = yield users.find(searchParameters, {
+    fields: {
+      '_id': 1,
+      'firstname': 1,
+      'lastname': 1,
+      'email': 1
+    },
+    limit: limit
+  });
 
   if (!result || result.length < 1) {
     status = 404;
@@ -480,7 +552,15 @@ api.get('/users/:id', function* (next) {
   var status = null;
   var userId = this.params.id;
 
-  var result = yield users.findById(userId);
+  // var result = yield users.findById(userId);
+  var result = yield users.findById(userId, {
+    fields: {
+      '_id': 1,
+      'firstname': 1,
+      'lastname': 1,
+      'email': 1
+    }
+  });
 
   if (!result || result.length < 1) {
     status = 404;
@@ -601,31 +681,21 @@ api.del('/bookings/:id', function* (next) {
 
 api.get('/bookings', function* (next) {
   var errorMessage = null;
-  var status = null;
-
+  var limit = 50;
   var nestedQuery = qs.parse(this.querystring);
-  var searchParameters = null;
+  var searchParameters = handleDateQuery(nestedQuery).searchParameters;
+  var status = handleDateQuery(nestedQuery).status;
 
-  var limit = 20;
+  if ((typeof nestedQuery.provider !== 'undefined') && (typeof nestedQuery.uid !== 'undefined')) {
+    searchParameters.provider = nestedQuery.provider;
+    searchParameters.uid = nestedQuery.uid;
+  } else if ((typeof nestedQuery.email !== 'undefined') && (typeof nestedQuery.password !== 'undefined')) {
+    searchParameters.email = nestedQuery.email;
+    searchParameters.password = nestedQuery.password;
+  }
 
-  if ((typeof this.query.provider !== 'undefined') && (typeof this.query.provider_uid !== 'undefined')) {
-    searchParameters = {
-      provider: this.query.provider,
-      provider_uid: this.query.provider_uid
-    }
-  } else if ((typeof this.query.email !== 'undefined') && (typeof this.query.password !== 'undefined')) {
-    searchParameters = {
-      email: this.query.email,
-      password: this.query.password
-    }
-  } else if ((typeof this.query.range !== 'undefined') && (typeof this.query.units !== 'undefined')) {
-    var date = new Date();
-    var myvar1 = moment(date).subtract(this.query.range, this.query.units).toDate(); // "3 months after d"
-    searchParameters = {};
-  } else if ((typeof this.query.range !== 'undefined') && (typeof this.query.units !== 'undefined')) {
-    searchParameters = {};
-  } else {
-    searchParameters = {};
+  if (typeof nestedQuery.status !== 'undefined') {
+    searchParameters.status = nestedQuery.status;
   }
 
   if (nestedQuery.limit && (typeof parseInt(nestedQuery.limit) === 'number')) {
@@ -671,15 +741,16 @@ api.get('/bookings/:id', function* (next) {
   if (nestedQuery.view === 'detailed') {
     var booking = yield bookings.findById(bookingId);
 
-    var event = yield events.findById(booking.eventid, [
-      '-_id',
-      'date',
-      'starttime',
-      'endtime',
-      'priceband',
-      'facevalue',
-      'discount_price'
-    ]);
+    var event = yield events.findById(booking.eventid, {
+      fields: {
+        '_id': 1,
+        'starttime': 1,
+        'endtime': 1,
+        'priceband': 1,
+        'facevalue': 1,
+        'discount_price': 1
+      }
+    });
 
     booking.eventdetails = event;
 
@@ -749,7 +820,14 @@ api.post('/bookings', function* (next) {
     });
   }
 
-  var user = yield users.findById(result.userid);
+  var user = yield users.findById(result.userid, {
+    fields: {
+      '_id': 1,
+      'firstname': 1,
+      'lastname': 1,
+      'email': 1
+    }
+  });
 
   sendEmail('user-booking', {
     subject: 'Booking confirmed', // Subject line
@@ -784,15 +862,15 @@ api.put('/bookings/:id', function* (next) {
 
   var nestedQuery = qs.parse(this.querystring);
 
-  var body = yield parse.json(this);
+  var document = yield parse.json(this);
 
   var fields = null;
 
   if (nestedQuery.replace === 'true') {
-    fields = body;
+    fields = document;
   } else {
     fields = {
-      $set: body
+      $set: document
     };
   }
 
@@ -800,8 +878,16 @@ api.put('/bookings/:id', function* (next) {
     _id: this.params.id
   }, fields);
 
-  if(result && body.tickets >= 8) {
-    var user = yield users.findById(result.userid);
+  if(result && document.tickets >= 8) {
+    // var user = yield users.findById(result.userid);
+    var user = yield users.findById(result.userid, {
+      fields: {
+        _id: 1,
+        firstname: 1,
+        lastname: 1,
+        email: 1
+      }
+    });
 
     sendEmail('user-booking', {
       subject: 'Booking confirmed', // Subject line
@@ -824,9 +910,9 @@ api.put('/bookings/:id', function* (next) {
       }
     };
 
-    kaiseki.sendPushNotification(notification, function(err, res, body, success) {
+    kaiseki.sendPushNotification(notification, function(err, res, contents, success) {
       if (success) {
-        console.log('Push notification successfully sent:', body);
+        console.log('Push notification successfully sent:', contents);
       } else {
         console.log('Could not send push notification:', err);
       }
@@ -883,25 +969,17 @@ api.del('/payments/:id', function* (next) {
 
 api.get('/payments', function* (next) {
   var errorMessage = null;
-  var status = null;
-
-  var nestedQuery = qs.parse(this.querystring);
-
-  var searchParameters = null;
   var limit = 50;
+  var nestedQuery = qs.parse(this.querystring);
+  var searchParameters = handleDateQuery(nestedQuery).searchParameters;
+  var status = handleDateQuery(nestedQuery).status;
 
-  if (typeof this.query.processor !== 'undefined') {
-    searchParameters = {
-      processor: this.query.processor
-    }
-  } else if (typeof this.query.token !== 'undefined') {
-    searchParameters = {
-      token: this.query.token
-    }
+  if (typeof nestedQuery.processor !== 'undefined') {
+    searchParameters.processor = nestedQuery.processor;
+  } else if (typeof nestedQuery.token !== 'undefined') {
+    searchParameters.token = nestedQuery.token;
   } else if (typeof this.query !== 'undefined') {
     status = 400;
-  } else {
-    searchParameters = {};
   }
 
   if (nestedQuery.limit && (typeof parseInt(nestedQuery.limit) === 'number')) {
@@ -912,7 +990,7 @@ api.get('/payments', function* (next) {
     }
   }
 
-  var result = searchParameters !== null ? yield payments.find(searchParameters, {
+  var result = (searchParameters !== null) ? yield payments.find(searchParameters, {
     limit: limit
   }) : null;
 
@@ -935,15 +1013,35 @@ api.get('/payments', function* (next) {
 });
 
 api.get('/payments/:id', function* (next) {
+  var status = null;
+  var errorMessage = null;
+
   var paymentId = this.params.id;
 
   var result = yield payments.findById(paymentId);
 
-  this.body = result;
+  if (!result || result.length < 1) {
+    status = 404;
+  } else {
+    status = 200;
+  }
+
+  var body = {
+    'status': status, // use HTTP status code
+    'error': errorMessage,
+    'originalUrl': this.request.originalUrl,
+    'result': result
+  };
+
+  this.body = body;
+  this.status = status;
   this.type = 'application/json';
 });
 
 api.post('/payments', function* (next) {
+  var status = null;
+  var errorMessage = null;
+
   var document = yield parse.json(this);
 
   document.time = new Date();
@@ -996,6 +1094,9 @@ api.post('/payments', function* (next) {
 // Routes: Shows
 
 api.del('/shows/:id', function* (next) {
+  var status = null;
+  var errorMessage = null;
+
   var showId = this.params.id;
 
   var result = yield shows.remove({
@@ -1021,24 +1122,18 @@ api.del('/shows/:id', function* (next) {
 });
 
 api.get('/shows', function* (next) {
-  var status = null;
   var errorMessage = null;
-
+  var limit = 50;
   var nestedQuery = qs.parse(this.querystring);
-  var limit = 20;
+  var searchParameters = handleDateQuery(nestedQuery).searchParameters;
+  var status = handleDateQuery(nestedQuery).status;
 
-  if (typeof this.query.name !== 'undefined') {
-    searchParameters = {
-      name: this.query.name
-    }
-  } else if (typeof this.query.theatre !== 'undefined') {
-    searchParameters = {
-      theatre: this.query.theatre
-    }
-  } else if (typeof this.query !== 'undefined') {
+  if (typeof nestedQuery.name !== 'undefined') {
+    searchParameters.name = nestedQuery.name;
+  } else if (typeof nestedQuery.theatre !== 'undefined') {
+    searchParameters.theatre = nestedQuery.theatre;
+  } else if (typeof nestedQuery !== 'undefined') {
     status = 400;
-  } else {
-    searchParameters = {};
   }
 
   if (nestedQuery.limit && (typeof parseInt(nestedQuery.limit) === 'number')) {
@@ -1049,7 +1144,7 @@ api.get('/shows', function* (next) {
     }
   }
 
-  var result = searchParameters !== null ? yield shows.find(searchParameters, {
+  var result = (searchParameters !== null) ? yield shows.find(searchParameters, {
     limit: limit
   }) : null;
 
@@ -1072,7 +1167,9 @@ api.get('/shows', function* (next) {
 });
 
 api.get('/shows/:id', function* (next) {
+  var errorMessage = null;
   var showId = this.params.id;
+  var status = null;
 
   var result = yield shows.findById(showId);
 
@@ -1096,6 +1193,8 @@ api.get('/shows/:id', function* (next) {
 
 api.post('/shows', function* (next) {
   var document = yield parse.json(this);
+  var errorMessage = null;
+  var status = null;
 
   var result = yield shows.insert(document);
 
@@ -1118,19 +1217,18 @@ api.post('/shows', function* (next) {
 });
 
 api.put('/shows/:id', function* (next) {
-  var nestedQuery = qs.parse(this.querystring);
-
-  var showId = this.params.id;
-
-  var body = yield parse.json(this);
-
+  var document = yield parse.json(this);
+  var errorMessage = null;
   var fields = null;
+  var nestedQuery = qs.parse(this.querystring);
+  var showId = this.params.id;
+  var status = null;
 
   if (nestedQuery.replace === 'true') {
-    fields = body;
+    fields = document;
   } else {
     fields = {
-      $set: body
+      $set: document
     };
   }
 
@@ -1158,8 +1256,10 @@ api.put('/shows/:id', function* (next) {
 });
 
 api.post('/shows/:id/reviews', function* (next) {
-  var body = yield parse.json(this);
+  var document = yield parse.json(this);
+  var errorMessage = null;
   var nestedQuery = qs.parse(this.querystring);
+  var status = null;
 
   var showId = this.params.id;
 
@@ -1167,12 +1267,12 @@ api.post('/shows/:id/reviews', function* (next) {
 
   if (nestedQuery.replace === 'true') {
     fields = {
-      reviews: body
+      reviews: document
     };
   } else {
     fields = {
       $push: {
-        reviews: body
+        reviews: document
       }
     };
   }
@@ -1201,12 +1301,10 @@ api.post('/shows/:id/reviews', function* (next) {
 });
 
 api.put('/shows/:id/reviews', function* (next) {
-  var body = yield parse.json(this);
+  var document = yield parse.json(this);
+  var errorMessage = null;
   var nestedQuery = qs.parse(this.querystring);
   var status = null;
-  var errorMessage = null;
-  var searchParameters = null;
-  var result = null;
 
   var showId = this.params.id;
 
@@ -1214,17 +1312,16 @@ api.put('/shows/:id/reviews', function* (next) {
 
   if (nestedQuery.replace === 'true') {
     fields = {
-      reviews: body
+      reviews: document
     };
   } else {
     fields = {
       $set: {
-        reviews: body
+        reviews: document
       }
     };
   }
 
-  // var result = yield shows.updateById(showId, fields);
   var result = yield shows.findAndModify({
     _id: showId
   }, fields);
@@ -1250,20 +1347,20 @@ api.put('/shows/:id/reviews', function* (next) {
 // Routes: Catch-all
 
 api.get(/^([^.]+)$/, function* (next) {
-  yield next;
-
+  var errorMessage = null;
   var status = 404;
 
   var body = {
     'status': status, // use HTTP status code
     'error': errorMessage,
     'originalUrl': this.request.originalUrl,
-    'result': result
+    'result': packageJson.name + ' API version ' + version.toFixed(1)
   };
 
   this.body = body;
   this.status = status;
   this.type = 'application/json';
+  yield next;
 }); //matches everything without an extension
 
 module.exports = api;
