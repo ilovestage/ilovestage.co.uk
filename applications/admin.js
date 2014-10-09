@@ -7,6 +7,8 @@ var _ = require('lodash');
 var koa = require('koa');
 var logger = require('koa-logger');
 var mount = require('koa-mount');
+// var parse = require('co-body');
+var bodyParser = require('koa-bodyparser');
 var passport = require('koa-passport');
 var router = require('koa-router');
 var session = require('koa-generic-session');
@@ -16,20 +18,21 @@ var app = koa();
 
 // logger
 app.use(function *(next) {
-  // var start = new Date;
-  yield next;
-  // var ms = new Date - start;
+  var start = new Date;
+  var ms = new Date - start;
   // console.log('%s %s - %s', this.method, this.url, ms);
+  yield next;
 });
 
-app.keys = 'andthestageloveme123';
+app.keys = ['andthestageloveme123'];
 
 app.use(session());
+
+app.use(bodyParser());
 
 app.use(passport.initialize());
 app.use(passport.session());
 
-var securedRouter = new router();
 var publicRouter = new router();
 
 var routeModules = [];
@@ -109,12 +112,24 @@ function *index(next) {
   this.body = yield render('home', settings);
 }
 
+function *secured(next) {
+  console.log('secured');
+  var settings = {
+    bodyClass: 'home full-viewport-sections secured'
+  };
+
+  _.merge(settings, defaults);
+
+  this.body = yield render('home', settings);
+}
+
 function *isAuthenticated(next) {
+  console.log('this.isAuthenticated()', this.isAuthenticated(), 'this.request.originalUrl', this.request.originalUrl);
   if (!this.isAuthenticated() && (this.request.originalUrl !== '/login')) {
     this.redirect('/login');
+  } else {
+    yield next;
   }
-
-  yield next;
 }
 
 function *login(next) {
@@ -127,7 +142,7 @@ function *login(next) {
   this.body = yield render('login', settings);
 }
 
-function logout(next) {
+function *logout(next) {
   this.logout();
   this.redirect('/');
 }
@@ -142,26 +157,35 @@ function logout(next) {
 // use koa-router
 app.use(router(app));
 
-publicRouter.get('/', index);
+// publicRouter.get('/', index);
+app.get('/', index);
 
 publicRouter.get('/login', login);
 
 publicRouter.post('/login', passport.authenticate('local', {
-  successRedirect: '/456',
-  failureRedirect: '/login123'
+  successRedirect: '/',
+  failureRedirect: '/login'
 }));
 
 publicRouter.get('/logout', logout);
-publicRouter.get(/^([^.]+)$/, error404); //matches everything without an extension
 
-securedRouter.all('/', isAuthenticated);
+// publicRouter.get(/^([^.]+)$/, error404); //matches everything without an extension
+
+// publicRouter.all('/', isAuthenticated);
 
 app.use(publicRouter.middleware());
-app.use(securedRouter.middleware());
+
+// app.use(isAuthenticated);
+
+var securedRouter = new router();
+
+securedRouter.get('/test', isAuthenticated, secured);
 
 // securedRouter.use(mount('/', routeModules.general)); // contains catch-all rule so mount last
-// securedRouter.use(mount('/users', routeModules.users));
+// app.use(mount('/users', routeModules.users));
 // publicRouter.use(mount('/', routeModules.error));
+
+app.use(securedRouter.middleware());
 
 // app.use(mount('/bookings', routeModules.bookings));
 // app.use(mount('/events', routeModules.events));
