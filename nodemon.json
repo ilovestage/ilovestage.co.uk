@@ -7,7 +7,7 @@
   ],
   "verbose": true,
   "execMap": {
-    "js": "n use 0.11.13 --harmony --debug",
+    "js": "n use 0.11.14 --harmony --debug",
     "py": "python",
     "rb": "ruby"
   }
