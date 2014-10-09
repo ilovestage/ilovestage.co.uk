@@ -1,3 +1,5 @@
+'use strict';
+
 function clusterOnAvailablePort() {
   portscanner.findAPortNotInUse(portStart, portEnd, '127.0.0.1', function(error, availabePort) {
     port = availabePort;
@@ -24,26 +26,36 @@ function clusterOnAvailablePort() {
         console.log('Worker ' + worker.process.pid + ' responded after it was forked');
       });
 
-      console.info('Main application now running on http://localhost:' + port);
+      console.info('Main application now running on http://localhost:' + portStart);
     } else {
       if (!module.parent) {
         // set koa to listen on specified port
-        app.listen(port);
+        app.listen(portStart);
       }
     }
   });
+}
+
+function serveAssets() {
+  // serve static files
+  app.use(serve(__dirname + '/' + packageJson.config.path.build), {
+    defer: true
+  }); // true web root
+  app.use(serve(__dirname + '/' + packageJson.config.path.source), {
+    defer: true
+  }); // to save copying bower_components, SASS files, etc.
 }
 
 var packageJson = require(__dirname + '/package.json');
 
 var environment = process.env.NODE_ENV ? process.env.NODE_ENV : 'development';
 var config = packageJson.config.environment[environment];
-var port = process.env.PORT ? process.env.PORT : config.server.koa.port;
-var portStart = null;
+var portStart = process.env.PORT ? process.env.PORT : config.server.koa.port;
 var portEnd = null;
 
 var argv = require('yargs').argv;
 var cluster = require('cluster');
+// var database = require(__dirname + '/applications/database');
 // var http = require('http');
 var koa = require('koa');
 var logger = require('koa-logger');
@@ -52,16 +64,10 @@ var mount = require('koa-mount');
 var os = require('os');
 var portscanner = require('portscanner');
 var router = require('koa-router');
-var session = require('koa-session');
+// var session = require('koa-session');
 var serve = require('koa-static');
 
 var app = koa();
-
-var applications = [];
-applications.www = require(__dirname + '/applications/www');
-applications.api = require(__dirname + '/applications/api');
-applications.database = require(__dirname + '/applications/database');
-applications.socket = require(__dirname + '/applications/socket');
 
 // wrap subsequent middleware in a logger
 app.use(logger()); // very verbose
@@ -70,65 +76,63 @@ app.use(logger()); // very verbose
 app.use(function *(next) {
   'use strict';
   var start = new Date();
-  yield next;
   var ms = new Date() - start;
-  console.log('%s %s - %s', this.method, this.url, ms);
+  // console.log('%s %s - %s', this.method, this.url, ms);
+  yield next;
 
-  console.log(this, this.request, this.response);
-  console.log(this.request.header);
+  // console.log(this, this.request, this.response);
+  // console.log(this.request.header);
 });
 
 // use koa-router
 app.use(router(app));
 
 // setup session
-app.keys = ['secrets'];
-app.use(session());
+// app.keys = ['secrets'];
+// app.use(session());
 
 // mount applications
 switch(argv.application) {
   case 'admin':
-    app.use(mount('/', applications.admin));
+    console.log('Running admin application');
+    var application = require(__dirname + '/applications/admin');
+    app.use(mount('/', application));
     portStart = 5100;
     portEnd = 5103;
 
-    // serve static files
-    app.use(serve(__dirname + '/' + packageJson.config.path.build), {
-      defer: true
-    }); // true web root
-    app.use(serve(__dirname + '/' + packageJson.config.path.source), {
-      defer: true
-    }); // to save copying bower_components, SASS files, etc.
+    serveAssets();
   break;
   case 'api':
-    app.use(mount('/', applications.api));
+    console.log('Running api application');
+    var application = require(__dirname + '/applications/api');
+    app.use(mount('/', application));
     portStart = 5020;
     portEnd = 5023;
   break;
   case 'socket':
-    app.use(mount('/', applications.socket));
+    console.log('Running socket application');
+    var application = require(__dirname + '/applications/socket');
+    app.use(mount('/', application));
     portStart = 5200;
     portEnd = 5203;
   break;
   case 'www':
-    app.use(mount('/', applications.www));
+    console.log('Running www application');
+    var application = require(__dirname + '/applications/www');
+    app.use(mount('/', application));
     portStart = 5000;
     portEnd = 5003;
 
-    // serve static files
-    app.use(serve(__dirname + '/' + packageJson.config.path.build), {
-      defer: true
-    }); // true web root
-    app.use(serve(__dirname + '/' + packageJson.config.path.source), {
-      defer: true
-    }); // to save copying bower_components, SASS files, etc.
+    serveAssets();
   break;
 }
 
 if(environment !== 'development') {
+  console.log('Detected staging or production environment, running application on port ' + portStart);
   clusterOnAvailablePort();
 } else {
-  app.listen(port);
+  console.log('Detected development environment, running application on port ' + portStart);
+  app.listen(portStart);
 }
 
-console.log('Running instance of ' + argv.application + ' application under ' + environment + ' environment on port ' + port + '.');
+console.log('Running instance of ' + argv.application + ' application under ' + environment + ' environment on port ' + portStart + '.');
