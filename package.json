@@ -203,7 +203,7 @@
         "server": {
           "database": {
             "protocol": "mongodb",
-            "host": "ds063889.mongolab.com:63889/ilovestage",
+            "host": "ds063889.mongolab.com:63889",
             "name": "ilovestage",
             "port": 63889,
             "credentials": {
