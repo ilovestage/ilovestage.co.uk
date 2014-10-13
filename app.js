@@ -2,7 +2,7 @@
 
 function clusterOnAvailablePort() {
   portscanner.findAPortNotInUse(portStart, portEnd, '127.0.0.1', function(error, availabePort) {
-    port = availabePort;
+    var port = availabePort;
     console.log('Available port at ' + port);
     // setup clustering
     if (cluster.isMaster) {
@@ -26,11 +26,11 @@ function clusterOnAvailablePort() {
         console.log('Worker ' + worker.process.pid + ' responded after it was forked');
       });
 
-      console.info('Main application now running on http://localhost:' + portStart);
+      console.info('Main application now running on http://localhost:' + port);
     } else {
       if (!module.parent) {
         // set koa to listen on specified port
-        app.listen(portStart);
+        app.listen(port);
       }
     }
   });
@@ -74,7 +74,6 @@ app.use(logger()); // very verbose
 
 // use logger
 app.use(function *(next) {
-  'use strict';
   var start = new Date();
   var ms = new Date() - start;
   // console.log('%s %s - %s', this.method, this.url, ms);
@@ -94,7 +93,7 @@ app.use(router(app));
 // mount applications
 switch(argv.application) {
   case 'admin':
-    console.log('Running admin application');
+    console.log('Requiring admin application.');
     var application = require(__dirname + '/applications/admin');
     app.use(mount('/', application));
     portStart = 5100;
@@ -103,21 +102,21 @@ switch(argv.application) {
     serveAssets();
   break;
   case 'api':
-    console.log('Running api application');
+    console.log('Requiring api application.');
     var application = require(__dirname + '/applications/api');
     app.use(mount('/', application));
     portStart = 5020;
     portEnd = 5023;
   break;
   case 'socket':
-    console.log('Running socket application');
+    console.log('Requiring socket application.');
     var application = require(__dirname + '/applications/socket');
     app.use(mount('/', application));
     portStart = 5200;
     portEnd = 5203;
   break;
   case 'www':
-    console.log('Running www application');
+    console.log('Requiring www application.');
     var application = require(__dirname + '/applications/www');
     app.use(mount('/', application));
     portStart = 5000;
@@ -128,11 +127,9 @@ switch(argv.application) {
 }
 
 if(environment !== 'development') {
-  console.log('Detected staging or production environment, running application on port ' + portStart);
+  console.log('Detected staging or production environment.');
   clusterOnAvailablePort();
 } else {
-  console.log('Detected development environment, running application on port ' + portStart);
+  console.log('Detected development environment.');
   app.listen(portStart);
 }
-
-console.log('Running instance of ' + argv.application + ' application under ' + environment + ' environment on port ' + portStart + '.');
