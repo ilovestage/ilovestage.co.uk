@@ -203,12 +203,12 @@
         "server": {
           "database": {
             "protocol": "mongodb",
-            "host": "127.0.0.1",
+            "host": "ds063889.mongolab.com:63889/ilovestage",
             "name": "ilovestage",
-            "port": 27017,
+            "port": 63889,
             "credentials": {
-              "username": null,
-              "password": null
+              "username": "ilovestage",
+              "password": "curtaincall1"
             }
           },
           "koa": {
