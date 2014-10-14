@@ -6,7 +6,7 @@ var config = packageJson.config.environment[process.env.NODE_ENV || 'development
 var version = 1.0;
 
 // var _ = require('lodash');
-// var co = require('co');
+var co = require('co');
 var emailTemplates = require('email-templates');
 var parse = require('co-body');
 // var bodyParser = require('koa-bodyparser');
@@ -21,7 +21,7 @@ var qs = require('qs');
 var router = require('koa-router');
 // var should = require('should');
 var stripe = require('stripe')(config.api.stripe.key);
-// var thunkify = require('thunkify');
+var thunkify = require('thunkify');
 
 var templatesDir = path.resolve(__dirname, '../..', 'source/emails');
 
@@ -499,6 +499,13 @@ api.get('/users', function* (next) {
   var searchParameters = handleDateQuery(nestedQuery).searchParameters;
   var status = handleDateQuery(nestedQuery).status;
 
+  var fields = {
+    '_id': 1,
+    'firstname': 1,
+    'lastname': 1,
+    'email': 1
+  };
+
   // console.log(nestedQuery.email, nestedQuery.password);
 
   if ((typeof nestedQuery.provider !== 'undefined') && (typeof nestedQuery.uid !== 'undefined') && (typeof nestedQuery.token !== 'undefined')) {
@@ -519,13 +526,13 @@ api.get('/users', function* (next) {
     }
   }
 
+
+  if (nestedQuery.view === 'detailed') {
+    fields = {};
+  }
+
   var result = yield users.find(searchParameters, {
-    fields: {
-      '_id': 1,
-      'firstname': 1,
-      'lastname': 1,
-      'email': 1
-    },
+    fields: fields,
     limit: limit
   });
 
@@ -586,12 +593,34 @@ api.post('/users', function* (next) {
 
   var document = yield parse.json(this);
 
+  var createCardThunk = thunkify(stripe.customers.create);
+  var createCardBoundThunk = createCardThunk.bind(stripe.customers);
+
   var result = yield users.insert(document);
 
   if (!result || result.length < 1) {
     status = 404;
   } else {
     status = 200;
+
+    var originalResult = result;
+
+    var customer = yield createCardBoundThunk({
+      metadata: {
+        userid: originalResult._id
+      },
+      email: originalResult.strategies.local.email
+    });
+
+    var fields = {
+      $set: {
+        stripeid: customer.id
+      }
+    };
+
+    result = yield users.findAndModify({
+      _id: originalResult._id
+    }, fields);
   }
 
   var body = {
@@ -1043,15 +1072,74 @@ api.post('/payments', function* (next) {
   var errorMessage = null;
 
   var document = yield parse.json(this);
+  // console.log('document', document);
+  // var createCardThunk = thunkify(stripe.customers.createCard);
+  // var createCardBoundThunk = createCardThunk.bind(stripe.customers);
+
+  var createChargeThunk = thunkify(stripe.charges.create);
+  var createChargeBoundThunk = createChargeThunk.bind(stripe.charges);
 
   document.time = new Date();
 
-  var result = yield payments.insert(document);
-
-  if (!result || result.length < 1) {
-    status = 404;
+  if(!document.hasOwnProperty('bookingid') || !document.hasOwnProperty('processor') || !document.hasOwnProperty('currency') || !document.hasOwnProperty('amount')) {
+    status = 400;
   } else {
-    status = 200;
+    var booking = yield bookings.findById(document.bookingid, {});
+    console.log('booking', booking);
+    if (!booking || booking.length < 1) {
+      status = 404;
+    } else {
+      status = 200;
+
+      var user = yield users.findById(booking.userid, {});
+      console.log('user', user);
+      if (!user || user.length < 1) {
+        status = 404;
+      } else {
+        status = 200;
+
+        // var card = yield createCardBoundThunk(
+        //   user.stripeid,
+        //   {
+        //     card: {
+        //       number: document.card.number,
+        //       exp_month: document.card.exp_month,
+        //       exp_year: document.card.exp_year,
+        //       cvc: document.card.cvc,
+        //       name: document.card.name,
+        //     }
+        //   }
+        // );
+        var chargeInfo = {
+          amount: document.amount,
+          currency: document.currency,
+          customer: user.stripeid,
+          // card: {
+          //   number: document.card.number.toString(),
+          //   exp_month: ('00' + document.card.exp_month).slice(-2),
+          //   exp_year: document.card.exp_year,
+          //   cvc: document.card.cvc,
+          //   name: document.card.name
+          // },
+          card: user.stripetoken,
+          metadata: {
+            bookingid: document.bookingid
+          },
+          capture: 'true',
+          description: document.description
+        };
+        console.log('chargeInfo', chargeInfo);
+        var charge = yield createChargeBoundThunk(chargeInfo);
+        console.log('charge', charge);
+        var result = yield payments.insert(charge);
+
+        if (!result || result.length < 1) {
+          status = 404;
+        } else {
+          status = 200;
+        }
+      }
+    }
   }
 
   var body = {
