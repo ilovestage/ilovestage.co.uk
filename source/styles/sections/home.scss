@@ -17,6 +17,18 @@ html {
 
           &.background {
             background-color: $gray;
+
+            a,
+            .btn,
+            .btn-link {
+              &:active,
+              &:active:focus,
+              &:focus,
+              &:hover, {
+                background-color: rgba(255, 255, 255, .95);
+              }
+            }
+
           }
 
           &:not(.tall) {
