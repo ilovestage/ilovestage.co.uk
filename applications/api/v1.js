@@ -526,7 +526,6 @@ api.get('/users', function* (next) {
     }
   }
 
-
   if (nestedQuery.view === 'detailed') {
     fields = {};
   }
@@ -595,6 +594,12 @@ api.post('/users', function* (next) {
 
   var createCardThunk = thunkify(stripe.customers.create);
   var createCardBoundThunk = createCardThunk.bind(stripe.customers);
+
+  // debug start
+  var nestedQuery = qs.parse(this.querystring);
+  console.log('nestedQuery', nestedQuery);
+  console.log('document', document);
+  // debug end
 
   var result = yield users.insert(document);
 
