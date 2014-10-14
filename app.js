@@ -130,6 +130,6 @@ if(environment !== 'development') {
   console.log('Detected staging or production environment.');
   clusterOnAvailablePort();
 } else {
-  console.log('Detected development environment.');
+  console.log('Detected development environment on port ' + portStart + '.');
   app.listen(portStart);
 }

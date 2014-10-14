@@ -17,12 +17,12 @@ var views = require('co-views');
 var app = koa();
 
 // logger
-app.use(function *(next) {
-  var start = new Date;
-  var ms = new Date - start;
-  // console.log('%s %s - %s', this.method, this.url, ms);
-  yield next;
-});
+// app.use(function *(next) {
+//   var start = new Date;
+//   var ms = new Date - start;
+//   console.log('%s %s - %s', this.method, this.url, ms);
+//   yield next;
+// });
 
 app.keys = ['andthestageloveme123'];
 
@@ -124,8 +124,8 @@ function *secured(next) {
 }
 
 function *isAuthenticated(next) {
-  console.log('this.isAuthenticated()', this.isAuthenticated(), 'this.request.originalUrl', this.request.originalUrl);
-  if (!this.isAuthenticated() && (this.request.originalUrl !== '/login')) {
+  console.log('this.req.isAuthenticated()', this.req.isAuthenticated(), 'this.isAuthenticated()', this.isAuthenticated(), 'this.request.originalUrl', this.request.originalUrl);
+  if (!this.req.isAuthenticated() && (this.request.originalUrl !== '/login')) {
     this.redirect('/login');
   } else {
     yield next;

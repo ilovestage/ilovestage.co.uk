@@ -17,30 +17,45 @@ var db = new database(config.server.database);
 var users = db.collection('users');
 
 passport.serializeUser(function(user, done) {
-  console.log('passport.serializeUser');
+  console.log('passport.serializeUser', user._id, done);
   done(null, user._id);
 });
 
-passport.deserializeUser(function(user, done) {
-  console.log('passport.deserializeUser');
-  done(null, user);
+passport.deserializeUser(function(userid, done) {
+  console.log('passport.deserializeUser', userid, done);
+
+  co(function *() {
+    try {
+      var result = yield users.findById(userid, {});
+
+      console.log('result', result);
+
+      if (!result || result.length < 1) {
+        return false;
+      } else {
+        return result;
+      }
+   } catch (ex) {
+      return null;
+   }
+ })(done);
 });
 
 passport.use(new LocalStrategy(
   function (username, password, done) {
     co(function *() {
       try {
-        console.log('in here', username, password);
+        console.log('in here', username, password, done);
 
-        var result = yield users.find({
-          username: username,
-          password: password
+        var result = yield users.findOne({
+          'strategies.local.email': username,
+          'strategies.local.password': password
         });
 
-        console.log('result', result);
+        // console.log('result', result);
 
         if (!result || result.length < 1) {
-          return null;
+          return false;
         } else {
           return result;
         }
