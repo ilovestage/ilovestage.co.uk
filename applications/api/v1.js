@@ -1079,20 +1079,22 @@ api.post('/payments', function* (next) {
   var createChargeThunk = thunkify(stripe.charges.create);
   var createChargeBoundThunk = createChargeThunk.bind(stripe.charges);
 
+  var result = null;
+
   document.time = new Date();
 
   if(!document.hasOwnProperty('bookingid') || !document.hasOwnProperty('processor') || !document.hasOwnProperty('currency') || !document.hasOwnProperty('amount')) {
     status = 400;
   } else {
     var booking = yield bookings.findById(document.bookingid, {});
-    console.log('booking', booking);
+    // console.log('booking', booking);
     if (!booking || booking.length < 1) {
       status = 404;
     } else {
       status = 200;
 
       var user = yield users.findById(booking.userid, {});
-      console.log('user', user);
+      // console.log('user', user);
       if (!user || user.length < 1) {
         status = 404;
       } else {
@@ -1128,10 +1130,10 @@ api.post('/payments', function* (next) {
           capture: 'true',
           description: document.description
         };
-        console.log('chargeInfo', chargeInfo);
+        // console.log('chargeInfo', chargeInfo);
         var charge = yield createChargeBoundThunk(chargeInfo);
-        console.log('charge', charge);
-        var result = yield payments.insert(charge);
+        // console.log('charge', charge);
+        result = yield payments.insert(charge);
 
         if (!result || result.length < 1) {
           status = 404;
