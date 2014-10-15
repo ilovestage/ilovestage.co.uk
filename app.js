@@ -70,18 +70,17 @@ var serve = require('koa-static');
 var app = koa();
 
 // wrap subsequent middleware in a logger
-app.use(logger()); // very verbose
+// app.use(logger()); // very verbose
 
 // use logger
-app.use(function *(next) {
-  var start = new Date();
-  var ms = new Date() - start;
-  // console.log('%s %s - %s', this.method, this.url, ms);
-  yield next;
-
-  // console.log(this, this.request, this.response);
-  // console.log(this.request.header);
-});
+// app.use(function *(next) {
+//   var start = new Date();
+//   var ms = new Date() - start;
+//   console.log('%s %s - %s', this.method, this.url, ms);
+//   console.log(this, this.request, this.response);
+//   console.log(this.request.header);
+//   yield next;
+// });
 
 // use koa-router
 app.use(router(app));
