@@ -2,22 +2,8 @@ var packageJson = require(__dirname + '/../../package.json');
 var config = packageJson.config.environment[process.env.NODE_ENV || 'development'];
 
 var _ = require('lodash');
-var koa = require('koa');
 var router = require('koa-router');
 var views = require('co-views');
-
-var app = koa();
-
-// use koa-router
-app.use(router(app));
-
-// logger
-app.use(function *(next) {
-  // var start = new Date;
-  yield next;
-  // var ms = new Date - start;
-  // console.log('%s %s - %s', this.method, this.url, ms);
-});
 
 var render = views('source/views', {
   cache: true,
@@ -27,17 +13,13 @@ var render = views('source/views', {
   }
 });
 
+var securedRouter = new router();
+
 var defaults = {
   lang: 'en',
-  // packageJson: packageJson,
   config: config,
   ngApp: 'users'
-
-  // bodyClass: 'users test clear-header' //fucking doesn't get overridden
 };
-
-// use koa-router
-app.use(router(app));
 
 function *index(next) {
   var settings = {
@@ -68,8 +50,6 @@ function *read(next) {
   var title = this.params.title;
 
   _.merge(settings, defaults);
-  // console.log('settings', settings);
-  // console.log('defaults', defaults);
 
   this.body = yield render('users-read', settings);
 }
@@ -88,11 +68,12 @@ function *remove(next) {
 
 }
 
-app.get('/', index);
-app.get('/:title', read);
-app.get('/create', create);
-app.get('/edit', update);
-// app.post('/create', edit);
-// app.get(/^([^.]+)$/, index); //matches everything without an extension
+securedRouter.get('/', index);
+securedRouter.get('/:title', read);
+securedRouter.get('/create', create);
+securedRouter.get('/delete', remove);
+securedRouter.get('/edit', update);
+// securedRouter.post('/create', edit);
+securedRouter.get(/^([^.]+)$/, index); //matches everything without an extension
 
-module.exports = app;
+module.exports = securedRouter;

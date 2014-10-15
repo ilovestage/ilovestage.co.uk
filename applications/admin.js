@@ -1,11 +1,14 @@
+'use strict';
+
 var packageJson = require(__dirname + '/../package.json');
 var config = packageJson.config.environment[process.env.NODE_ENV || 'development'];
 
 require('./modules/auth');
 
 var _ = require('lodash');
+// var _.str = require('underscore.string');
 var koa = require('koa');
-var logger = require('koa-logger');
+// var logger = require('koa-logger');
 var mount = require('koa-mount');
 // var parse = require('co-body');
 var bodyParser = require('koa-bodyparser');
@@ -16,13 +19,6 @@ var views = require('co-views');
 
 var app = koa();
 
-// logger
-// app.use(function *(next) {
-//   var start = new Date;
-//   var ms = new Date - start;
-//   console.log('%s %s - %s', this.method, this.url, ms);
-//   yield next;
-// });
 
 app.keys = ['andthestageloveme123'];
 
@@ -33,16 +29,6 @@ app.use(bodyParser());
 app.use(passport.initialize());
 app.use(passport.session());
 
-var publicRouter = new router();
-
-var routeModules = [];
-// routeModules.general = require(__dirname + '/routes/general');
-// routeModules.bookings = require(__dirname + '/routes/bookings');
-// routeModules.events = require(__dirname + '/routes/events');
-// routeModules.payments = require(__dirname + '/routes/payments');
-// routeModules.shows = require(__dirname + '/routes/shows');
-// routeModules.users = require(__dirname + '/routes/users');
-
 var render = views('source/views', {
   cache: true,
 
@@ -51,44 +37,25 @@ var render = views('source/views', {
   }
 });
 
+var publicRouter = new router();
+
 var defaults = {
-  // packageJson: packageJson,
   config: config,
   lang: 'en',
   ngApp: 'general'
 };
 
-// use koa-router
-app.use(router(app));
-
-// app.use(function *(next) {
-//   if (this.isAuthenticated()) {
-//     yield next;
-//   } else {
-//     if(this.request.originalUrl !== '/login') {
-//       this.redirect('/login');
-//     } else {
-//       yield next;
-//     }
-//   }
-// });
-
 function *error404(next) {
+  console.log('in error404');
   var settings = {
     bodyClass: 'error error404'
   };
 
   _.merge(settings, defaults);
 
-  // console.log('app', app, getAllMethods(app));
-  // console.log('this.method', this.method, 'this.path', this.path);
-
-  // if (app.match(this.method, this.path)) {
   if ('app.route', app.route) {
-    // console.log('app.match true');
     yield next;
   } else {
-    // console.log('app.match false');
     // this.throw('404 / Not Found', 404)
     this.body = yield render('error-404', settings);
     this.status = 404;
@@ -115,21 +82,36 @@ function *index(next) {
 function *secured(next) {
   console.log('secured');
   var settings = {
-    bodyClass: 'home full-viewport-sections secured'
+    bodyClass: 'users full-viewport-sections secured'
   };
 
   _.merge(settings, defaults);
 
-  this.body = yield render('home', settings);
+  this.body = yield render('users-index', settings);
 }
 
 function *isAuthenticated(next) {
-  console.log('this.req.isAuthenticated()', this.req.isAuthenticated(), 'this.isAuthenticated()', this.isAuthenticated(), 'this.request.originalUrl', this.request.originalUrl);
-  if (!this.req.isAuthenticated() && (this.request.originalUrl !== '/login')) {
+  var url = this.path;
+  var urlParts = url.split('/');
+  var filename = urlParts[urlParts.length - 1];
+  var extension = filename.split('.').pop();
+  var patternFileWithExtension = /\.[0-9a-z]+$/i;
+  // var patternFileWithExtension = /^([^.]+)$/;
+  console.log('∆∆∆∆∆∆∆∆∆∆');
+  console.log('filename', filename);
+  console.log('extension', extension);
+  console.log('regex', filename === patternFileWithExtension);
+
+  // if (!this.req.isAuthenticated() && (this.request.originalUrl !== '/login') && (filename === patternFileWithExtension)) {
+  if (!this.req.isAuthenticated() && (this.request.originalUrl !== '/login') && (extension === filename)) {
+    console.log('redirect');
     this.redirect('/login');
   } else {
+    console.log('yield next');
     yield next;
   }
+
+  console.log('^^^^^^^^^^');
 }
 
 function *login(next) {
@@ -147,18 +129,18 @@ function *logout(next) {
   this.redirect('/');
 }
 
-// app.use(function *(next) {
-//   if (!this.isAuthenticated() && (this.request.originalUrl !== '/login')) {
-//     this.redirect('/login');
-//   }
-//   yield next;
-// });
-
 // use koa-router
 app.use(router(app));
+// app.use(securedRouter);
 
-// publicRouter.get('/', index);
-app.get('/', index);
+publicRouter.get('/', index);
+// app.get('/', index);
+
+// app.use(mount('/bookings', routeModules.bookings));
+// app.use(mount('/events', routeModules.events));
+// app.use(mount('/payments', routeModules.payments));
+// app.use(mount('/shows', routeModules.shows));
+// app.use(mount('/users', require(__dirname + '/admin/users')));
 
 publicRouter.get('/login', login);
 
@@ -171,28 +153,43 @@ publicRouter.get('/logout', logout);
 
 // publicRouter.get(/^([^.]+)$/, error404); //matches everything without an extension
 
-// publicRouter.all('/', isAuthenticated);
+
+// app.use(function *(next) {
+//   if (!this.isAuthenticated() && (this.request.originalUrl !== '/login')) {
+//     this.redirect('/login');
+//   }
+//   yield next;
+// });
+
+// app.use(function *(next) {
+//   if (this.isAuthenticated()) {
+//     yield next;
+//   } else {
+//     if(this.request.originalUrl !== '/login') {
+//       this.redirect('/login');
+//     } else {
+//       yield next;
+//     }
+//   }
+// });
 
 app.use(publicRouter.middleware());
 
-// app.use(isAuthenticated);
+app.use(isAuthenticated);
 
 var securedRouter = new router();
 
-securedRouter.get('/test', isAuthenticated, secured);
+// securedRouter.get('/test', isAuthenticated, secured);
+securedRouter.get('/test', secured);
 
 // securedRouter.use(mount('/', routeModules.general)); // contains catch-all rule so mount last
 // app.use(mount('/users', routeModules.users));
 // publicRouter.use(mount('/', routeModules.error));
 
+securedRouter.get(/^([^.]+)$/, error404); //matches everything without an extension
+
 app.use(securedRouter.middleware());
 
-// app.use(mount('/bookings', routeModules.bookings));
-// app.use(mount('/events', routeModules.events));
-// app.use(mount('/payments', routeModules.payments));
-// app.use(mount('/shows', routeModules.shows));
-// app.use(mount('/users', routeModules.users));
-// app.use(mount('/', routeModules.general)); // contains catch-all rule so mount last
-// app.use(mount('/', routeModules.error));
+// app.get(/^([^.]+)$/, error404); //matches everything without an extension
 
 module.exports = app;
