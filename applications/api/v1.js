@@ -7,6 +7,7 @@ var version = 1.0;
 
 // var _ = require('lodash');
 var co = require('co');
+var DJ = require('dot-object');
 var emailTemplates = require('email-templates');
 var parse = require('co-body');
 // var bodyParser = require('koa-bodyparser');
@@ -30,6 +31,8 @@ var database = require(__dirname + '/../database');
 var app = koa();
 // var app = qs(koa());
 var db = new database(config.server.database);
+
+var dj = new DJ();
 
 var bookings = db.collection('bookings');
 var events = db.collection('events');
@@ -398,6 +401,9 @@ api.post('/events', function* (next) {
   var status = null;
   var document = yield parse.json(this);
 
+  dj.object(document);
+  delete document.format;
+
   document.starttime = new Date(document.starttime);
   document.endtime = new Date(document.endtime);
 
@@ -429,6 +435,9 @@ api.put('/events/:id', function* (next) {
   var eventId = this.params.id;
 
   var document = yield parse.json(this);
+
+  dj.object(document);
+  delete document.format;
 
   var fields = null;
 
@@ -592,14 +601,14 @@ api.post('/users', function* (next) {
 
   var document = yield parse.json(this);
 
+  dj.object(document);
+  delete document.format;
+
   var createCardThunk = thunkify(stripe.customers.create);
   var createCardBoundThunk = createCardThunk.bind(stripe.customers);
 
-  // debug start
-  var nestedQuery = qs.parse(this.querystring);
-  console.log('nestedQuery', nestedQuery);
-  console.log('document', document);
-  // debug end
+  dj.object(document);
+  delete document.format;
 
   var result = yield users.insert(document);
 
@@ -649,6 +658,9 @@ api.put('/users/:id', function* (next) {
   var userId = this.params.id;
 
   var document = yield parse.json(this);
+
+  dj.object(document);
+  delete document.format;
 
   var fields = null;
 
@@ -845,6 +857,9 @@ api.post('/bookings', function* (next) {
 
   var document = yield parse.json(this);
 
+  dj.object(document);
+  delete document.format;
+
   var result = yield bookings.insert(document);
 
   if(result.tickets >= 8) {
@@ -897,6 +912,9 @@ api.put('/bookings/:id', function* (next) {
   var nestedQuery = qs.parse(this.querystring);
 
   var document = yield parse.json(this);
+
+  dj.object(document);
+  delete document.format;
 
   var fields = null;
 
@@ -1077,9 +1095,9 @@ api.post('/payments', function* (next) {
   var errorMessage = null;
 
   var document = yield parse.json(this);
-  // console.log('document', document);
-  // var createCardThunk = thunkify(stripe.customers.createCard);
-  // var createCardBoundThunk = createCardThunk.bind(stripe.customers);
+
+  dj.object(document);
+  delete document.format;
 
   var createChargeThunk = thunkify(stripe.charges.create);
   var createChargeBoundThunk = createChargeThunk.bind(stripe.charges);
@@ -1105,29 +1123,10 @@ api.post('/payments', function* (next) {
       } else {
         status = 200;
 
-        // var card = yield createCardBoundThunk(
-        //   user.stripeid,
-        //   {
-        //     card: {
-        //       number: document.card.number,
-        //       exp_month: document.card.exp_month,
-        //       exp_year: document.card.exp_year,
-        //       cvc: document.card.cvc,
-        //       name: document.card.name,
-        //     }
-        //   }
-        // );
         var chargeInfo = {
           amount: document.amount,
           currency: document.currency,
           customer: user.stripeid,
-          // card: {
-          //   number: document.card.number.toString(),
-          //   exp_month: ('00' + document.card.exp_month).slice(-2),
-          //   exp_year: document.card.exp_year,
-          //   cvc: document.card.cvc,
-          //   name: document.card.name
-          // },
           card: user.stripetoken,
           metadata: {
             bookingid: document.bookingid
@@ -1135,9 +1134,9 @@ api.post('/payments', function* (next) {
           capture: 'true',
           description: document.description
         };
-        // console.log('chargeInfo', chargeInfo);
+
         var charge = yield createChargeBoundThunk(chargeInfo);
-        // console.log('charge', charge);
+
         result = yield payments.insert(charge);
 
         if (!result || result.length < 1) {
@@ -1287,9 +1286,13 @@ api.get('/shows/:id', function* (next) {
 });
 
 api.post('/shows', function* (next) {
-  var document = yield parse.json(this);
   var errorMessage = null;
   var status = null;
+
+  var document = yield parse.json(this);
+
+  dj.object(document);
+  delete document.format;
 
   var result = yield shows.insert(document);
 
@@ -1312,12 +1315,17 @@ api.post('/shows', function* (next) {
 });
 
 api.put('/shows/:id', function* (next) {
-  var document = yield parse.json(this);
   var errorMessage = null;
-  var fields = null;
-  var nestedQuery = qs.parse(this.querystring);
-  var showId = this.params.id;
   var status = null;
+
+  var nestedQuery = qs.parse(this.querystring);
+  var document = yield parse.json(this);
+
+  dj.object(document);
+  delete document.format;
+
+  var showId = this.params.id;
+  var fields = null;
 
   if (nestedQuery.replace === 'true') {
     fields = document;
@@ -1351,13 +1359,16 @@ api.put('/shows/:id', function* (next) {
 });
 
 api.post('/shows/:id/reviews', function* (next) {
-  var document = yield parse.json(this);
   var errorMessage = null;
-  var nestedQuery = qs.parse(this.querystring);
   var status = null;
 
-  var showId = this.params.id;
+  var nestedQuery = qs.parse(this.querystring);
+  var document = yield parse.json(this);
 
+  dj.object(document);
+  delete document.format;
+
+  var showId = this.params.id;
   var fields = null;
 
   if (nestedQuery.replace === 'true') {
@@ -1396,13 +1407,16 @@ api.post('/shows/:id/reviews', function* (next) {
 });
 
 api.put('/shows/:id/reviews', function* (next) {
-  var document = yield parse.json(this);
   var errorMessage = null;
-  var nestedQuery = qs.parse(this.querystring);
   var status = null;
 
-  var showId = this.params.id;
+  var nestedQuery = qs.parse(this.querystring);
+  var document = yield parse.json(this);
 
+  dj.object(document);
+  delete document.format;
+
+  var showId = this.params.id;
   var fields = null;
 
   if (nestedQuery.replace === 'true') {

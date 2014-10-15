@@ -1,3 +1,5 @@
+'use strict';
+
 var packageJson = require(__dirname + '/../package.json');
 var config = packageJson.config.environment[process.env.NODE_ENV || 'development'];
 
@@ -12,14 +14,6 @@ api.v1 = require(__dirname + '/api/v1');
 api.v2 = require(__dirname + '/api/v2');
 
 var app = koa();
-
-logger
-app.use(function *(next) {
-  // var start = new Date;
-  yield next;
-  // var ms = new Date - start;
-  // console.log('%s %s - %s', this.method, this.url, ms);
-});
 
 // use koa-router
 app.use(router(app));
