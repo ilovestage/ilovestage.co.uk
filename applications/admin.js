@@ -97,21 +97,22 @@ function *isAuthenticated(next) {
   var extension = filename.split('.').pop();
   var patternFileWithExtension = /\.[0-9a-z]+$/i;
   // var patternFileWithExtension = /^([^.]+)$/;
-  console.log('∆∆∆∆∆∆∆∆∆∆');
-  console.log('filename', filename);
-  console.log('extension', extension);
-  console.log('regex', filename === patternFileWithExtension);
+
+  // console.log('∆∆∆∆∆∆∆∆∆∆');
+  // console.log('filename', filename);
+  // console.log('extension', extension);
+  // console.log('regex', filename === patternFileWithExtension);
 
   // if (!this.req.isAuthenticated() && (this.request.originalUrl !== '/login') && (filename === patternFileWithExtension)) {
   if (!this.req.isAuthenticated() && (this.request.originalUrl !== '/login') && (extension === filename)) {
-    console.log('redirect');
+    // console.log('redirect');
     this.redirect('/login');
   } else {
-    console.log('yield next');
+    // console.log('yield next');
     yield next;
   }
 
-  console.log('^^^^^^^^^^');
+  // console.log('^^^^^^^^^^');
 }
 
 function *login(next) {
@@ -151,27 +152,7 @@ publicRouter.post('/login', passport.authenticate('local', {
 
 publicRouter.get('/logout', logout);
 
-// publicRouter.get(/^([^.]+)$/, error404); //matches everything without an extension
-
-
-// app.use(function *(next) {
-//   if (!this.isAuthenticated() && (this.request.originalUrl !== '/login')) {
-//     this.redirect('/login');
-//   }
-//   yield next;
-// });
-
-// app.use(function *(next) {
-//   if (this.isAuthenticated()) {
-//     yield next;
-//   } else {
-//     if(this.request.originalUrl !== '/login') {
-//       this.redirect('/login');
-//     } else {
-//       yield next;
-//     }
-//   }
-// });
+publicRouter.get(/^([^.]+)$/, error404); //matches everything without an extension
 
 app.use(publicRouter.middleware());
 
