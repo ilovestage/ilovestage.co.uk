@@ -1,0 +1,97 @@
+/* Custom
+-------------------------------------------------- */
+// $primary-color: rgba(255,255,255,0.975);
+// $secondary-color: rgba(255,255,255,0.975);
+// $tertiary-color: rgba(255,255,255,0.975);
+// $quaternary-color: rgba(255,255,255,0.975);
+
+/* Font Awesome
+-------------------------------------------------- */
+$fa-font-path:   '../../bower_components/font-awesome/fonts';
+
+/* Bootstrap
+-------------------------------------------------- */
+$icon-font-path: '../../bower_components/bootstrap-sass-official/assets/fonts/bootstrap/';
+
+// Media queries breakpoints
+// --------------------------------------------------
+
+// Extra large screen / Extra extra wide desktop
+$screen-xl:                  1440px;
+$screen-xl-min:              $screen-xl;
+$screen-xl-desktop:          $screen-xl-min;
+
+// Extra extra large screen / Extra extra wide desktop
+$screen-xxl:                  1920px;
+$screen-xxl-min:              $screen-xxl;
+$screen-xxl-desktop:          $screen-xxl-min;
+
+
+// Extra large screen / Extra wide desktop
+$container-extra-large-desktop:      ((1380px + $grid-gutter-width));
+$container-xl:                 $container-extra-large-desktop;
+
+// Extra extra large screen / Extra wide desktop
+$container-extra-extra-large-desktop:      ((1860px + $grid-gutter-width));
+$container-xxl:                 $container-extra-extra-large-desktop;
+
+// Scaffolding
+// -------------------------
+$body-bg-inverse:       #000 !default;
+$module-bg:             #eee;
+// $text-color:            #000;
+$text-color-overlay:    $body-bg;
+$hero-icon:             #ccc;
+
+// Sidebar Navigation
+$nav-bg:               		$body-bg-inverse;
+
+// Main Navigation
+// -------------------------
+$navigation-color:         $text-color;
+$navigation-color-inverse: $body-bg;
+
+// Typography
+// -------------------------
+
+// $font-family-sans-serif:  'HelveticaNeue-Light', 'Helvetica Neue Light', 'Helvetica Neue', Helvetica, Arial, 'Lucida Grande', sans-serif;
+
+// Dropdowns
+// -------------------------
+
+// $dropdown-bg:                    $brand-primary;
+// $dropdown-border:                transparent;
+// $dropdown-fallback-border:       #ccc;
+// $dropdown-divider-bg:            #e5e5e5;
+
+// Sidebar
+// -------------------------
+
+$sidebar-width:        280px;
+
+// Navbar
+// -------------------------
+
+$navbar-height:        50px;
+// $navbar-default-color:             $text-color;
+// $navbar-default-bg:                transparent;
+// $navbar-default-border:            transparent;
+
+// Footer
+// -------------------------
+
+$footer-height:				150px;
+
+// Tabs
+// -------------------------
+
+// $tab-height-xs:				40px;
+// $tab-height-sm:				100px;
+
+// Hero banner
+//// -------------------------
+
+// $hero-height-xs:				200px;
+// $hero-height-sm:				400px;
+
+$subnav-height:        150px;

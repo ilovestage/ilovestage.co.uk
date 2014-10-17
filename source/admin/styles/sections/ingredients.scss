@@ -1,0 +1,126 @@
+html {
+
+  body {
+
+    &.ingredients.index {
+      // background-attachment: fixed;
+      // background-color: #000;
+      // background-image: url(http://upload.wikimedia.org/wikipedia/commons/0/09/Valencia_market_-_lemons.jpg);
+      // background-repeat: no-repeat;
+      // background-size: cover;
+      // background-position: center;
+
+      #content {
+
+        > div {
+          @include make-row();
+
+          > main {
+
+            @media (max-width: $screen-xs-max) {
+              @include make-xs-column(12);
+            }
+
+            @media (min-width: $screen-sm-min) {
+              @include make-sm-column(9);
+            }
+
+            > section {
+              @include make-row();
+
+              > h1 {
+                @include make-xs-column(12);
+              }
+
+              > figure {
+                margin-bottom: 1rem;
+
+                @media (max-width: $screen-xs-max) {
+                  @include make-xs-column(12);
+                }
+
+                @media (min-width: $screen-sm-min) and (max-width: $screen-sm-max) {
+                  @include make-sm-column(4);
+                }
+
+                @media (min-width: $screen-md-min) and (max-width: $screen-md-max) {
+                  @include make-md-column(3);
+                }
+
+                @media (min-width: $screen-lg-min) {
+                  @include make-lg-column(2);
+                }
+
+                img {
+                  @include img-responsive;
+                }
+
+                figcaption {
+                  border-bottom: 1px solid #f0f0f0;
+                  margin-bottom: 1rem;
+                  padding-bottom: 1rem;
+
+                  h1 {
+                    font-size: $font-size-base;
+                  }
+
+                }
+
+              }
+
+            }
+
+          }
+
+          > aside {
+
+            @media (max-width: $screen-xs-max) {
+              @include make-xs-column(12);
+            }
+
+            @media (min-width: $screen-sm-min) {
+              @include make-sm-column(3);
+            }
+
+          }
+
+        }
+
+      }
+
+    }
+
+    &.ingredients.add,
+    &.ingredients.edit {
+
+      #content {
+
+        > div {
+          @include make-row();
+
+          > main {
+
+            @media (max-width: $screen-xs-max) {
+              @include make-xs-column(12);
+            }
+
+            @media (min-width: $screen-sm-min) {
+              @include make-sm-column(6);
+              @include make-sm-column-offset(3);
+            }
+
+          }
+
+        }
+
+      }
+
+    }
+
+    // &.ingredients.edit {
+    //
+    // }
+
+  }
+
+}

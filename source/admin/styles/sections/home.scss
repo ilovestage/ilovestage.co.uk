@@ -1,0 +1,183 @@
+html {
+
+  body {
+
+    &.home {
+
+      main {
+
+        > section {
+          @include make-row();
+          background-position: center center;
+          background-repeat: no-repeat;
+          background-size: cover;
+          min-height: 700px;
+          position: relative;
+          text-align: center;
+
+          &.background {
+            background-color: $gray;
+
+            a,
+            .btn,
+            .btn-link {
+              &:active,
+              &:active:focus,
+              &:focus,
+              &:hover, {
+                background-color: rgba(255, 255, 255, .95);
+              }
+            }
+
+          }
+
+          &:not(.tall) {
+            height: 100vh;
+
+            > div {
+              @include vertical-align-middle();
+            }
+
+          }
+
+          p {
+            // display: block;
+            margin-bottom: 2rem;
+          }
+
+        }
+
+        #section-grid {
+
+          div {
+            height: 100%;
+          }
+
+          > div {
+
+            @media (max-width: $screen-xs-max) {
+              height: calc((100vw / 1) * .66);
+            }
+
+            @media (min-width: $screen-sm-min) {
+              height: calc((100vw / 2) * .66);
+            }
+
+            .row {
+
+              &.row-xs-2 {
+
+                &:first-of-type {
+                  height: 61.8%;
+                }
+
+                &:last-of-type {
+                  height: 38.2%;
+                }
+
+              }
+
+            }
+
+          }
+
+          figure {
+            height: 100%;
+            outline: 1px solid $body-bg;
+
+            div.img {
+              @include make-row();
+            }
+
+          }
+
+        }
+
+        #section-hero {
+
+          > div {
+
+            h2 {
+              margin-bottom: 4rem;
+            }
+
+            span {
+              display: block;
+              margin-bottom: 1rem;
+              margin-top: 1rem;
+            }
+
+          }
+
+          .credit {
+            bottom: 5px;
+            position: absolute;
+            right: 15px;
+          }
+
+        }
+
+        #section-join {
+
+          > div {
+
+            h1,
+            a {
+              margin-bottom: 4rem;
+            }
+
+            > div {
+
+              &:not(:first-of-type) {
+                margin-top: 3rem;
+              }
+
+              &:not(:last-of-type) {
+                margin-bottom: 3rem;
+              }
+
+            }
+
+          }
+
+        }
+
+        #section-showcase {
+
+          > div {
+
+            h1 {
+              margin-bottom: 2rem;
+            }
+
+            .btn {
+              margin-bottom: 8rem;
+            }
+
+            .images {
+              @include clearfix();
+
+              > div {
+                background-position: center center;
+                background-repeat: no-repeat;
+                background-size: cover;
+
+                @media (max-width: $screen-xs-max) {
+                  margin-bottom: 1rem;
+                }
+
+              }
+
+            }
+
+          }
+
+        }
+
+      }
+
+    }
+
+  }
+
+}
