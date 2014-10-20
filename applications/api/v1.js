@@ -5,13 +5,13 @@ var config = packageJson.config.environment[process.env.NODE_ENV || 'development
 
 var version = 1.0;
 
-// var _ = require('lodash');
-var co = require('co');
+var _ = require('lodash');
+// var co = require('co');
 var DJ = require('dot-object');
 var emailTemplates = require('email-templates');
 var parse = require('co-body');
 // var bodyParser = require('koa-bodyparser');
-var koa = require('koa');
+// var koa = require('koa');
 var Kaiseki = require('kaiseki');
 // var logger = require('koa-logger');
 var moment = require('moment');
@@ -28,7 +28,7 @@ var templatesDir = path.resolve(__dirname, '../..', 'source/emails');
 
 var database = require(__dirname + '/../database');
 
-var app = koa();
+// var app = koa();
 // var app = qs(koa());
 var db = new database(config.server.database);
 
@@ -106,6 +106,60 @@ function sendEmail(layout, locals) {
     });
 
   });
+}
+
+function handleInternationalization(data, fields, lang) {
+
+  function filterLanguage(data, field, lang) {
+    var newValue = null;
+
+    for(var key in data[field]) {
+      if(key.indexOf(lang) === 0) {
+        newValue = data[field][key];
+      }
+
+      delete data[field][key];
+    }
+
+    data[field] = newValue;
+  }
+
+  if (typeof data !== 'object') {
+    return data;
+  }
+
+  if (!lang) {
+    lang = 'en';
+  }
+
+  if(Array.isArray(fields)) {
+    _(fields).forEach(function(field) {
+      filterLanguage(data, field, lang);
+    });
+  } else if (typeof fields === 'string') {
+    filterLanguage(data, fields, lang);
+  }
+
+  // use dot notation like 'reviews[0].name' with dot-object e.g. dj.object(result);
+
+  return data;
+
+  /* USAGE:
+
+    var lang = 'ko';
+
+    var data = {
+      'item1': {
+        'en': 'value in en',
+        'fr': 'value in fr',
+        'ko': 'value in ko'
+      }
+    };
+
+    var fields = ['item1'];
+
+    handleInternationalization(data, fields, lang);
+  */
 }
 
 function handleDateQuery(nestedQuery) {
@@ -732,12 +786,8 @@ api.get('/bookings', function* (next) {
   var searchParameters = handleDateQuery(nestedQuery).searchParameters;
   var status = handleDateQuery(nestedQuery).status;
 
-  if ((typeof nestedQuery.provider !== 'undefined') && (typeof nestedQuery.uid !== 'undefined')) {
-    searchParameters.provider = nestedQuery.provider;
-    searchParameters.uid = nestedQuery.uid;
-  } else if ((typeof nestedQuery.email !== 'undefined') && (typeof nestedQuery.password !== 'undefined')) {
-    searchParameters.email = nestedQuery.email;
-    searchParameters.password = nestedQuery.password;
+  if (typeof nestedQuery.userid !== 'undefined') {
+    searchParameters.userid = nestedQuery.userid;
   }
 
   if (typeof nestedQuery.status !== 'undefined') {
@@ -1246,6 +1296,17 @@ api.get('/shows', function* (next) {
     status = 404;
   } else {
     status = 200;
+
+    if (typeof nestedQuery.lang !== 'undefined') {
+      result = handleInternationalization(
+        result,
+        [
+          'name',
+          'synopsis'
+        ],
+        nestedQuery.lang
+      );
+    }
   }
 
   var body = {
@@ -1262,8 +1323,10 @@ api.get('/shows', function* (next) {
 
 api.get('/shows/:id', function* (next) {
   var errorMessage = null;
-  var showId = this.params.id;
   var status = null;
+
+  var nestedQuery = qs.parse(this.querystring);
+  var showId = this.params.id;
 
   var result = yield shows.findById(showId);
 
@@ -1271,6 +1334,17 @@ api.get('/shows/:id', function* (next) {
     status = 404;
   } else {
     status = 200;
+
+    if (typeof nestedQuery.lang !== 'undefined') {
+      result = handleInternationalization(
+        result,
+        [
+          'name',
+          'synopsis'
+        ],
+        nestedQuery.lang
+      );
+    }
   }
 
   var body = {
