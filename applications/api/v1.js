@@ -14,6 +14,7 @@ var parse = require('co-body');
 // var koa = require('koa');
 var Kaiseki = require('kaiseki');
 // var logger = require('koa-logger');
+var mcapi = require('mailchimp-api/mailchimp');
 var moment = require('moment');
 var nodemailer = require('nodemailer');
 var path = require('path');
@@ -44,6 +45,9 @@ var users = db.collection('users');
 var APP_ID = 'mtsgkSQ5au4mNdKOwoVhP7lmAu6pS2qlWsVTLoHL';
 var REST_API_KEY = 'CjmGYUFMt0J3wzZGr5xL11FxDIzzS8KlZUzd1GgM';
 var kaiseki = new Kaiseki(APP_ID, REST_API_KEY);
+
+// set MailChimp API key here
+var mc = new mcapi.Mailchimp('74bfb172f7512186126ea49928bfb217-us9');
 
 // var emailTemplatesThunk = thunkify(emailTemplates);
 
@@ -92,20 +96,59 @@ function sendEmail(layout, locals) {
         };
 
         transporter.sendMail(mailOptions, function (error, info) {
+          var response = {};
+
           if (error) {
             console.log(error);
-            this.status = 400;
-            return error;
+            response.status = 400;
+            response.error = error;
           } else {
             console.log(info.response);
-            this.status = 200;
-            return info.response;
+            response.status = 200;
+            response.error = info.response;
           }
+
+          return response;
+          // BUG: this belongs in route due to context of 'this'
         });
       }
     });
 
   });
+
+  mc.helper.ping(function(data) {
+    console.log('Mailchimp data', data);
+    // res.render('index', { title: 'Home' });
+  }, function(err) {
+    console.log(err);
+    if (err.name === 'Invalid_ApiKey') {
+      console.log('Invalid API key. Set it in app.js');
+    } else if (err.error) {
+      console.log(err.code + ': ' + err.error);
+    } else {
+      console.log('An unknown error occurred');
+    }
+    // res.render('index', { title: 'Home' });
+    console.log('Mailchimp err', err);
+  });
+
+  mc.lists.subscribe(
+    {
+      id: 'a058aa7aa1',
+      email: {
+        email: locals.email
+      }
+    }, function(data) {
+      console.log('User subscribed successfully! Look for the confirmation email.', data);
+    },
+    function(error) {
+      if (error.error) {
+        console.log(error.code + ': ' + error.error);
+      } else {
+        console.log('There was an error subscribing that user');
+      }
+    }
+  );
 }
 
 function handleInternationalization(data, fields, lang) {
@@ -398,12 +441,14 @@ api.get('/events/:id', function* (next) {
 
   var nestedQuery = qs.parse(this.querystring);
 
-  var result = null;
+  var result = yield events.findById(eventId);
+
+  result.bookings = yield bookings.count({
+    eventid: result._id
+  });
 
   if (nestedQuery.view === 'detailed') {
-    var event = yield events.findById(eventId);
-
-    var show = yield shows.findById(event.showid, {
+    var show = yield shows.findById(result.showid, {
       fields: {
         '-_id': 1,
         'name': 1,
@@ -414,13 +459,7 @@ api.get('/events/:id', function* (next) {
       }
     });
 
-    event.showdetails = show;
-
-    result = event;
-  } else {
-    result = yield events.findOne({
-      _id: eventId
-    });
+    result.showdetails = show;
   }
 
   if (!result || result.length < 1) {
@@ -680,6 +719,17 @@ api.post('/users', function* (next) {
     result = yield users.findAndModify({
       _id: originalResult._id
     }, fields);
+
+    var email = sendEmail('user-signup', {
+      subject: 'Welcome to I Love Stage', // Subject line
+      email: result.strategies.local.email,
+      name: {
+        first: result.firstname,
+        last: result.lastname
+      }
+    });
+
+    console.log('email', email);
   }
 
   var body = {
@@ -877,11 +927,16 @@ api.post('/bookings', function* (next) {
 
   var result = yield bookings.insert(document);
 
+  var email = null;
+
   if(result.tickets >= 8) {
-    sendEmail('admin-booking', {
+    email = sendEmail('admin-booking', {
       subject: 'Booking target reached', // Subject line
       email: emailSender.address
     });
+
+    status = email.status;
+    errorMessage = email.errorMessage;
   }
 
   var user = yield users.findById(result.userid, {
@@ -893,7 +948,7 @@ api.post('/bookings', function* (next) {
     }
   });
 
-  sendEmail('user-booking', {
+  email = sendEmail('user-booking', {
     subject: 'Booking confirmed', // Subject line
     email: user.email,
     name: {
@@ -901,6 +956,9 @@ api.post('/bookings', function* (next) {
       last: user.lastname
     }
   });
+
+  status = email.status;
+  errorMessage = email.errorMessage;
 
   if (!result || result.length < 1) {
     status = 404;
