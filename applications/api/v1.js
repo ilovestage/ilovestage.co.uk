@@ -605,7 +605,7 @@ api.get('/users', function* (next) {
     searchParameters['strategies.' + nestedQuery.provider + '.uid'] = nestedQuery.uid;
 
     if(typeof nestedQuery.token !== 'undefined') {
-      searchParameters['strategies.' + nestedQuery.provider + '.token'] = nestedQuery.token;  
+      searchParameters['strategies.' + nestedQuery.provider + '.token'] = nestedQuery.token;
     }
   } else if ((typeof nestedQuery.email !== 'undefined') && (typeof nestedQuery.password !== 'undefined')) {
     searchParameters['strategies.local.email'] = nestedQuery.email;
@@ -688,51 +688,64 @@ api.post('/users', function* (next) {
 
   var document = yield parse.json(this);
 
-  dj.object(document);
-  delete document.format;
-
   var createCardThunk = thunkify(stripe.customers.create);
   var createCardBoundThunk = createCardThunk.bind(stripe.customers);
 
-  dj.object(document);
-  delete document.format;
+  var searchParameters = {};
 
-  var result = yield users.insert(document);
+  var result = null;
 
-  if (!result || result.length < 1) {
-    status = 404;
+  searchParameters['strategies.local.email'] = document.strategies.local.email;
+
+  result = yield users.find(searchParameters);
+
+  if (result && result.length > 0) {
+    errorMessage = 'A user with that email address already exists.';
+    status = 409;
   } else {
-    status = 200;
+    dj.object(document);
+    delete document.format;
 
-    var originalResult = result;
+    dj.object(document);
+    delete document.format;
 
-    var customer = yield createCardBoundThunk({
-      metadata: {
-        userid: originalResult._id
-      },
-      email: originalResult.strategies.local.email
-    });
+    result = yield users.insert(document);
 
-    var fields = {
-      $set: {
-        stripeid: customer.id
-      }
-    };
+    if (!result || result.length < 1) {
+      status = 404;
+    } else {
+      status = 200;
 
-    result = yield users.findAndModify({
-      _id: originalResult._id
-    }, fields);
+      var originalResult = result;
 
-    var email = sendEmail('user-signup', {
-      subject: 'Welcome to I Love Stage', // Subject line
-      email: result.strategies.local.email,
-      name: {
-        first: result.firstname,
-        last: result.lastname
-      }
-    });
+      var customer = yield createCardBoundThunk({
+        metadata: {
+          userid: originalResult._id
+        },
+        email: originalResult.strategies.local.email
+      });
 
-    console.log('email', email);
+      var fields = {
+        $set: {
+          stripeid: customer.id
+        }
+      };
+
+      result = yield users.findAndModify({
+        _id: originalResult._id
+      }, fields);
+
+      var email = sendEmail('user-signup', {
+        subject: 'Welcome to I Love Stage', // Subject line
+        email: result.strategies.local.email,
+        name: {
+          first: result.firstname,
+          last: result.lastname
+        }
+      });
+
+      console.log('email', email);
+    }
   }
 
   var body = {
