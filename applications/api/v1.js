@@ -704,21 +704,48 @@ api.post('/users', function* (next) {
   var createCardThunk = thunkify(stripe.customers.create);
   var createCardBoundThunk = createCardThunk.bind(stripe.customers);
 
-  var searchParameters = {};
+  var orParameters = [];
+
+  if (typeof document.strategies !== 'undefined') {
+    if((typeof document.strategies.local !== 'undefined') && (typeof document.strategies.local.email !== 'undefined')) {
+      orParameters.push({
+        'strategies.local.email': document.strategies.local.email
+      });
+    }
+
+    if((typeof document.strategies.oauth2 !== 'undefined') && (typeof document.strategies.oauth2.uid !== 'undefined')) {
+      orParameters.push({
+        'strategies.oauth2.uid': document.strategies.oauth2.uid
+      });
+    }
+
+    if((typeof document.strategies.facebook !== 'undefined') && (typeof document.strategies.facebook.uid !== 'undefined')) {
+      orParameters.push({
+        'strategies.facebook.uid': document.strategies.facebook.uid
+      });
+    }
+
+    if((typeof document.strategies.twitter !== 'undefined') && (typeof document.strategies.twitter.uid !== 'undefined')) {
+      orParameters.push({
+        'strategies.twitter.uid': document.strategies.twitter.uid
+      });
+    }
+  }
+
+  var searchParameters = {
+    $or: orParameters
+  };
 
   var result = null;
 
-  searchParameters['strategies.local.email'] = document.strategies.local.email;
+  // searchParameters['strategies.local.email'] = document.strategies.local.email;
 
   result = yield users.find(searchParameters);
 
   if (result && result.length > 0) {
-    errorMessage = 'A user with that email address already exists.';
+    errorMessage = 'A user with those credentials already exists.';
     status = 409;
   } else {
-    dj.object(document);
-    delete document.format;
-
     dj.object(document);
     delete document.format;
 
