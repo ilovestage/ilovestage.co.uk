@@ -601,9 +601,12 @@ api.get('/users', function* (next) {
 
   // console.log(nestedQuery.email, nestedQuery.password);
 
-  if ((typeof nestedQuery.provider !== 'undefined') && (typeof nestedQuery.uid !== 'undefined') && (typeof nestedQuery.token !== 'undefined')) {
+  if ((typeof nestedQuery.provider !== 'undefined') && (typeof nestedQuery.uid !== 'undefined')) {
     searchParameters['strategies.' + nestedQuery.provider + '.uid'] = nestedQuery.uid;
-    searchParameters['strategies.' + nestedQuery.provider + '.token'] = nestedQuery.token;
+
+    if(typeof nestedQuery.token !== 'undefined') {
+      searchParameters['strategies.' + nestedQuery.provider + '.token'] = nestedQuery.token;  
+    }
   } else if ((typeof nestedQuery.email !== 'undefined') && (typeof nestedQuery.password !== 'undefined')) {
     searchParameters['strategies.local.email'] = nestedQuery.email;
     searchParameters['strategies.local.password'] = nestedQuery.password;
