@@ -587,16 +587,16 @@ api.del('/users/:id', function* (next) {
 
 api.get('/users', function* (next) {
   var errorMessage = null;
-  var limit = 50;
   var nestedQuery = qs.parse(this.querystring);
   var searchParameters = handleDateQuery(nestedQuery).searchParameters;
   var status = handleDateQuery(nestedQuery).status;
+  var limit = 50;
 
   var fields = {
     '_id': 1,
     'firstname': 1,
     'lastname': 1,
-    'email': 1
+    'strategies.local.email': 1
   };
 
   // console.log(nestedQuery.email, nestedQuery.password);
@@ -652,16 +652,29 @@ api.get('/users', function* (next) {
 api.get('/users/:id', function* (next) {
   var errorMessage = null;
   var status = null;
+
   var userId = this.params.id;
 
+  var nestedQuery = qs.parse(this.querystring);
+  var searchParameters = handleDateQuery(nestedQuery).searchParameters;
+
+  searchParameters._id = userId;
+
+  var fields = {
+    '_id': 1,
+    'firstname': 1,
+    'lastname': 1,
+    'strategies.local.email': 1
+  };
+
+  if (nestedQuery.view === 'detailed') {
+    fields = {};
+  }
+
   // var result = yield users.findById(userId);
-  var result = yield users.findById(userId, {
-    fields: {
-      '_id': 1,
-      'firstname': 1,
-      'lastname': 1,
-      'email': 1
-    }
+  // var result = yield users.findById(userId, fields);
+  var result = yield users.find(searchParameters, {
+    fields: fields
   });
 
   if (!result || result.length < 1) {
