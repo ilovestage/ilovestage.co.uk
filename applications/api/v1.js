@@ -6,7 +6,7 @@ var config = packageJson.config.environment[process.env.NODE_ENV || 'development
 var version = 1.0;
 
 var _ = require('lodash');
-// var co = require('co');
+var co = require('co');
 var DJ = require('dot-object');
 var emailTemplates = require('email-templates');
 var parse = require('co-body');
@@ -323,35 +323,26 @@ api.get('/events', function* (next) {
       status = 404;
     } else {
       searchParameters.showid = show._id.toString();
-
-      result = yield events.find(searchParameters, {
-        limit: limit
-      });
     }
   } else if (typeof nestedQuery.showid !== 'undefined') {
-    var show = yield shows.findOne({
-      _id: nestedQuery.showid
-    }, {
-      fields: {
-        '_id': 1
-      }
-    });
-
-    if (!show || show.length < 1) {
-      errorMessage = 'No results found for show with id \'' + nestedQuery.showid + '\'.';
-      status = 404;
-    } else {
-      searchParameters.showid = show._id.toString();
-
-      result = yield events.find(searchParameters, {
-        limit: limit
-      });
-    }
-  } else {
-    result = yield events.find(searchParameters, {
-      limit: limit
-    });
+    searchParameters.showid = nestedQuery.showid;
   }
+
+  if (typeof nestedQuery.eventid !== 'undefined') {
+    searchParameters.eventid = nestedQuery.eventid;
+  }
+
+  result = yield events.find(searchParameters, {
+    limit: limit
+  });
+
+  _(result).forEach(function (doc) {
+		co(function *() {
+      doc.bookings = yield bookings.count({
+        eventid: doc._id
+      });
+		})(next);
+  });
 
   if (!result || result.length < 1) {
     status = 404;
@@ -790,6 +781,10 @@ api.get('/bookings', function* (next) {
     searchParameters.userid = nestedQuery.userid;
   }
 
+  if (typeof nestedQuery.eventid !== 'undefined') {
+    searchParameters.eventid = nestedQuery.eventid;
+  }
+
   if (typeof nestedQuery.status !== 'undefined') {
     searchParameters.status = nestedQuery.status;
   }
@@ -834,9 +829,9 @@ api.get('/bookings/:id', function* (next) {
 
   var result = null;
 
-  if (nestedQuery.view === 'detailed') {
-    var booking = yield bookings.findById(bookingId);
+  var booking = yield bookings.findById(bookingId);
 
+  if (nestedQuery.view === 'detailed') {
     var event = yield events.findById(booking.eventid, {
       fields: {
         '_id': 1,
@@ -849,39 +844,9 @@ api.get('/bookings/:id', function* (next) {
     });
 
     booking.eventdetails = event;
-
-    result = booking;
-  } else {
-    result = yield bookings.findById(bookingId);
   }
 
-  if (!result || result.length < 1) {
-    status = 404;
-  } else {
-    status = 200;
-  }
-
-  var body = {
-    'status': status, // use HTTP status code
-    'error': errorMessage,
-    'originalUrl': this.request.originalUrl,
-    'result': result
-  };
-
-  this.body = body;
-  this.status = status;
-  this.type = 'application/json';
-});
-
-api.get('/bookings/user/:id', function* (next) {
-  var errorMessage = null;
-  var status = null;
-
-  var nestedQuery = qs.parse(this.querystring);
-
-  var result = yield bookings.find({
-    userid: this.params.id
-  });
+  result = booking;
 
   if (!result || result.length < 1) {
     status = 404;
