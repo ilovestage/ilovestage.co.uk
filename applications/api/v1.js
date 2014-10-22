@@ -530,6 +530,8 @@ api.post('/users', function* (next) {
   result = yield users.find(searchParameters);
 
   if (result && result.length > 0) {
+    result = {};
+
     errorMessage = 'A user with those credentials already exists.';
     status = 409;
   } else {
