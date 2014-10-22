@@ -358,10 +358,14 @@ api.get('/users', function* (next) {
         if (nestedQuery.token === result.strategies[nestedQuery.provider].token) {
           status = 200;
         } else {
+          result = null;
+
           errorMessage = 'A user with those credentials exists but the supplied token was incorrect.';
           status = 401;
         }
       } else {
+        result = null;
+
         errorMessage = 'A user with those credentials exists but the user has no token set.';
         status = 401;
       }
@@ -388,10 +392,14 @@ api.get('/users', function* (next) {
         if (nestedQuery.password === result.strategies.local.password) {
           status = 200;
         } else {
+          result = null;
+
           errorMessage = 'A user with those credentials exists but the supplied password was incorrect.';
           status = 401;
         }
       } else {
+        result = null;
+
         errorMessage = 'A user with those credentials exists but the user has no password set.';
         status = 401;
       }
