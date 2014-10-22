@@ -485,6 +485,8 @@ api.post('/users', function* (next) {
   var status = null;
 
   var document = yield parse.json(this);
+  dj.object(document);
+  delete document.format;
 
   var createCardThunk = thunkify(stripe.customers.create);
   var createCardBoundThunk = createCardThunk.bind(stripe.customers);
