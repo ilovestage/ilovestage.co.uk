@@ -1,5 +1,15 @@
 'use strict';
 
+function appListen() {
+  if(environment !== 'development') {
+    console.log('Detected staging or production environment.');
+    clusterOnAvailablePort();
+  } else {
+    console.log('Detected development environment on port ' + portStart + '.');
+    app.listen(portStart);
+  }
+}
+
 function clusterOnAvailablePort() {
   portscanner.findAPortNotInUse(portStart, portEnd, '127.0.0.1', function(error, availabePort) {
     var port = availabePort;
@@ -92,45 +102,50 @@ app.use(router(app));
 // app.use(session());
 
 // mount applications
+
+console.log('Requiring ' + argv.application + ' application.');
+
 switch(argv.application) {
   case 'admin':
-    console.log('Requiring admin application.');
     application = require(__dirname + '/applications/admin');
     app.use(mount('/', application));
+
     portStart = 5100;
     portEnd = 5103;
 
     serveAssets();
+    appListen();
   break;
   case 'api':
-    console.log('Requiring api application.');
     application = require(__dirname + '/applications/api');
     app.use(mount('/', application));
+
     portStart = 5020;
     portEnd = 5023;
+
+    appListen();
+  break;
+  case 'cron':
+    application = require(__dirname + '/applications/cron');
+    // app.use(mount('/', application));
   break;
   case 'socket':
-    console.log('Requiring socket application.');
     application = require(__dirname + '/applications/socket');
-    app.use(mount('/', application));
+    // app.use(mount('/', application));
+
     portStart = 5200;
     portEnd = 5203;
+
+    appListen();
   break;
   case 'www':
-    console.log('Requiring www application.');
     application = require(__dirname + '/applications/www');
     app.use(mount('/', application));
+
     portStart = 5000;
     portEnd = 5003;
 
     serveAssets();
+    appListen();
   break;
-}
-
-if(environment !== 'development') {
-  console.log('Detected staging or production environment.');
-  clusterOnAvailablePort();
-} else {
-  console.log('Detected development environment on port ' + portStart + '.');
-  app.listen(portStart);
 }
