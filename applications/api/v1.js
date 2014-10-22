@@ -489,6 +489,8 @@ api.post('/users', function* (next) {
   var createCardThunk = thunkify(stripe.customers.create);
   var createCardBoundThunk = createCardThunk.bind(stripe.customers);
 
+  var searchParameters = {};
+
   var orParameters = [];
 
   if (typeof document.strategies !== 'undefined') {
@@ -517,9 +519,9 @@ api.post('/users', function* (next) {
     }
   }
 
-  var searchParameters = {
-    $or: orParameters
-  };
+  if(orParameters.length > 0) {
+    searchParameters.$or = orParameters;
+  }
 
   var result = null;
 
