@@ -370,7 +370,7 @@ api.get('/users', function* (next) {
         status = 401;
       }
 
-      if ((typeof result.strategies !== 'undefined') && (typeof result.strategies[nestedQuery.provider] !== 'undefined') && (typeof result.strategies[nestedQuery.provider].token !== 'undefined')) {
+      if ((typeof result !== 'undefined') && (typeof result.strategies !== 'undefined') && (typeof result.strategies[nestedQuery.provider] !== 'undefined') && (typeof result.strategies[nestedQuery.provider].token !== 'undefined')) {
         delete result.strategies[nestedQuery.provider].token;
       }
 
@@ -404,7 +404,7 @@ api.get('/users', function* (next) {
         status = 401;
       }
 
-      if ((typeof result.strategies !== 'undefined') && (typeof result.strategies.local !== 'undefined') && (typeof result.strategies.local.password !== 'undefined')) {
+      if ((typeof result !== 'undefined') && (typeof result.strategies !== 'undefined') && (typeof result.strategies.local !== 'undefined') && (typeof result.strategies.local.password !== 'undefined')) {
         delete result.strategies.local.password;
       }
     }
