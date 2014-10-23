@@ -40,6 +40,12 @@ var APP_ID = 'mtsgkSQ5au4mNdKOwoVhP7lmAu6pS2qlWsVTLoHL';
 var REST_API_KEY = 'CjmGYUFMt0J3wzZGr5xL11FxDIzzS8KlZUzd1GgM';
 var kaiseki = new Kaiseki(APP_ID, REST_API_KEY);
 
+var createCardThunk = thunkify(stripe.customers.create);
+var createCardBoundThunk = createCardThunk.bind(stripe.customers);
+
+var createChargeThunk = thunkify(stripe.charges.create);
+var createChargeBoundThunk = createChargeThunk.bind(stripe.charges);
+
 var api = new router();
 
 api.get('/', function* (next) {
@@ -488,9 +494,6 @@ api.post('/users', function* (next) {
   dj.object(document);
   delete document.format;
 
-  var createCardThunk = thunkify(stripe.customers.create);
-  var createCardBoundThunk = createCardThunk.bind(stripe.customers);
-
   var searchParameters = {};
 
   var orParameters = [];
@@ -562,18 +565,21 @@ api.post('/users', function* (next) {
         }
       };
 
-      result = yield users.findAndModify({
-        _id: originalResult._id
-      }, fields);
-
-      var email = utilities.sendEmail('user-signup', {
+      var mailFields = {
         subject: 'Welcome to I Love Stage', // Subject line
         email: result.strategies.local.email,
         name: {
           first: result.firstname,
           last: result.lastname
         }
-      });
+      };
+
+      result = yield users.findAndModify({
+        _id: originalResult._id
+      }, fields);
+
+      // var email = utilities.sendEmail(mailFields, 'user-signup');
+      var email = utilities.addUserToMailingList(mailFields);
 
       console.log('email', email);
     }
@@ -777,10 +783,10 @@ api.post('/bookings', function* (next) {
   var email = null;
 
   if(result.tickets >= 8) {
-    email = utilities.sendEmail('admin-booking', {
+    email = utilities.sendEmail({
       subject: 'Booking target reached', // Subject line
-      email: emailSender.address
-    });
+      email: utilities.emailSender.address
+    }, 'admin-booking');
 
     status = email.status;
     errorMessage = email.errorMessage;
@@ -795,17 +801,14 @@ api.post('/bookings', function* (next) {
     }
   });
 
-  email = utilities.sendEmail('user-booking', {
+  utilities.sendEmail({
     subject: 'Booking confirmed', // Subject line
     email: user.strategies.local.email,
     name: {
       first: user.firstname,
       last: user.lastname
     }
-  });
-
-  status = email.status;
-  errorMessage = email.errorMessage;
+  }, 'user-booking');
 
   if (!result || result.length < 1) {
     status = 404;
@@ -863,19 +866,19 @@ api.put('/bookings/:id', function* (next) {
     // console.log('user', user);
 
     if(user && user.length > 0) {
-      utilities.sendEmail('user-booking', {
+      utilities.sendEmail({
         subject: 'Booking confirmed', // Subject line
         email: user.strategies.local.email,
         name: {
           first: user.firstname,
           last: user.lastname
         }
-      });
+      }, 'user-booking');
 
-      utilities.sendEmail('admin-booking', {
+      utilities.sendEmail({
         subject: 'Booking target reached', // Subject line
-        email: emailSender.address
-      });
+        email: utilities.emailSender.address
+      }, 'admin-booking');
 
       var notification = {
         channels: [''],
@@ -1021,9 +1024,6 @@ api.post('/payments', function* (next) {
 
   dj.object(document);
   delete document.format;
-
-  var createChargeThunk = thunkify(stripe.charges.create);
-  var createChargeBoundThunk = createChargeThunk.bind(stripe.charges);
 
   var result = null;
 

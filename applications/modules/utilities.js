@@ -17,66 +17,25 @@ var mc = new mcapi.Mailchimp('74bfb172f7512186126ea49928bfb217-us9');
 
 // var emailTemplatesThunk = thunkify(emailTemplates);
 
-var transporter = nodemailer.createTransport({ // Prepare nodemailer transport object
-  service: 'Gmail',
-  auth: {
-    user: 'ilovestageapp@gmail.com',
-    pass: 'curtaincall'
-  }
-});
-
-var emailSender = {
-  name: 'I Love Stage UK',
-  email: 'ilovestageapp@gmail.com'
-};
-
 var utilities = {
 
-  sendEmail: function(layout, locals) {
-    emailTemplates(templatesDir, function (err, template) {
-      // Send a single email
-      console.log('locals', locals);
-      template(layout, locals, function (error, html, text) {
-        if (error) {
-          console.log(error);
-        } else {
-          var mailOptions = {
-            from: emailSender.name + ' <' + emailSender.address + '>', // sender address
-            to: {
-              name: locals.name.first,
-              address: locals.email
-            }, // list of receivers
-            subject: locals.subject, // Subject line
-            text: text, // plaintext body
-            html: html // html body
-          };
+  transporter: nodemailer.createTransport({ // Prepare nodemailer transport object
+    service: 'Gmail',
+    auth: {
+      user: 'ilovestageapp@gmail.com',
+      pass: 'curtaincall'
+    }
+  }),
 
-          transporter.sendMail(mailOptions, function (error, info) {
-            var response = {};
+  emailSender: {
+    name: 'I Love Stage UK',
+    email: 'ilovestageapp@gmail.com'
+  },
 
-            if (error) {
-              console.log(error);
-              response.status = 400;
-              response.error = error;
-            } else {
-              console.log(info.response);
-              response.status = 200;
-              response.error = info.response;
-            }
-
-            return response;
-            // BUG: this belongs in route due to context of 'this'
-          });
-        }
-      });
-
-    });
-
+  addUserToMailingList: function(locals) {
     mc.helper.ping(function(data) {
-      console.log('Mailchimp data', data);
-      // res.render('index', { title: 'Home' });
+      // console.log('Mailchimp data', data);
     }, function(err) {
-      console.log(err);
       if (err.name === 'Invalid_ApiKey') {
         console.log('Invalid API key. Set it in app.js');
       } else if (err.error) {
@@ -84,8 +43,7 @@ var utilities = {
       } else {
         console.log('An unknown error occurred');
       }
-      // res.render('index', { title: 'Home' });
-      console.log('Mailchimp err', err);
+      // console.log('Mailchimp err', err);
     });
 
     mc.lists.subscribe(
@@ -105,6 +63,44 @@ var utilities = {
         }
       }
     );
+  },
+
+  sendEmail: function(locals, layout) {
+    emailTemplates(templatesDir, function (err, template) {
+      // Send a single email
+      template(layout, locals, function (error, html, text) {
+        if (error) {
+          console.log(error);
+        } else {
+          var mailOptions = {
+            from: emailSender.name + ' <' + emailSender.address + '>', // sender address
+            to: {
+              name: locals.name.first,
+              address: locals.email
+            }, // list of receivers
+            subject: locals.subject, // Subject line
+            text: text, // plaintext body
+            html: html // html body
+          };
+
+          transporter.sendMail(mailOptions, function (error, info) {
+            var response = {};
+
+            if (error) {
+              response.status = 400;
+              response.error = error;
+            } else {
+              response.status = 200;
+              response.info = info;
+            }
+            // console.log(response);
+            // return response;
+          });
+
+        }
+      });
+
+    });
   },
 
   handleInternationalization: function(data, fields, lang) {
