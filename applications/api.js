@@ -9,7 +9,7 @@ var koa = require('koa');
 var mount = require('koa-mount');
 var router = require('koa-router');
 // var thunkify = require('thunkify');
-var ua = require("universal-analytics");
+var ua = require('universal-analytics');
 
 // var uaThunk = thunkify(ua.middleware);
 // var uaBoundThunk = uaThunk.bind(ua);
