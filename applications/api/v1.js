@@ -6,25 +6,31 @@ var config = packageJson.config.environment[process.env.NODE_ENV || 'development
 var version = 1.0;
 
 var _ = require('lodash');
+var auth = require('koa-basic-auth');
+var bodyParser = require('koa-bodyparser');
 var co = require('co');
 var DJ = require('dot-object');
 var parse = require('co-body');
 // var bodyParser = require('koa-bodyparser');
 var Kaiseki = require('kaiseki');
-// var koa = require('koa');
+var koa = require('koa');
 // var logger = require('koa-logger');
 var qs = require('qs');
 // var request = require('koa-request');
 var router = require('koa-router');
+var session = require('koa-generic-session');
 // var should = require('should');
-var stripe = require('stripe')(config.api.stripe.key);
+// var stripe = require('stripe')(config.app.stripe.key);
+var stripe = require('stripe')('temp');
 var thunkify = require('thunkify');
 
 var database = require(__dirname + '/../database');
 var utilities = require(__dirname + '/../modules/utilities');
 
-// var app = koa();
-// var app = qs(koa());
+var app = koa();
+
+// var api = new router();
+
 var db = new database(config.server.database);
 
 var dj = new DJ();
@@ -34,6 +40,11 @@ var events = db.collection('events');
 var payments = db.collection('payments');
 var shows = db.collection('shows');
 var users = db.collection('users');
+
+var httpBasicAuthCredentials = {
+  name: 'Administrator',
+  pass: '1c2c4ed06609421ae8a928c80069b87ba85fc14f'
+};
 
 // instantiate kaiseki
 var APP_ID = 'mtsgkSQ5au4mNdKOwoVhP7lmAu6pS2qlWsVTLoHL';
@@ -46,9 +57,64 @@ var createCardBoundThunk = createCardThunk.bind(stripe.customers);
 var createChargeThunk = thunkify(stripe.charges.create);
 var createChargeBoundThunk = createChargeThunk.bind(stripe.charges);
 
-var api = new router();
+app.use(function *(next){
+  try {
+    yield next;
+  } catch (error) {
+    if (401 === error.status) {
+      var errorMessage = 'You are not authorised to access this resource.';
+      var status = error.status;
 
-api.get('/', function* (next) {
+      var body = {
+        'status': status, // use HTTP status code
+        'error': errorMessage,
+        'originalUrl': this.request.originalUrl,
+        'result': packageJson.name + ' API version ' + version.toFixed(1)
+      };
+
+      this.set('WWW-Authenticate', 'Basic');
+
+      this.body = body;
+      this.status = status;
+      this.type = 'application/json';
+    } else {
+      throw error;
+    }
+  }
+});
+
+// app.use(httpBasicAuthCredentials);
+
+// function *isAuthenticated(next) {
+//   console.log('isAuthenticated');
+//
+//   var result = yield users.findById(userId, {
+//     fields: {
+//       _id: 1
+//     }
+//   });
+//
+//   if (!result || result.length < 1) {
+//     errorMessage = 'You must sign in to do that.';
+//     status = 401;
+//   } else {
+//     status = 200;
+//   }
+//
+//   if (!this.req.isAuthenticated()) {
+//     console.log('Authenticated: false');
+//   } else {
+//     console.log('Authenticated: true');
+//   }
+//
+//   yield next;
+// }
+
+app.use(router(app));
+app.use(session());
+app.use(bodyParser());
+
+app.get('/', function* (next) {
   var errorMessage = null;
   var status = 200;
 
@@ -67,7 +133,7 @@ api.get('/', function* (next) {
 
 // Routes: Events
 
-api.get('/events', function* (next) {
+app.get('/events', function* (next) {
   var errorMessage = null;
   var limit = 50;
   var nestedQuery = qs.parse(this.querystring);
@@ -136,7 +202,7 @@ api.get('/events', function* (next) {
   this.type = 'application/json';
 });
 
-api.del('/events/:id', function* (next) {
+app.del('/events/:id', function* (next) {
   var errorMessage = null;
   var nestedQuery = qs.parse(this.querystring);
   var searchParameters = utilities.handleDateQuery(nestedQuery).searchParameters;
@@ -165,7 +231,7 @@ api.del('/events/:id', function* (next) {
   this.type = 'application/json';
 });
 
-api.get('/events/:id', function* (next) {
+app.get('/events/:id', function* (next) {
   var errorMessage = null;
   var status = null;
   var eventId = this.params.id;
@@ -211,7 +277,7 @@ api.get('/events/:id', function* (next) {
   this.type = 'application/json';
 });
 
-api.post('/events', function* (next) {
+app.post('/events', function* (next) {
   var errorMessage = null;
   var status = null;
   var document = yield parse.json(this);
@@ -242,7 +308,7 @@ api.post('/events', function* (next) {
   this.type = 'application/json';
 });
 
-api.put('/events/:id', function* (next) {
+app.put('/events/:id', function* (next) {
   var errorMessage = null;
   var status = null;
   var nestedQuery = qs.parse(this.querystring);
@@ -289,7 +355,7 @@ api.put('/events/:id', function* (next) {
 
 // Routes: Users
 
-api.del('/users/:id', function* (next) {
+app.del('/users/:id', function* (next) {
   var errorMessage = null;
   var status = null;
   var userId = this.params.id;
@@ -316,7 +382,7 @@ api.del('/users/:id', function* (next) {
   this.type = 'application/json';
 });
 
-api.get('/users', function* (next) {
+app.get('/users', function* (next) {
   var errorMessage = null;
   var nestedQuery = qs.parse(this.querystring);
   var searchParameters = utilities.handleDateQuery(nestedQuery).searchParameters;
@@ -440,7 +506,7 @@ api.get('/users', function* (next) {
   this.type = 'application/json';
 });
 
-api.get('/users/:id', function* (next) {
+app.get('/users/:id', function* (next) {
   var errorMessage = null;
   var status = null;
 
@@ -486,7 +552,7 @@ api.get('/users/:id', function* (next) {
   this.type = 'application/json';
 });
 
-api.post('/users', function* (next) {
+app.post('/users', function* (next) {
   var errorMessage = null;
   var status = null;
 
@@ -597,7 +663,7 @@ api.post('/users', function* (next) {
   this.type = 'application/json';
 });
 
-api.put('/users/:id', function* (next) {
+app.put('/users/:id', function* (next) {
   var errorMessage = null;
   var status = null;
 
@@ -645,7 +711,7 @@ api.put('/users/:id', function* (next) {
 
 // Routes: Bookings
 
-api.del('/bookings/:id', function* (next) {
+app.del('/bookings/:id', function* (next) {
   var errorMessage = null;
   var status = null;
 
@@ -673,7 +739,7 @@ api.del('/bookings/:id', function* (next) {
   this.type = 'application/json';
 });
 
-api.get('/bookings', function* (next) {
+app.get('/bookings', auth(httpBasicAuthCredentials), function* (next) {
   var errorMessage = null;
   var limit = 50;
   var nestedQuery = qs.parse(this.querystring);
@@ -722,7 +788,7 @@ api.get('/bookings', function* (next) {
   this.type = 'application/json';
 });
 
-api.get('/bookings/:id', function* (next) {
+app.get('/bookings/:id', function* (next) {
   var errorMessage = null;
   var status = null;
 
@@ -769,7 +835,7 @@ api.get('/bookings/:id', function* (next) {
   this.type = 'application/json';
 });
 
-api.post('/bookings', function* (next) {
+app.post('/bookings', function* (next) {
   var errorMessage = null;
   var status = null;
 
@@ -828,7 +894,7 @@ api.post('/bookings', function* (next) {
   this.type = 'application/json';
 });
 
-api.put('/bookings/:id', function* (next) {
+app.put('/bookings/:id', function* (next) {
   var errorMessage = null;
   var status = null;
 
@@ -917,7 +983,7 @@ api.put('/bookings/:id', function* (next) {
 
 // Routes: Payments
 
-api.del('/payments/:id', function* (next) {
+app.del('/payments/:id', function* (next) {
   var errorMessage = null;
   var status = null;
 
@@ -945,7 +1011,7 @@ api.del('/payments/:id', function* (next) {
   this.type = 'application/json';
 });
 
-api.get('/payments', function* (next) {
+app.get('/payments', function* (next) {
   var errorMessage = null;
   var limit = 50;
   var nestedQuery = qs.parse(this.querystring);
@@ -990,7 +1056,7 @@ api.get('/payments', function* (next) {
   this.type = 'application/json';
 });
 
-api.get('/payments/:id', function* (next) {
+app.get('/payments/:id', function* (next) {
   var status = null;
   var errorMessage = null;
 
@@ -1016,7 +1082,7 @@ api.get('/payments/:id', function* (next) {
   this.type = 'application/json';
 });
 
-api.post('/payments', function* (next) {
+app.post('/payments', function* (next) {
   var status = null;
   var errorMessage = null;
 
@@ -1083,7 +1149,7 @@ api.post('/payments', function* (next) {
   this.type = 'application/json';
 });
 
-// api.put('/payments/:id', function* (next) {
+// app.put('/payments/:id', function* (next) {
 //   var nestedQuery = qs.parse(this.querystring);
 //
 //   var paymentId = this.params.id;
@@ -1110,7 +1176,7 @@ api.post('/payments', function* (next) {
 
 // Routes: Shows
 
-api.del('/shows/:id', function* (next) {
+app.del('/shows/:id', function* (next) {
   var status = null;
   var errorMessage = null;
 
@@ -1138,7 +1204,7 @@ api.del('/shows/:id', function* (next) {
   this.type = 'application/json';
 });
 
-api.get('/shows', function* (next) {
+app.get('/shows', function* (next) {
   var errorMessage = null;
   var limit = 50;
   var nestedQuery = qs.parse(this.querystring);
@@ -1194,7 +1260,7 @@ api.get('/shows', function* (next) {
   this.type = 'application/json';
 });
 
-api.get('/shows/:id', function* (next) {
+app.get('/shows/:id', function* (next) {
   var errorMessage = null;
   var status = null;
 
@@ -1232,7 +1298,7 @@ api.get('/shows/:id', function* (next) {
   this.type = 'application/json';
 });
 
-api.post('/shows', function* (next) {
+app.post('/shows', function* (next) {
   var errorMessage = null;
   var status = null;
 
@@ -1261,7 +1327,7 @@ api.post('/shows', function* (next) {
   this.type = 'application/json';
 });
 
-api.put('/shows/:id', function* (next) {
+app.put('/shows/:id', function* (next) {
   var errorMessage = null;
   var status = null;
 
@@ -1305,7 +1371,7 @@ api.put('/shows/:id', function* (next) {
   this.type = 'application/json';
 });
 
-api.post('/shows/:id/reviews', function* (next) {
+app.post('/shows/:id/reviews', function* (next) {
   var errorMessage = null;
   var status = null;
 
@@ -1353,7 +1419,7 @@ api.post('/shows/:id/reviews', function* (next) {
   this.type = 'application/json';
 });
 
-api.put('/shows/:id/reviews', function* (next) {
+app.put('/shows/:id/reviews', function* (next) {
   var errorMessage = null;
   var status = null;
 
@@ -1402,7 +1468,7 @@ api.put('/shows/:id/reviews', function* (next) {
 
 // Routes: Catch-all
 
-api.get(/^([^.]+)$/, function* (next) {
+app.get(/^([^.]+)$/, function* (next) {
   var errorMessage = null;
   var status = 404;
 
@@ -1419,4 +1485,4 @@ api.get(/^([^.]+)$/, function* (next) {
   yield next;
 }); //matches everything without an extension
 
-module.exports = api;
+module.exports = app;

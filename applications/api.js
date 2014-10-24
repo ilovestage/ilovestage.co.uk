@@ -35,8 +35,8 @@ if(environment !== 'development') {
   });
 }
 
-app.use(mount('/v1', api.v1.middleware()));
-// app.use(mount('/v2', api.v2.middleware()));
+app.use(mount('/v1', api.v1));
+// app.use(mount('/v2', api.v2));
 
 app.redirect('/', '/v1'); // show info page instead
 
