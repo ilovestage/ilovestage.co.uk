@@ -2,6 +2,7 @@
 
 var packageJson = require(__dirname + '/../package.json');
 var config = packageJson.config.environment[process.env.NODE_ENV || 'development'];
+var environment = process.env.NODE_ENV ? process.env.NODE_ENV : 'development';
 
 // var co = require('co');
 var koa = require('koa');
@@ -25,20 +26,14 @@ var visitor = ua('UA-55818646-2');
 // use koa-router
 app.use(router(app));
 
-
-// co(function *() {
-//   app.use(yield uaBoundThunk('UA-55818646-2', {cookieName: '_ga'}));
-// })();
-
-app.use(function* (next) {
-  // ua.middleware('UA-55818646-2', {cookieName: '_ga'});
-  visitor.pageview(this.request.originalUrl, function (err) {
-    // Handle the error if necessary.
-    // In case no error is provided you can be sure the request was successfully sent off to Google.
-    console.log('err', err);
+if(environment !== 'development') {
+  app.use(function* (next) {
+    visitor.pageview(this.request.originalUrl, function (err) {
+      console.log('err', err);
+    });
+    yield next;
   });
-  yield next;
-});
+}
 
 app.use(mount('/v1', api.v1.middleware()));
 // app.use(mount('/v2', api.v2.middleware()));
