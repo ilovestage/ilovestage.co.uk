@@ -57,9 +57,9 @@ function serveAssets() {
 }
 
 var packageJson = require(__dirname + '/package.json');
-
 var environment = process.env.NODE_ENV ? process.env.NODE_ENV : 'development';
 var config = packageJson.config.environment[environment];
+
 var portStart = process.env.PORT ? process.env.PORT : config.server.koa.port;
 var portEnd = null;
 
@@ -96,6 +96,8 @@ app.use(function *(next) {
 
 // use koa-router
 app.use(router(app));
+
+app.poweredBy = false;
 
 // setup session
 // app.keys = ['secrets'];
