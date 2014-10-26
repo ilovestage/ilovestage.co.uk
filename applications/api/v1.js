@@ -35,10 +35,7 @@ var objectid = bson.BSONPure.ObjectID;
 
 var key = packageJson.config.database.key;
 
-var httpBasicAuthCredentials = {
-  name: 'Administrator',
-  pass: '1c2c4ed06609421ae8a928c80069b87ba85fc14f'
-};
+var httpBasicAuthCredentials = packageJson.config.http.auth;
 
 var body;
 var document;
@@ -141,13 +138,9 @@ app.use(router(app));
 // app.use(httpBasicAuthCredentials);
 
 function *isAuthenticated(next) {
-  // console.log('isAuthenticated', this.request);
-
   returnFields = {
     _id: 1
   };
-
-  console.log('isValid', objectid.isValid(this.request.header.uid));
 
   if(objectid.isValid(this.request.header.uid)) {
     user = yield db.collection('users').findById(this.request.header.uid.toString(), {
@@ -185,7 +178,6 @@ app.get('/', function* (next) {
 });
 
 // Routes: Events
-
 app.get('/events', isAuthenticated, function* (next) {
   if (this.query.limit && (typeof parseInt(this.query.limit) === 'number')) {
     limit = parseInt(this.query.limit);
@@ -868,14 +860,13 @@ app.post('/payments', function* (next) {
     status = 400;
   } else {
     booking = yield db.collection('bookings').findById(document.bookingid, {});
-    // console.log('booking', booking);
+
     if (!booking || booking.length < 1) {
       status = 404;
     } else {
       status = 201;
 
       user = yield db.collection('users').findById(booking.userid, {});
-      // console.log('user', user);
       if (!user || user.length < 1) {
         status = 404;
       } else {

@@ -120,6 +120,12 @@
     "database": {
       "key": "andthestageloveme123"
     },
+    "http": {
+      "auth": {
+        "name": "Administrator",
+        "pass": "1c2c4ed06609421ae8a928c80069b87ba85fc14f"
+      }
+    },
     "applications": {
       "admin": {
         "googleanalytics": {
