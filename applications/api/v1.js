@@ -1,55 +1,29 @@
 'use strict';
 
 var packageJson = require(__dirname + '/../../package.json');
-var config = packageJson.config.environment[process.env.NODE_ENV || 'development'];
-
-var version = 1.0;
+var environment = process.env.NODE_ENV ? process.env.NODE_ENV : 'development';
 
 var _ = require('lodash');
 var auth = require('koa-basic-auth');
 var bodyParser = require('koa-bodyparser');
+var bson = require('bson');
+var crypto = require('crypto');
 var co = require('co');
 var DJ = require('dot-object');
-var parse = require('co-body');
-// var bodyParser = require('koa-bodyparser');
 var Kaiseki = require('kaiseki');
 var koa = require('koa');
-// var logger = require('koa-logger');
-var qs = require('qs');
-// var request = require('koa-request');
+var qs = require('koa-qs');
 var router = require('koa-router');
 var session = require('koa-generic-session');
-// var should = require('should');
-// var stripe = require('stripe')(config.app.stripe.key);
-var stripe = require('stripe')('temp');
+var stripe = require('stripe')(packageJson.config.environment[environment].api.stripe.key);
 var thunkify = require('thunkify');
 
 var database = require(__dirname + '/../database');
 var utilities = require(__dirname + '/../modules/utilities');
 
-var app = koa();
-
-// var api = new router();
-
-var db = new database(config.server.database);
-
+var db = new database(packageJson.config.environment[environment].server.database);
 var dj = new DJ();
-
-var bookings = db.collection('bookings');
-var events = db.collection('events');
-var payments = db.collection('payments');
-var shows = db.collection('shows');
-var users = db.collection('users');
-
-var httpBasicAuthCredentials = {
-  name: 'Administrator',
-  pass: '1c2c4ed06609421ae8a928c80069b87ba85fc14f'
-};
-
-// instantiate kaiseki
-var APP_ID = 'mtsgkSQ5au4mNdKOwoVhP7lmAu6pS2qlWsVTLoHL';
-var REST_API_KEY = 'CjmGYUFMt0J3wzZGr5xL11FxDIzzS8KlZUzd1GgM';
-var kaiseki = new Kaiseki(APP_ID, REST_API_KEY);
+var kaiseki = new Kaiseki(packageJson.config.api.parse.appid, packageJson.config.api.parse.key);
 
 var createCardThunk = thunkify(stripe.customers.create);
 var createCardBoundThunk = createCardThunk.bind(stripe.customers);
@@ -57,341 +31,323 @@ var createCardBoundThunk = createCardThunk.bind(stripe.customers);
 var createChargeThunk = thunkify(stripe.charges.create);
 var createChargeBoundThunk = createChargeThunk.bind(stripe.charges);
 
-app.use(function *(next){
+var objectid = bson.BSONPure.ObjectID;
+
+var key = packageJson.config.database.key;
+
+var httpBasicAuthCredentials = {
+  name: 'Administrator',
+  pass: '1c2c4ed06609421ae8a928c80069b87ba85fc14f'
+};
+
+var body;
+var document;
+var errorMessage;
+var hash;
+var limit;
+var notification;
+var orParameters;
+var result;
+var searchParameters;
+var status;
+
+var booking;
+var bookings;
+var event;
+var events;
+var payment;
+var payments;
+var show;
+var shows;
+var user;
+var users;
+
+var mailFields;
+var returnFields;
+var updateFields;
+
+var card;
+var charge;
+var chargeInfo;
+var password;
+
+var app = koa();
+
+app.version = 1.0;
+
+qs(app);
+
+app.use(bodyParser());
+app.use(session());
+
+app.use(function *(next) {
+  body = {};
+  document = {};
+  errorMessage = null;
+  hash = null;
+  limit = 50;
+  notification = {};
+  orParameters = [];
+  result = null;
+  searchParameters = {};
+  status = null;
+
+  booking = null;
+  bookings = null;
+  event = null;
+  events = null;
+  payment = null;
+  payments = null;
+  show = null;
+  shows = null;
+  user = null;
+  users = null;
+
+  mailFields = {};
+  returnFields = {};
+  updateFields = {};
+
+  card = null;
+  charge = null;
+  chargeInfo = null;
+  password = null;
+
+  searchParameters = utilities.handleDateQuery(this.query).searchParameters;
+  status = utilities.handleDateQuery(this.query).status;
+
+  document = this.request.body;
+
+  if(document) {
+    dj.object(document);
+    delete document.format;
+  }
+
   try {
     yield next;
   } catch (error) {
     if (401 === error.status) {
-      var errorMessage = 'You are not authorised to access this resource.';
-      var status = error.status;
-
-      var body = {
-        'status': status, // use HTTP status code
-        'error': errorMessage,
-        'originalUrl': this.request.originalUrl,
-        'result': packageJson.name + ' API version ' + version.toFixed(1)
-      };
+      errorMessage = 'You are not authorised to access this resource.';
+      status = error.status;
 
       this.set('WWW-Authenticate', 'Basic');
-
-      this.body = body;
-      this.status = status;
-      this.type = 'application/json';
     } else {
       throw error;
     }
   }
 });
 
+app.use(router(app));
+
 // app.use(httpBasicAuthCredentials);
 
-// function *isAuthenticated(next) {
-//   console.log('isAuthenticated');
-//
-//   var result = yield users.findById(userId, {
-//     fields: {
-//       _id: 1
-//     }
-//   });
-//
-//   if (!result || result.length < 1) {
-//     errorMessage = 'You must sign in to do that.';
-//     status = 401;
-//   } else {
-//     status = 200;
-//   }
-//
-//   if (!this.req.isAuthenticated()) {
-//     console.log('Authenticated: false');
-//   } else {
-//     console.log('Authenticated: true');
-//   }
-//
-//   yield next;
-// }
+function *isAuthenticated(next) {
+  // console.log('isAuthenticated', this.request);
 
-app.use(router(app));
-app.use(session());
-app.use(bodyParser());
-
-app.get('/', function* (next) {
-  var errorMessage = null;
-  var status = 200;
-
-  var body = {
-    'status': status, // use HTTP status code
-    'error': errorMessage,
-    'originalUrl': this.request.originalUrl,
-    'result': packageJson.name + ' API version ' + version.toFixed(1)
+  returnFields = {
+    _id: 1
   };
+
+  console.log('isValid', objectid.isValid(this.request.header.uid));
+
+  if(objectid.isValid(this.request.header.uid)) {
+    user = yield db.collection('users').findById(this.request.header.uid.toString(), {
+      fields: returnFields
+    });
+
+    if (!user || user.length < 1) {
+      errorMessage = 'Invalid uid provided.';
+      status = 401;
+    } else {
+      status = 200;
+
+      yield next;
+    }
+  } else {
+    errorMessage = 'Invalid uid provided.';
+    status = 401;
+  }
+
+  body.error = errorMessage;
+  body.originalUrl = this.request.originalUrl;
+  body.result = result;
+  body.status = status; // use HTTP status code
 
   this.body = body;
   this.status = status;
   this.type = 'application/json';
+}
+
+app.get('/', function* (next) {
+  result = packageJson.name + ' API version ' + app.version.toFixed(1);
+  status = 200;
+
   yield next;
 });
 
 // Routes: Events
 
-app.get('/events', function* (next) {
-  var errorMessage = null;
-  var limit = 50;
-  var nestedQuery = qs.parse(this.querystring);
-  var result = null;
-  var searchParameters = utilities.handleDateQuery(nestedQuery).searchParameters;
-  var status = utilities.handleDateQuery(nestedQuery).status;
-
-  if (nestedQuery.limit && (typeof parseInt(nestedQuery.limit) === 'number')) {
-    limit = parseInt(nestedQuery.limit);
+app.get('/events', isAuthenticated, function* (next) {
+  if (this.query.limit && (typeof parseInt(this.query.limit) === 'number')) {
+    limit = parseInt(this.query.limit);
 
     if (limit > 50) {
       limit = 50;
     }
   }
 
-  if (typeof nestedQuery.showname !== 'undefined') {
-    var show = yield shows.findOne({
-      name: nestedQuery.showname
+  if (typeof this.query.showname !== 'undefined') {
+    returnFields = {
+      '_id': 1
+    };
+
+    show = yield db.collection('shows').findOne({
+      name: this.query.showname
     }, {
-      fields: {
-        '_id': 1
-      }
+      fields: returnFields
     });
 
     if (!show || show.length < 1) {
-      errorMessage = 'No results found for show with name \'' + nestedQuery.showname + '\'.';
+      errorMessage = 'No results found for show with name \'' + this.query.showname + '\'.';
       status = 404;
     } else {
       searchParameters.showid = show._id.toString();
     }
-  } else if (typeof nestedQuery.showid !== 'undefined') {
-    searchParameters.showid = nestedQuery.showid;
+  } else if (typeof this.query.showid !== 'undefined') {
+    searchParameters.showid = this.query.showid;
   }
 
-  if (typeof nestedQuery.eventid !== 'undefined') {
-    searchParameters.eventid = nestedQuery.eventid;
+  if (typeof this.query.eventid !== 'undefined') {
+    searchParameters.eventid = this.query.eventid;
   }
 
-  result = yield events.find(searchParameters, {
+  events = yield db.collection('events').find(searchParameters, {
     limit: limit
   });
 
-  _(result).forEach(function (doc) {
+  _(events).forEach(function (doc) {
 		co(function *() {
-      doc.bookings = yield bookings.count({
+      doc.bookings = yield db.collection('bookings').count({
         eventid: doc._id
       });
 		})(next);
   });
 
-  if (!result || result.length < 1) {
+  if (!events || events.length < 1) {
     status = 404;
   } else {
+    result = events;
     status = 200;
   }
 
-  var body = {
-    'status': status, // use HTTP status code
-    'error': errorMessage,
-    'originalUrl': this.request.originalUrl,
-    'result': result
-  };
-
-  this.body = body;
-  this.status = status;
-  this.type = 'application/json';
+  yield next;
 });
 
 app.del('/events/:id', function* (next) {
-  var errorMessage = null;
-  var nestedQuery = qs.parse(this.querystring);
-  var searchParameters = utilities.handleDateQuery(nestedQuery).searchParameters;
-  var status = utilities.handleDateQuery(nestedQuery).status;
-  var eventId = this.params.id;
-
-  var result = yield events.remove({
-    _id: eventId
+  event = yield db.collection('events').remove({
+    _id: this.params.id
   });
 
-  if (!result || result.length < 1) {
+  if (!event || event.length < 1) {
     status = 404;
   } else {
+    result = event;
     status = 200;
   }
 
-  var body = {
-    'status': status, // use HTTP status code
-    'error': errorMessage,
-    'originalUrl': this.request.originalUrl,
-    'result': result
-  };
-
-  this.body = body;
-  this.status = status;
-  this.type = 'application/json';
+  yield next;
 });
 
 app.get('/events/:id', function* (next) {
-  var errorMessage = null;
-  var status = null;
-  var eventId = this.params.id;
+  event = yield db.collection('events').findById(this.params.id);
 
-  var nestedQuery = qs.parse(this.querystring);
-
-  var result = yield events.findById(eventId);
-
-  if (!result || result.length < 1) {
+  if (!event || event.length < 1) {
     status = 404;
   } else {
-    status = 200;
-
-    result.bookings = yield bookings.count({
-      eventid: eventId
+    event.bookings = yield db.collection('bookings').count({
+      eventid: this.params.id
     });
 
-    if (nestedQuery.view === 'detailed') {
-      var show = yield shows.findById(result.showid, {
-        fields: {
-          '-_id': 1,
-          'name': 1,
-          'theatre': 1,
-          'location': 1,
-          'synopsis': 1,
-          'images': 1
-        }
+    if (this.query.view === 'detailed') {
+      returnFields = {
+        '-_id': 1,
+        'name': 1,
+        'theatre': 1,
+        'location': 1,
+        'synopsis': 1,
+        'images': 1
+      };
+
+      show = yield db.collection('shows').findById(event.showid, {
+        fields: returnFields
       });
 
-      result.show = show;
+      event.show = show;
     }
+
+    result = event;
+    status = 200;
   }
 
-  var body = {
-    'status': status, // use HTTP status code
-    'error': errorMessage,
-    'originalUrl': this.request.originalUrl,
-    'result': result
-  };
-
-  this.body = body;
-  this.status = status;
-  this.type = 'application/json';
+  yield next;
 });
 
 app.post('/events', function* (next) {
-  var errorMessage = null;
-  var status = null;
-  var document = yield parse.json(this);
-
-  dj.object(document);
-  delete document.format;
-
   document.starttime = new Date(document.starttime);
   document.endtime = new Date(document.endtime);
 
-  var result = yield events.insert(document);
+  events = yield db.collection('events').insert(document);
 
-  if (!result || result.length < 1) {
+  if (!events || db.collection('events').length < 1) {
     status = 404;
   } else {
-    status = 200;
+    result = events;
+    status = 201;
   }
 
-  var body = {
-    'status': status, // use HTTP status code
-    'error': errorMessage,
-    'originalUrl': this.request.originalUrl,
-    'result': result
-  };
-
-  this.body = body;
-  this.status = status;
-  this.type = 'application/json';
+  yield next;
 });
 
 app.put('/events/:id', function* (next) {
-  var errorMessage = null;
-  var status = null;
-  var nestedQuery = qs.parse(this.querystring);
-
-  var eventId = this.params.id;
-
-  var document = yield parse.json(this);
-
-  dj.object(document);
-  delete document.format;
-
-  var fields = null;
-
-  if (nestedQuery.replace === 'true') {
-    fields = document;
+  if (this.query.replace === 'true') {
+    updateFields = document;
   } else {
-    fields = {
+    updateFields = {
       $set: document
     };
   }
 
-  // var result = yield events.updateById(eventId, fields);
-  var result = yield events.findAndModify({
-    _id: eventId
-  }, fields);
+  event = yield db.collection('events').findAndModify({
+    _id: this.params.id
+  }, updateFields);
 
-  if (!result || result.length < 1) {
+  if (!event || event.length < 1) {
     status = 404;
   } else {
+    result = event;
     status = 200;
   }
 
-  var body = {
-    'status': status, // use HTTP status code
-    'error': errorMessage,
-    'originalUrl': this.request.originalUrl,
-    'result': result
-  };
-
-  this.body = body;
-  this.status = status;
-  this.type = 'application/json';
+  yield next;
 });
 
 // Routes: Users
-
 app.del('/users/:id', function* (next) {
-  var errorMessage = null;
-  var status = null;
-  var userId = this.params.id;
-
-  var result = yield users.remove({
-    _id: userId
+  user = yield db.collection('users').remove({
+    _id: this.params.id
   });
 
-  if (!result || result.length < 1) {
+  if (!user || user.length < 1) {
     status = 404;
   } else {
+    result = user;
     status = 200;
   }
 
-  var body = {
-    'status': status, // use HTTP status code
-    'error': errorMessage,
-    'originalUrl': this.request.originalUrl,
-    'result': result
-  };
-
-  this.body = body;
-  this.status = status;
-  this.type = 'application/json';
+  yield next;
 });
 
 app.get('/users', function* (next) {
-  var errorMessage = null;
-  var nestedQuery = qs.parse(this.querystring);
-  var searchParameters = utilities.handleDateQuery(nestedQuery).searchParameters;
-  var status = utilities.handleDateQuery(nestedQuery).status;
-  var limit = 50;
-
-  var result = null;
-
-  var fields = {
+  returnFields = {
     _id: 1,
     firstname: 1,
     lastname: 1,
@@ -401,169 +357,139 @@ app.get('/users', function* (next) {
     'strategies.twitter.uid': 1
   };
 
-  if (nestedQuery.view === 'detailed') {
-    fields = {};
+  if (this.query.view === 'detailed') {
+    returnFields = {};
   }
 
-  if (nestedQuery.limit && (typeof parseInt(nestedQuery.limit) === 'number')) {
-    limit = parseInt(nestedQuery.limit);
+  if (this.query.limit && (typeof parseInt(this.query.limit) === 'number')) {
+    limit = parseInt(this.query.limit);
 
     if (limit > 50) {
       limit = 50;
     }
   }
 
-  if ((typeof nestedQuery.provider !== 'undefined') && (typeof nestedQuery.uid !== 'undefined')) {
-    searchParameters['strategies.' + nestedQuery.provider + '.uid'] = nestedQuery.uid;
+  if ((typeof this.query.provider !== 'undefined') && (typeof this.query.uid !== 'undefined')) {
+    searchParameters['strategies.' + this.query.provider + '.uid'] = this.query.uid;
 
-    fields['strategies.' + nestedQuery.provider + '.token'] = 1;
+    returnFields['strategies.' + this.query.provider + '.token'] = 1;
 
-    result = yield users.findOne(searchParameters, {
-      fields: fields
+    user = yield db.collection('users').findOne(searchParameters, {
+      fields: returnFields
     });
 
-    if (!result || result.length < 1) {
+    if (!user || user.length < 1) {
       errorMessage = 'A user with those credentials does not exist.';
       status = 404;
     } else {
-      if ((typeof result.strategies !== 'undefined') && (typeof result.strategies[nestedQuery.provider] !== 'undefined') && (typeof result.strategies[nestedQuery.provider].uid !== 'undefined')) {
-        if (nestedQuery.token === result.strategies[nestedQuery.provider].token) {
+      if ((typeof user.strategies !== 'undefined') && (typeof user.strategies[this.query.provider] !== 'undefined') && (typeof user.strategies[this.query.provider].uid !== 'undefined')) {
+        if (this.query.token === user.strategies[this.query.provider].token) {
           status = 200;
         } else {
-          result = {};
+          user = {};
 
           errorMessage = 'A user with those credentials exists but the supplied token was incorrect.';
           status = 401;
         }
       } else {
-        result = {};
+        user = {};
 
         errorMessage = 'A user with those credentials exists but the user has no token set.';
         status = 401;
       }
 
-      if ((typeof result !== 'undefined') && (typeof result.strategies !== 'undefined') && (typeof result.strategies[nestedQuery.provider] !== 'undefined') && (typeof result.strategies[nestedQuery.provider].token !== 'undefined')) {
-        delete result.strategies[nestedQuery.provider].token;
+      if ((typeof user !== 'undefined') && (typeof user.strategies !== 'undefined') && (typeof user.strategies[this.query.provider] !== 'undefined') && (typeof user.strategies[this.query.provider].token !== 'undefined')) {
+        delete user.strategies[this.query.provider].token;
       }
 
+      result = user;
     }
-  } else if ((typeof nestedQuery.email !== 'undefined') && (typeof nestedQuery.password !== 'undefined')) {
-    searchParameters['strategies.local.email'] = nestedQuery.email;
+  } else if ((typeof this.query.email !== 'undefined') && (typeof this.query.password !== 'undefined')) {
+    searchParameters['strategies.local.email'] = this.query.email;
 
-    fields['strategies.local.password'] = 1;
+    returnFields['strategies.local.password'] = 1;
 
-    result = yield users.findOne(searchParameters, {
-      fields: fields
+    user = yield db.collection('users').findOne(searchParameters, {
+      fields: returnFields
     });
 
-    if (!result || result.length < 1) {
+    if (!user || user.length < 1) {
       errorMessage = 'A user with those credentials does not exist.';
       status = 404;
     } else {
-      if ((typeof result.strategies !== 'undefined') && (typeof result.strategies.local !== 'undefined') && (typeof result.strategies.local.password !== 'undefined')) {
-        if (nestedQuery.password === result.strategies.local.password) {
+      if ((typeof user.strategies !== 'undefined') && (typeof user.strategies.local !== 'undefined') && (typeof user.strategies.local.password !== 'undefined')) {
+        hash = crypto.createHmac('sha512', packageJson.config.database.key);
+        hash.update(this.query.password);
+        password = hash.digest('hex');
+
+        if (password === user.strategies.local.password) {
           status = 200;
         } else {
-          result = {};
+          user = {};
 
           errorMessage = 'A user with those credentials exists but the supplied password was incorrect.';
           status = 401;
         }
       } else {
-        result = {};
+        user = {};
 
         errorMessage = 'A user with those credentials exists but the user has no password set.';
         status = 401;
       }
 
-      if ((typeof result !== 'undefined') && (typeof result.strategies !== 'undefined') && (typeof result.strategies.local !== 'undefined') && (typeof result.strategies.local.password !== 'undefined')) {
-        delete result.strategies.local.password;
+      if ((typeof user !== 'undefined') && (typeof user.strategies !== 'undefined') && (typeof user.strategies.local !== 'undefined') && (typeof user.strategies.local.password !== 'undefined')) {
+        delete user.strategies.local.password;
       }
+
+      result = user;
     }
   } else {
-    result = yield users.find(searchParameters, {
-      fields: fields,
+    users = yield db.collection('users').find(searchParameters, {
+      fields: returnFields,
       limit: limit
     });
 
-    if (!result || result.length < 1) {
+    if (!users || users.length < 1) {
       errorMessage = 'No users found.';
       status = 404;
     } else {
+      result = users;
       status = 200;
     }
   }
 
-  var body = {
-    'status': status, // use HTTP status code
-    'error': errorMessage,
-    'originalUrl': this.request.originalUrl,
-    'result': result
-  };
-
-  this.body = body;
-  this.status = status;
-  this.type = 'application/json';
+  yield next;
 });
 
 app.get('/users/:id', function* (next) {
-  var errorMessage = null;
-  var status = null;
+  searchParameters._id = this.params.id;
 
-  var userId = this.params.id;
-
-  var nestedQuery = qs.parse(this.querystring);
-  var searchParameters = utilities.handleDateQuery(nestedQuery).searchParameters;
-
-  searchParameters._id = userId;
-
-  var fields = {
+  returnFields = {
     _id: 1,
     firstname: 1,
     lastname: 1,
     'strategies.local.email': 1
   };
 
-  if (nestedQuery.view === 'detailed') {
-    fields = {};
+  if (this.query.view === 'detailed') {
+    returnFields = {};
   }
 
-  // var result = yield users.findById(userId);
-  // var result = yield users.findById(userId, fields);
-  var result = yield users.find(searchParameters, {
-    fields: fields
+  user = yield db.collection('users').find(searchParameters, {
+    fields: returnFields
   });
 
-  if (!result || result.length < 1) {
+  if (!user || user.length < 1) {
     status = 404;
   } else {
+    result = user;
     status = 200;
   }
 
-  var body = {
-    'status': status, // use HTTP status code
-    'error': errorMessage,
-    'originalUrl': this.request.originalUrl,
-    'result': result
-  };
-
-  this.body = body;
-  this.status = status;
-  this.type = 'application/json';
+  yield next;
 });
 
 app.post('/users', function* (next) {
-  var errorMessage = null;
-  var status = null;
-
-  var document = yield parse.json(this);
-  dj.object(document);
-  delete document.format;
-
-  var searchParameters = {};
-
-  var orParameters = [];
-
   if (typeof document.strategies !== 'undefined') {
     if((typeof document.strategies.local !== 'undefined') && (typeof document.strategies.local.email !== 'undefined')) {
       orParameters.push({
@@ -594,342 +520,244 @@ app.post('/users', function* (next) {
     searchParameters.$or = orParameters;
   }
 
-  var result = null;
-
   // searchParameters['strategies.local.email'] = document.strategies.local.email;
 
-  result = yield users.find(searchParameters);
+  user = yield db.collection('users').find(searchParameters);
 
-  if (result && result.length > 0) {
-    result = {};
+  if (user && user.length > 0) {
+    user = {};
 
     errorMessage = 'A user with those credentials already exists.';
     status = 409;
   } else {
+    hash = crypto.createHmac('sha512', key);
+    hash.update(document.strategies.local.password);
+    document.strategies.local.password = hash.digest('hex');
+
     dj.object(document);
     delete document.format;
 
-    result = yield users.insert(document);
+    user = yield db.collection('users').insert(document);
 
-    if (!result || result.length < 1) {
+    if (!user || user.length < 1) {
       status = 404;
     } else {
-      status = 200;
-
-      var originalResult = result;
-
-      var customer = yield createCardBoundThunk({
+      card = yield createCardBoundThunk({
         metadata: {
-          userid: originalResult._id
+          userid: user._id
         },
-        email: originalResult.strategies.local.email
+        email: user.strategies.local.email
       });
 
-      var fields = {
+      updateFields = {
         $set: {
-          stripeid: customer.id
+          stripeid: card.id
         }
       };
 
-      var mailFields = {
-        subject: 'Welcome to I Love Stage', // Subject line
-        email: result.strategies.local.email,
-        name: {
-          first: result.firstname,
-          last: result.lastname
-        }
-      };
+      user = yield db.collection('users').findAndModify({
+        _id: user._id
+      }, updateFields);
 
-      result = yield users.findAndModify({
-        _id: originalResult._id
-      }, fields);
+      if(user && user.stripeid) {
+        mailFields = {
+          subject: 'Welcome to I Love Stage', // Subject line
+          email: user.strategies.local.email,
+          name: {
+            first: user.firstname,
+            last: user.lastname
+          }
+        };
 
-      // var email = utilities.sendEmail(mailFields, 'user-signup');
-      var email = utilities.addUserToMailingList(mailFields);
+        // utilities.sendEmail(mailFields, 'user-signup');
+        utilities.addUserToMailingList(mailFields);
+      }
 
-      console.log('email', email);
+      if ((typeof user !== 'undefined') && (typeof user.strategies !== 'undefined') && (typeof user.strategies.local !== 'undefined') && (typeof user.strategies.local.password !== 'undefined')) {
+        delete user.strategies.local.password;
+      }
+
+      result = user;
+      status = 201;
     }
   }
 
-  var body = {
-    'status': status, // use HTTP status code
-    'error': errorMessage,
-    'originalUrl': this.request.originalUrl,
-    'result': result
-  };
-
-  this.body = body;
-  this.status = status;
-  this.type = 'application/json';
+  yield next;
 });
 
 app.put('/users/:id', function* (next) {
-  var errorMessage = null;
-  var status = null;
-
-  var nestedQuery = qs.parse(this.querystring);
-
-  var userId = this.params.id;
-
-  var document = yield parse.json(this);
-
-  dj.object(document);
-  delete document.format;
-
-  var fields = null;
-
-  if (nestedQuery.replace === 'true') {
-    fields = document;
+  if (this.query.replace === 'true') {
+    updateFields = document;
   } else {
-    fields = {
+    updateFields = {
       $set: document
     };
   }
 
-  // var result = yield users.updateById(userId, fields);
-  var result = yield users.findAndModify({
-    _id: userId
-  }, fields);
+  user = yield db.collection('users').findAndModify({
+    _id: this.params.id
+  }, updateFields);
 
-  if (!result || result.length < 1) {
+  if (!user || user.length < 1) {
     status = 404;
   } else {
+    result = user;
     status = 200;
   }
 
-  var body = {
-    'status': status, // use HTTP status code
-    'error': errorMessage,
-    'originalUrl': this.request.originalUrl,
-    'result': result
-  };
-
-  this.body = body;
-  this.status = status;
-  this.type = 'application/json';
+  yield next;
 });
 
 // Routes: Bookings
-
 app.del('/bookings/:id', function* (next) {
-  var errorMessage = null;
-  var status = null;
-
-  var bookingId = this.params.id;
-
-  var result = yield bookings.remove({
-    _id: bookingId
+  booking = yield db.collection('bookings').remove({
+    _id: this.params.id
   });
 
-  if (!result || result.length < 1) {
+  if (!booking || booking.length < 1) {
     status = 404;
   } else {
+    result = booking;
     status = 200;
   }
 
-  var body = {
-    'status': status, // use HTTP status code
-    'error': errorMessage,
-    'originalUrl': this.request.originalUrl,
-    'result': result
-  };
-
-  this.body = body;
-  this.status = status;
-  this.type = 'application/json';
+  yield next;
 });
 
 app.get('/bookings', auth(httpBasicAuthCredentials), function* (next) {
-  var errorMessage = null;
-  var limit = 50;
-  var nestedQuery = qs.parse(this.querystring);
-  var searchParameters = utilities.handleDateQuery(nestedQuery).searchParameters;
-  var status = utilities.handleDateQuery(nestedQuery).status;
-
-  if (typeof nestedQuery.userid !== 'undefined') {
-    searchParameters.userid = nestedQuery.userid;
+  if (typeof this.query.userid !== 'undefined') {
+    searchParameters.userid = this.query.userid;
   }
 
-  if (typeof nestedQuery.eventid !== 'undefined') {
-    searchParameters.eventid = nestedQuery.eventid;
+  if (typeof this.query.eventid !== 'undefined') {
+    searchParameters.eventid = this.query.eventid;
   }
 
-  if (typeof nestedQuery.status !== 'undefined') {
-    searchParameters.status = nestedQuery.status;
+  if (typeof this.query.status !== 'undefined') {
+    searchParameters.status = this.query.status;
   }
 
-  if (nestedQuery.limit && (typeof parseInt(nestedQuery.limit) === 'number')) {
-    limit = parseInt(nestedQuery.limit);
+  if (this.query.limit && (typeof parseInt(this.query.limit) === 'number')) {
+    limit = parseInt(this.query.limit);
 
     if (limit > 50) {
       limit = 50;
     }
   }
 
-  var result = yield bookings.find(searchParameters, {
+  bookings = yield db.collection('bookings').find(searchParameters, {
     limit: limit
   });
 
-  if (!result || result.length < 1) {
+  if (!bookings || bookings.length < 1) {
     status = 404;
   } else {
+    result = bookings;
     status = 200;
   }
 
-  var body = {
-    'status': status, // use HTTP status code
-    'error': errorMessage,
-    'originalUrl': this.request.originalUrl,
-    'result': result
-  };
-
-  this.body = body;
-  this.status = status;
-  this.type = 'application/json';
+  yield next;
 });
 
 app.get('/bookings/:id', function* (next) {
-  var errorMessage = null;
-  var status = null;
+  booking = yield db.collection('bookings').findById(this.params.id);
 
-  var nestedQuery = qs.parse(this.querystring);
+  if (this.query.view === 'detailed') {
+    returnFields = {
+      '_id': 1,
+      'starttime': 1,
+      'endtime': 1,
+      'priceband': 1,
+      'facevalue': 1,
+      'discount_price': 1
+    };
 
-  var bookingId = this.params.id;
-
-  var result = null;
-
-  var booking = yield bookings.findById(bookingId);
-
-  if (nestedQuery.view === 'detailed') {
-    var event = yield events.findById(booking.eventid, {
-      fields: {
-        '_id': 1,
-        'starttime': 1,
-        'endtime': 1,
-        'priceband': 1,
-        'facevalue': 1,
-        'discount_price': 1
-      }
+    event = yield db.collection('events').findById(booking.eventid, {
+      fields: returnFields
     });
 
     booking.event = event;
   }
 
-  result = booking;
-
   if (!result || result.length < 1) {
     status = 404;
   } else {
+    result = booking;
     status = 200;
   }
 
-  var body = {
-    'status': status, // use HTTP status code
-    'error': errorMessage,
-    'originalUrl': this.request.originalUrl,
-    'result': result
-  };
-
-  this.body = body;
-  this.status = status;
-  this.type = 'application/json';
+  yield next;
 });
 
 app.post('/bookings', function* (next) {
-  var errorMessage = null;
-  var status = null;
+  returnFields = {
+    _id: 1,
+    firstname: 1,
+    lastname: 1,
+    'strategies.local.email': 1
+  };
 
-  var document = yield parse.json(this);
+  user = yield db.collection('users').findById(document.userid, {
+    fields: returnFields
+  });
 
-  dj.object(document);
-  delete document.format;
+  if(!user || user.length < 1) {
+    errorMessage = 'User referenced by booking could not be found.';
+    status = 409;
+  }
 
-  var result = yield bookings.insert(document);
+  booking = yield db.collection('bookings').insert(this.request.body);
 
-  var email = null;
-
-  if(result.tickets >= 8) {
-    email = utilities.sendEmail({
+  if(booking.tickets >= 8) {
+    utilities.sendEmail({
       subject: 'Booking target reached', // Subject line
       email: utilities.emailSender.address
     }, 'admin-booking');
-
-    status = email.status;
-    errorMessage = email.errorMessage;
   }
 
-  var user = yield users.findById(result.userid, {
-    fields: {
-      _id: 1,
-      firstname: 1,
-      lastname: 1,
-      'strategies.local.email': 1
-    }
-  });
-
-  utilities.sendEmail({
-    subject: 'Booking confirmed', // Subject line
-    email: user.strategies.local.email,
-    name: {
-      first: user.firstname,
-      last: user.lastname
-    }
-  }, 'user-booking');
-
-  if (!result || result.length < 1) {
+  if (!booking || booking.length < 1) {
     status = 404;
   } else {
-    status = 200;
+    utilities.sendEmail({
+      subject: 'Booking confirmed', // Subject line
+      email: user.strategies.local.email,
+      name: {
+        first: user.firstname,
+        last: user.lastname
+      }
+    }, 'user-booking');
+
+    result = booking;
+    status = 201;
   }
 
-  var body = {
-    'status': status, // use HTTP status code
-    'error': errorMessage,
-    'originalUrl': this.request.originalUrl,
-    'result': result
-  };
-
-  this.body = body;
-  this.status = status;
-  this.type = 'application/json';
+  yield next;
 });
 
 app.put('/bookings/:id', function* (next) {
-  var errorMessage = null;
-  var status = null;
-
-  var nestedQuery = qs.parse(this.querystring);
-
-  var document = yield parse.json(this);
-
-  dj.object(document);
-  delete document.format;
-
-  var fields = null;
-
-  if (nestedQuery.replace === 'true') {
-    fields = document;
+  if (this.query.replace === 'true') {
+    updateFields = document;
   } else {
-    fields = {
+    updateFields = {
       $set: document
     };
   }
 
-  var result = yield bookings.findAndModify({
+  booking = yield db.collection('bookings').findAndModify({
     _id: this.params.id
-  }, fields);
+  }, updateFields);
 
-  if(result && document.tickets >= 8) {
-    // var user = yield users.findById(result.userid);
-    var user = yield users.findById(result.userid, {
-      fields: {
-        _id: 1,
-        firstname: 1,
-        lastname: 1,
-        'strategies.local.email': 1
-      }
+  if(booking && document.tickets >= 8) {
+    returnFields = {
+      _id: 1,
+      firstname: 1,
+      lastname: 1,
+      'strategies.local.email': 1
+    };
+
+    user = yield db.collection('users').findById(booking.userid, {
+      fields: returnFields
     });
-    // console.log('user', user);
 
     if(user && user.length > 0) {
       utilities.sendEmail({
@@ -946,173 +774,112 @@ app.put('/bookings/:id', function* (next) {
         email: utilities.emailSender.address
       }, 'admin-booking');
 
-      var notification = {
+      notification = {
         channels: [''],
         data: {
-          alert: 'Booking target reached for booking reference #' + result._id
+          alert: 'Booking target reached for booking reference #' + booking._id
         }
       };
 
-      kaiseki.sendPushNotification(notification, function(err, res, contents, success) {
+      kaiseki.sendPushNotification(notification, function(error, result, contents, success) {
         if (success) {
           console.log('Push notification successfully sent:', contents);
         } else {
-          console.log('Could not send push notification:', err);
+          console.log('Could not send push notification:', error);
         }
       });
     }
   }
 
-  if (!result || result.length < 1) {
+  if (!booking || booking.length < 1) {
     status = 404;
   } else {
+    result = booking;
     status = 200;
   }
 
-  var body = {
-    'status': status, // use HTTP status code
-    'error': errorMessage,
-    'originalUrl': this.request.originalUrl,
-    'result': result
-  };
-
-  this.body = body;
-  this.status = status;
-  this.type = 'application/json';
+  yield next;
 });
 
 // Routes: Payments
-
 app.del('/payments/:id', function* (next) {
-  var errorMessage = null;
-  var status = null;
-
-  var paymentId = this.params.id;
-
-  var result = yield payments.remove({
-    _id: paymentId
+  payment = yield db.collection('payments').remove({
+    _id: this.params.id
   });
 
-  if (!result || result.length < 1) {
+  if (!payment || payment.length < 1) {
     status = 404;
   } else {
+    result = payment;
     status = 200;
   }
 
-  var body = {
-    'status': status, // use HTTP status code
-    'error': errorMessage,
-    'originalUrl': this.request.originalUrl,
-    'result': result
-  };
-
-  this.body = body;
-  this.status = status;
-  this.type = 'application/json';
+  yield next;
 });
 
 app.get('/payments', function* (next) {
-  var errorMessage = null;
-  var limit = 50;
-  var nestedQuery = qs.parse(this.querystring);
-  var searchParameters = utilities.handleDateQuery(nestedQuery).searchParameters;
-  var status = utilities.handleDateQuery(nestedQuery).status;
-
-  if (typeof nestedQuery.processor !== 'undefined') {
-    searchParameters.processor = nestedQuery.processor;
-  } else if (typeof nestedQuery.token !== 'undefined') {
-    searchParameters.token = nestedQuery.token;
+  if (typeof this.query.processor !== 'undefined') {
+    searchParameters.processor = this.query.processor;
+  } else if (typeof this.query.token !== 'undefined') {
+    searchParameters.token = this.query.token;
   } else if (typeof this.query !== 'undefined') {
     status = 400;
   }
 
-  if (nestedQuery.limit && (typeof parseInt(nestedQuery.limit) === 'number')) {
-    limit = parseInt(nestedQuery.limit);
+  if (this.query.limit && (typeof parseInt(this.query.limit) === 'number')) {
+    limit = parseInt(this.query.limit);
 
     if (limit > 50) {
       limit = 50;
     }
   }
 
-  var result = (searchParameters !== null) ? yield payments.find(searchParameters, {
+  payments = (searchParameters !== null) ? yield db.collection('payments').find(searchParameters, {
     limit: limit
   }) : null;
 
-  if (!result || result.length < 1) {
+  if (!payments || payments.length < 1) {
     status = 404;
   } else {
+    result = payments;
     status = 200;
   }
 
-  var body = {
-    'status': status, // use HTTP status code
-    'error': errorMessage,
-    'originalUrl': this.request.originalUrl,
-    'result': result
-  };
-
-  this.body = body;
-  this.status = status;
-  this.type = 'application/json';
+  yield next;
 });
 
 app.get('/payments/:id', function* (next) {
-  var status = null;
-  var errorMessage = null;
+  payment = yield db.collection('payments').findById(this.params.id);
 
-  var paymentId = this.params.id;
-
-  var result = yield payments.findById(paymentId);
-
-  if (!result || result.length < 1) {
+  if (!payment || payment.length < 1) {
     status = 404;
   } else {
+    result = payment;
     status = 200;
   }
 
-  var body = {
-    'status': status, // use HTTP status code
-    'error': errorMessage,
-    'originalUrl': this.request.originalUrl,
-    'result': result
-  };
-
-  this.body = body;
-  this.status = status;
-  this.type = 'application/json';
+  yield next;
 });
 
 app.post('/payments', function* (next) {
-  var status = null;
-  var errorMessage = null;
-
-  var document = yield parse.json(this);
-
-  dj.object(document);
-  delete document.format;
-
-  var result = null;
-
   document.time = new Date();
 
   if(!document.hasOwnProperty('bookingid') || !document.hasOwnProperty('processor') || !document.hasOwnProperty('currency') || !document.hasOwnProperty('amount')) {
     status = 400;
   } else {
-    var booking = yield bookings.findById(document.bookingid, {});
+    booking = yield db.collection('bookings').findById(document.bookingid, {});
     // console.log('booking', booking);
     if (!booking || booking.length < 1) {
       status = 404;
     } else {
-      status = 200;
+      status = 201;
 
-      var user = yield users.findById(booking.userid, {});
+      user = yield db.collection('users').findById(booking.userid, {});
       // console.log('user', user);
       if (!user || user.length < 1) {
         status = 404;
       } else {
-        status = 200;
-
-        var chargeInfo = {
+        chargeInfo = {
           amount: document.amount,
           currency: document.currency,
           customer: user.stripeid,
@@ -1124,365 +891,214 @@ app.post('/payments', function* (next) {
           description: document.description
         };
 
-        var charge = yield createChargeBoundThunk(chargeInfo);
+        charge = yield createChargeBoundThunk(chargeInfo);
 
-        result = yield payments.insert(charge);
+        payment = yield db.collection('payments').insert(charge);
 
-        if (!result || result.length < 1) {
+        if (!payment || payment.length < 1) {
           status = 404;
         } else {
-          status = 200;
+          result = payment;
+          status = 201;
         }
       }
     }
   }
 
-  var body = {
-    'status': status, // use HTTP status code
-    'error': errorMessage,
-    'originalUrl': this.request.originalUrl,
-    'result': result
-  };
-
-  this.body = body;
-  this.status = status;
-  this.type = 'application/json';
+  yield next;
 });
 
-// app.put('/payments/:id', function* (next) {
-//   var nestedQuery = qs.parse(this.querystring);
-//
-//   var paymentId = this.params.id;
-//
-//   var body = yield parse.json(this);
-//
-//   var fields = null;
-//
-//   if (nestedQuery.replace === 'true') {
-//     fields = body;
-//   } else {
-//     fields = {
-//       $set: body
-//     };
-//   }
-//
-//   var result = yield payments.findAndModify({
-//     _id: paymentId
-//   }, fields);
-//
-//   this.body = result;
-//   this.type = 'application/json';
-// });
-
 // Routes: Shows
-
 app.del('/shows/:id', function* (next) {
-  var status = null;
-  var errorMessage = null;
-
-  var showId = this.params.id;
-
-  var result = yield shows.remove({
-    _id: showId
+  show = yield db.collection('shows').remove({
+    _id: this.params.id
   });
 
-  if (!result || result.length < 1) {
+  if (!show || show.length < 1) {
     status = 404;
   } else {
+    result = show;
     status = 200;
   }
 
-  var body = {
-    'status': status, // use HTTP status code
-    'error': errorMessage,
-    'originalUrl': this.request.originalUrl,
-    'result': result
-  };
-
-  this.body = body;
-  this.status = status;
-  this.type = 'application/json';
+  yield next;
 });
 
 app.get('/shows', function* (next) {
-  var errorMessage = null;
-  var limit = 50;
-  var nestedQuery = qs.parse(this.querystring);
-  var searchParameters = utilities.handleDateQuery(nestedQuery).searchParameters;
-  var status = utilities.handleDateQuery(nestedQuery).status;
-
-  if (typeof nestedQuery.name !== 'undefined') {
-    searchParameters.name = nestedQuery.name;
-  } else if (typeof nestedQuery.theatre !== 'undefined') {
-    searchParameters.theatre = nestedQuery.theatre;
-  } else if (typeof nestedQuery !== 'undefined') {
+  if (typeof this.query.name !== 'undefined') {
+    searchParameters.name = this.query.name;
+  } else if (typeof this.query.theatre !== 'undefined') {
+    searchParameters.theatre = this.query.theatre;
+  } else if (typeof this.query !== 'undefined') {
     status = 400;
   }
 
-  if (nestedQuery.limit && (typeof parseInt(nestedQuery.limit) === 'number')) {
-    limit = parseInt(nestedQuery.limit);
+  if (this.query.limit && (typeof parseInt(this.query.limit) === 'number')) {
+    limit = parseInt(this.query.limit);
 
     if (limit > 50) {
       limit = 50;
     }
   }
 
-  var result = (searchParameters !== null) ? yield shows.find(searchParameters, {
+  shows = (searchParameters !== null) ? yield db.collection('shows').find(searchParameters, {
     limit: limit
   }) : null;
 
-  if (!result || result.length < 1) {
+  if (!shows || shows.length < 1) {
     status = 404;
   } else {
-    status = 200;
-
-    if (typeof nestedQuery.lang !== 'undefined') {
-      result = utilities.handleInternationalization(
-        result,
+    if (typeof this.query.lang !== 'undefined') {
+      shows = utilities.handleInternationalization(
+        shows,
         [
           'name',
           'synopsis'
         ],
-        nestedQuery.lang
+        this.query.lang
       );
     }
+
+    result = shows;
+    status = 200;
   }
 
-  var body = {
-    'status': status, // use HTTP status code
-    'error': errorMessage,
-    'originalUrl': this.request.originalUrl,
-    'result': result
-  };
-
-  this.body = body;
-  this.status = status;
-  this.type = 'application/json';
+  yield next;
 });
 
 app.get('/shows/:id', function* (next) {
-  var errorMessage = null;
-  var status = null;
+  show = yield db.collection('shows').findById(this.params.id);
 
-  var nestedQuery = qs.parse(this.querystring);
-  var showId = this.params.id;
-
-  var result = yield shows.findById(showId);
-
-  if (!result || result.length < 1) {
+  if (!show || show.length < 1) {
     status = 404;
   } else {
-    status = 200;
-
-    if (typeof nestedQuery.lang !== 'undefined') {
-      result = utilities.handleInternationalization(
-        result,
+    if (typeof this.query.lang !== 'undefined') {
+      show = utilities.handleInternationalization(
+        show,
         [
           'name',
           'synopsis'
         ],
-        nestedQuery.lang
+        this.query.lang
       );
     }
-  }
 
-  var body = {
-    'status': status, // use HTTP status code
-    'error': errorMessage,
-    'originalUrl': this.request.originalUrl,
-    'result': result
-  };
-
-  this.body = body;
-  this.status = status;
-  this.type = 'application/json';
-});
-
-app.post('/shows', function* (next) {
-  var errorMessage = null;
-  var status = null;
-
-  var document = yield parse.json(this);
-
-  dj.object(document);
-  delete document.format;
-
-  var result = yield shows.insert(document);
-
-  if (!result || result.length < 1) {
-    status = 404;
-  } else {
+    result = show;
     status = 200;
   }
 
-  var body = {
-    'status': status, // use HTTP status code
-    'error': errorMessage,
-    'originalUrl': this.request.originalUrl,
-    'result': result
-  };
+  yield next;
+});
 
-  this.body = body;
-  this.status = status;
-  this.type = 'application/json';
+app.post('/shows', function* (next) {
+  show = yield db.collection('shows').insert(document);
+
+  if (!show || show.length < 1) {
+    status = 404;
+  } else {
+    result = show;
+    status = 201;
+  }
+
+  yield next;
 });
 
 app.put('/shows/:id', function* (next) {
-  var errorMessage = null;
-  var status = null;
-
-  var nestedQuery = qs.parse(this.querystring);
-  var document = yield parse.json(this);
-
-  dj.object(document);
-  delete document.format;
-
-  var showId = this.params.id;
-  var fields = null;
-
-  if (nestedQuery.replace === 'true') {
-    fields = document;
+  if (this.query.replace === 'true') {
+    updateFields = document;
   } else {
-    fields = {
+    updateFields = {
       $set: document
     };
   }
 
-  // var result = yield shows.updateById(showId, fields);
-  var result = yield shows.findAndModify({
-    _id: showId
-  }, fields);
+  show = yield db.collection('shows').findAndModify({
+    _id: this.params.id
+  }, updateFields);
 
-  if (!result || result.length < 1) {
+  if (!show || show.length < 1) {
     status = 404;
   } else {
+    result = show;
     status = 200;
   }
 
-  var body = {
-    'status': status, // use HTTP status code
-    'error': errorMessage,
-    'originalUrl': this.request.originalUrl,
-    'result': result
-  };
-
-  this.body = body;
-  this.status = status;
-  this.type = 'application/json';
+  yield next;
 });
 
 app.post('/shows/:id/reviews', function* (next) {
-  var errorMessage = null;
-  var status = null;
+  // KJP: Add comment, not update
+  // if (this.query.replace === 'true') {
+  //   fields = {
+  //     reviews: document
+  //   };
+  // } else {
+  //   fields = {
+  //     $push: {
+  //       reviews: document
+  //     }
+  //   };
+  // }
 
-  var nestedQuery = qs.parse(this.querystring);
-  var document = yield parse.json(this);
+  show = yield db.collection('shows').findAndModify({
+    _id: this.params.id
+  }, updateFields);
 
-  dj.object(document);
-  delete document.format;
-
-  var showId = this.params.id;
-  var fields = null;
-
-  if (nestedQuery.replace === 'true') {
-    fields = {
-      reviews: document
-    };
-  } else {
-    fields = {
-      $push: {
-        reviews: document
-      }
-    };
-  }
-
-  // var result = yield shows.updateById(showId, fields);
-  var result = yield shows.findAndModify({
-    _id: showId
-  }, fields);
-
-  if (!result || result.length < 1) {
+  if (!show || show.length < 1) {
     status = 404;
   } else {
-    status = 200;
+    result = show;
+    status = 201;
   }
 
-  var body = {
-    'status': status, // use HTTP status code
-    'error': errorMessage,
-    'originalUrl': this.request.originalUrl,
-    'result': result
-  };
-
-  this.body = body;
-  this.status = status;
-  this.type = 'application/json';
+  yield next;
 });
 
-app.put('/shows/:id/reviews', function* (next) {
-  var errorMessage = null;
-  var status = null;
-
-  var nestedQuery = qs.parse(this.querystring);
-  var document = yield parse.json(this);
-
-  dj.object(document);
-  delete document.format;
-
-  var showId = this.params.id;
-  var fields = null;
-
-  if (nestedQuery.replace === 'true') {
-    fields = {
+app.put('/shows/:id/reviews', function* () {
+  if (this.query.replace === 'true') {
+    updateFields = {
       reviews: document
     };
   } else {
-    fields = {
+    updateFields = {
       $set: {
         reviews: document
       }
     };
   }
 
-  var result = yield shows.findAndModify({
-    _id: showId
-  }, fields);
+  show = yield db.collection('shows').findAndModify({
+    _id: this.params.id
+  }, updateFields);
 
-  if (!result || result.length < 1) {
+  if (!show || show.length < 1) {
     status = 404;
   } else {
+    result = show;
     status = 200;
   }
 
-  var body = {
-    'status': status, // use HTTP status code
-    'error': errorMessage,
-    'originalUrl': this.request.originalUrl,
-    'result': result
-  };
-
-  this.body = body;
-  this.status = status;
-  this.type = 'application/json';
+  yield next;
 });
 
 // Routes: Catch-all
-
 app.get(/^([^.]+)$/, function* (next) {
-  var errorMessage = null;
-  var status = 404;
+  status = 404;
 
-  var body = {
-    'status': status, // use HTTP status code
-    'error': errorMessage,
-    'originalUrl': this.request.originalUrl,
-    'result': packageJson.name + ' API version ' + version.toFixed(1)
-  };
+  yield next;
+}); //matches everything without an extension
+
+app.use(function *(next) {
+  body.error = errorMessage;
+  body.originalUrl = this.request.originalUrl;
+  body.result = result;
+  body.status = status; // use HTTP status code
 
   this.body = body;
   this.status = status;
   this.type = 'application/json';
+
   yield next;
-}); //matches everything without an extension
+});
 
 module.exports = app;

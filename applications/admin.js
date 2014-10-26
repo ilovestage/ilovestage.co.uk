@@ -1,17 +1,16 @@
 'use strict';
 
 var packageJson = require(__dirname + '/../package.json');
-var config = packageJson.config.environment[process.env.NODE_ENV || 'development'];
+var environment = process.env.NODE_ENV ? process.env.NODE_ENV : 'development';
+var config = packageJson.config.environment[environment];
 
 require('./modules/auth');
 
 var _ = require('lodash');
 // var _.str = require('underscore.string');
 var koa = require('koa');
-// var logger = require('koa-logger');
-var mount = require('koa-mount');
-// var parse = require('co-body');
-var bodyParser = require('koa-bodyparser');
+// var mount = require('koa-mount');
+// var bodyParser = require('koa-bodyparser');
 var passport = require('koa-passport');
 var router = require('koa-router');
 var session = require('koa-generic-session');
@@ -19,12 +18,9 @@ var views = require('co-views');
 
 var app = koa();
 
-
-app.keys = ['andthestageloveme123'];
-
 app.use(session());
 
-app.use(bodyParser());
+// app.use(bodyParser());
 
 app.use(passport.initialize());
 app.use(passport.session());

@@ -28,7 +28,7 @@ var createChargeBoundThunk = createChargeThunk.bind(stripe.charges);
 
 var app = koa();
 
-var visitor = ua('UA-55818646-3');
+var visitor = ua(packageJson.config.applications.cron.googleanalytics.key);
 
 // var result = null;
 var searchParameters = {};

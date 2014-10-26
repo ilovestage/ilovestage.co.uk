@@ -1,7 +1,8 @@
 'use strict';
 
 var packageJson = require(__dirname + '/../../package.json');
-var config = packageJson.config.environment[process.env.NODE_ENV || 'development'];
+var environment = process.env.NODE_ENV ? process.env.NODE_ENV : 'development';
+var config = packageJson.config.environment[environment];
 
 var _ = require('lodash');
 var emailTemplates = require('email-templates');
@@ -12,8 +13,7 @@ var path = require('path');
 
 var templatesDir = path.resolve(__dirname, '../..', 'source/emails');
 
-// set MailChimp API key here
-var mc = new mcapi.Mailchimp('74bfb172f7512186126ea49928bfb217-us9');
+var mc = new mcapi.Mailchimp(packageJson.config.api.mailchimp.key);
 
 // var emailTemplatesThunk = thunkify(emailTemplates);
 
@@ -30,6 +30,12 @@ var utilities = {
   emailSender: {
     name: 'I Love Stage UK',
     email: 'ilovestageapp@gmail.com'
+  },
+
+  validateObjectId: function(id) {
+    var bool = false;
+    if(id.length === 24) bool = /[a-f]+/.test(id);
+    return bool;
   },
 
   addUserToMailingList: function(locals) {

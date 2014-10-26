@@ -35,6 +35,7 @@
   "postinstall": "bower install",
   "dependencies": {
     "bower": "^1.3.0",
+    "bson": "^0.2.15",
     "co": "^3.0.6",
     "co-body": "^1.0.0",
     "co-monk": "^1.0.0",
@@ -116,6 +117,35 @@
       "build": "build",
       "source": "source"
     },
+    "database": {
+      "key": "andthestageloveme123"
+    },
+    "applications": {
+      "admin": {
+        "googleanalytics": {
+          "key": ""
+        }
+      },
+      "api": {
+        "googleanalytics": {
+          "key": "UA-55818646-2"
+        }
+      },
+      "cron": {
+        "googleanalytics": {
+          "key": "UA-55818646-3"
+        }
+      }
+    },
+    "api": {
+      "parse": {
+        "appid": "mtsgkSQ5au4mNdKOwoVhP7lmAu6pS2qlWsVTLoHL",
+        "key": "CjmGYUFMt0J3wzZGr5xL11FxDIzzS8KlZUzd1GgM"
+      },
+      "mailchimp": {
+        "key": "74bfb172f7512186126ea49928bfb217-us9"
+      }
+    },
     "environment": {
       "development": {
         "server": {
@@ -140,10 +170,6 @@
           }
         },
         "api": {
-          "google": {
-            "key": "",
-            "domain": "ilovestage.com"
-          },
           "stripe": {
             "key": "sk_test_jPWMsPFPKWQgn2HlAhWfs09B"
           }
@@ -169,10 +195,6 @@
           }
         },
         "api": {
-          "google": {
-            "key": "",
-            "domain": "ilovestage.com"
-          },
           "stripe": {
             "key": "sk_test_jPWMsPFPKWQgn2HlAhWfs09B"
           }
@@ -198,10 +220,6 @@
           }
         },
         "api": {
-          "google": {
-            "key": "",
-            "domain": "ilovestage.com"
-          },
           "stripe": {
             "key": "sk_live_UINfCzU5LSdkaPoIDETge6iS"
           }
