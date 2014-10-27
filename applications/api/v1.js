@@ -37,6 +37,8 @@ var key = packageJson.config.database.key;
 
 var httpBasicAuthCredentials = packageJson.config.http.auth;
 
+var currentUser;
+
 var body;
 var document;
 var errorMessage;
@@ -68,6 +70,20 @@ var charge;
 var chargeInfo;
 var password;
 
+var messages = {};
+
+messages.badRequest = 'The request cannot be fulfilled due to bad syntax.';
+messages.forbidden = 'Operation forbidden.  Supplied uid not authenticated to access this resource or perform this operation.';
+messages.invalidUid = 'Invalid uid format.  Please provide a uid as a 24 character hexadecimal string.';
+messages.noUid = 'Please provide a uid as a 24 character hexadecimal string.';
+messages.noUserForUid = 'No user found for uid provided in header data.';
+messages.requiresAdminPrivilege = 'Operation requires administrator-level privileges.';
+messages.requiresAgentPrivilege = 'Operation requires agent-level privileges.';
+messages.resourceNotFound = 'Resource not found.';
+// messages.resourceNotAuthorised = 'Operation requires authorisation.';
+messages.unauthorised = 'Authorisation required.';
+messages.unprocessableEntity = 'The request was well-formed but was unable to be followed due to semantic errors.';
+
 var app = koa();
 
 app.version = 1.0;
@@ -78,6 +94,8 @@ app.use(bodyParser());
 app.use(session());
 
 app.use(function *(next) {
+  currentUser = null;
+
   body = {};
   document = {};
   errorMessage = null;
@@ -119,12 +137,22 @@ app.use(function *(next) {
     delete document.format;
   }
 
+  body.originalUrl = this.request.originalUrl;
+
   try {
     yield next;
   } catch (error) {
     if (401 === error.status) {
-      errorMessage = 'You are not authorised to access this resource.';
+      errorMessage = messages.unauthorised;
       status = error.status;
+
+      body.status = status; // use HTTP status code
+      body.error = errorMessage;
+      body.result = result;
+
+      this.body = body;
+      this.status = status;
+      this.type = 'application/json';
 
       this.set('WWW-Authenticate', 'Basic');
     } else {
@@ -136,10 +164,24 @@ app.use(function *(next) {
 app.use(router(app));
 
 // app.use(httpBasicAuthCredentials);
+app.use(auth(httpBasicAuthCredentials));
+
+function userHasPrivilege(uid) {
+  if(typeof uid === 'undefined') {
+    uid = null;
+  }
+
+  if((uid && objectid.isValid(uid) && (uid.toString() === currentUser._id.toString())) || (currentUser && currentUser.hasOwnProperty('type') && (currentUser.type === 'admin'))) {
+    return true;
+  } else {
+    return false;
+  }
+}
 
 function *isAuthenticated(next) {
   returnFields = {
-    _id: 1
+    _id: 1,
+    type: 1
   };
 
   if(objectid.isValid(this.request.header.uid)) {
@@ -147,23 +189,28 @@ function *isAuthenticated(next) {
       fields: returnFields
     });
 
-    if (!user || user.length < 1) {
-      errorMessage = 'Invalid uid provided.';
+    if (!user) {
+      errorMessage = messages.noUserForUid;
       status = 401;
     } else {
+      currentUser = user;
       status = 200;
 
       yield next;
     }
   } else {
-    errorMessage = 'Invalid uid provided.';
+    if(!this.request.header.uid) {
+      errorMessage = messages.noUid;
+    } else {
+      errorMessage = messages.invalidUid;
+    }
+
     status = 401;
   }
 
-  body.error = errorMessage;
-  body.originalUrl = this.request.originalUrl;
-  body.result = result;
   body.status = status; // use HTTP status code
+  body.error = errorMessage;
+  body.result = result;
 
   this.body = body;
   this.status = status;
@@ -178,7 +225,7 @@ app.get('/', function* (next) {
 });
 
 // Routes: Events
-app.get('/events', isAuthenticated, function* (next) {
+app.get('/events', function* (next) {
   if (this.query.limit && (typeof parseInt(this.query.limit) === 'number')) {
     limit = parseInt(this.query.limit);
 
@@ -198,8 +245,7 @@ app.get('/events', isAuthenticated, function* (next) {
       fields: returnFields
     });
 
-    if (!show || show.length < 1) {
-      errorMessage = 'No results found for show with name \'' + this.query.showname + '\'.';
+    if (!show) {
       status = 404;
     } else {
       searchParameters.showid = show._id.toString();
@@ -224,7 +270,7 @@ app.get('/events', isAuthenticated, function* (next) {
 		})(next);
   });
 
-  if (!events || events.length < 1) {
+  if (!events) {
     status = 404;
   } else {
     result = events;
@@ -234,16 +280,17 @@ app.get('/events', isAuthenticated, function* (next) {
   yield next;
 });
 
-app.del('/events/:id', function* (next) {
+app.del('/events/:id', isAuthenticated, function* (next) {
   event = yield db.collection('events').remove({
     _id: this.params.id
   });
 
-  if (!event || event.length < 1) {
+  if (!event) {
+    errorMessage = messages.resourceNotFound;
     status = 404;
   } else {
     result = event;
-    status = 200;
+    status = 204;
   }
 
   yield next;
@@ -252,7 +299,7 @@ app.del('/events/:id', function* (next) {
 app.get('/events/:id', function* (next) {
   event = yield db.collection('events').findById(this.params.id);
 
-  if (!event || event.length < 1) {
+  if (!event) {
     status = 404;
   } else {
     event.bookings = yield db.collection('bookings').count({
@@ -283,23 +330,27 @@ app.get('/events/:id', function* (next) {
   yield next;
 });
 
-app.post('/events', function* (next) {
+app.post('/events', isAuthenticated, function* (next) {
   document.starttime = new Date(document.starttime);
   document.endtime = new Date(document.endtime);
 
-  events = yield db.collection('events').insert(document);
+  if(userHasPrivilege()) {
+    events = yield db.collection('events').insert(document);
 
-  if (!events || db.collection('events').length < 1) {
-    status = 404;
+    if (!events) {
+      status = 404;
+    } else {
+      result = events;
+      status = 201;
+    }
   } else {
-    result = events;
-    status = 201;
+    status = 403;
   }
 
   yield next;
 });
 
-app.put('/events/:id', function* (next) {
+app.put('/events/:id', isAuthenticated, function* (next) {
   if (this.query.replace === 'true') {
     updateFields = document;
   } else {
@@ -308,37 +359,46 @@ app.put('/events/:id', function* (next) {
     };
   }
 
-  event = yield db.collection('events').findAndModify({
-    _id: this.params.id
-  }, updateFields);
+  if(userHasPrivilege()) {
+    event = yield db.collection('events').findAndModify({
+      _id: this.params.id
+    }, updateFields);
 
-  if (!event || event.length < 1) {
-    status = 404;
+    if (!event) {
+      status = 404;
+    } else {
+      result = event;
+      status = 200;
+    }
   } else {
-    result = event;
-    status = 200;
+    status = 403;
   }
 
   yield next;
 });
 
 // Routes: Users
-app.del('/users/:id', function* (next) {
+app.del('/users/:id', isAuthenticated, function* (next) {
   user = yield db.collection('users').remove({
     _id: this.params.id
   });
 
-  if (!user || user.length < 1) {
+  if (!user) {
     status = 404;
   } else {
-    result = user;
-    status = 200;
+    if(userHasPrivilege(user._id)) {
+      result = user;
+    } else {
+      status = 403;
+    }
+
+    status = 204;
   }
 
   yield next;
 });
 
-app.get('/users', function* (next) {
+app.get('/users', isAuthenticated, function* (next) {
   returnFields = {
     _id: 1,
     firstname: 1,
@@ -350,7 +410,11 @@ app.get('/users', function* (next) {
   };
 
   if (this.query.view === 'detailed') {
-    returnFields = {};
+    if(userHasPrivilege()) {
+      returnFields = {};
+    } else {
+      status = 403;
+    }
   }
 
   if (this.query.limit && (typeof parseInt(this.query.limit) === 'number')) {
@@ -370,7 +434,7 @@ app.get('/users', function* (next) {
       fields: returnFields
     });
 
-    if (!user || user.length < 1) {
+    if (!user) {
       errorMessage = 'A user with those credentials does not exist.';
       status = 404;
     } else {
@@ -405,7 +469,7 @@ app.get('/users', function* (next) {
       fields: returnFields
     });
 
-    if (!user || user.length < 1) {
+    if (!user) {
       errorMessage = 'A user with those credentials does not exist.';
       status = 404;
     } else {
@@ -441,8 +505,8 @@ app.get('/users', function* (next) {
       limit: limit
     });
 
-    if (!users || users.length < 1) {
-      errorMessage = 'No users found.';
+    if (!users) {
+      errorMessage = messages.resourceNotFound;
       status = 404;
     } else {
       result = users;
@@ -453,7 +517,7 @@ app.get('/users', function* (next) {
   yield next;
 });
 
-app.get('/users/:id', function* (next) {
+app.get('/users/:id', isAuthenticated, function* (next) {
   searchParameters._id = this.params.id;
 
   returnFields = {
@@ -464,18 +528,26 @@ app.get('/users/:id', function* (next) {
   };
 
   if (this.query.view === 'detailed') {
-    returnFields = {};
+    if(userHasPrivilege()) {
+      returnFields = {};
+    } else {
+      status = 403;
+    }
   }
 
   user = yield db.collection('users').find(searchParameters, {
     fields: returnFields
   });
 
-  if (!user || user.length < 1) {
+  if (!user) {
     status = 404;
   } else {
-    result = user;
-    status = 200;
+    if(userHasPrivilege(user._id)) {
+      result = user;
+      status = 200;
+    } else {
+      status = 403;
+    }
   }
 
   yield next;
@@ -531,7 +603,7 @@ app.post('/users', function* (next) {
 
     user = yield db.collection('users').insert(document);
 
-    if (!user || user.length < 1) {
+    if (!user) {
       status = 404;
     } else {
       card = yield createCardBoundThunk({
@@ -577,7 +649,7 @@ app.post('/users', function* (next) {
   yield next;
 });
 
-app.put('/users/:id', function* (next) {
+app.put('/users/:id', isAuthenticated, function* (next) {
   if (this.query.replace === 'true') {
     updateFields = document;
   } else {
@@ -586,37 +658,50 @@ app.put('/users/:id', function* (next) {
     };
   }
 
-  user = yield db.collection('users').findAndModify({
-    _id: this.params.id
-  }, updateFields);
+  if(userHasPrivilege(this.params.id)) {
+    user = yield db.collection('users').findAndModify({
+      _id: this.params.id
+    }, updateFields);
 
-  if (!user || user.length < 1) {
-    status = 404;
+    if (!user) {
+      status = 404;
+    } else {
+      result = user;
+      status = 200;
+    }
   } else {
-    result = user;
-    status = 200;
+    status = 403;
   }
 
   yield next;
 });
 
 // Routes: Bookings
-app.del('/bookings/:id', function* (next) {
-  booking = yield db.collection('bookings').remove({
+app.del('/bookings/:id', isAuthenticated, function* (next) {
+  booking = yield db.collection('bookings').findOne({
     _id: this.params.id
   });
 
-  if (!booking || booking.length < 1) {
+  if (!booking) {
     status = 404;
   } else {
-    result = booking;
-    status = 200;
+    if(userHasPrivilege(booking.userid)) {
+      booking = yield db.collection('bookings').remove({
+        _id: this.params.id
+      });
+
+      result = booking;
+      status = 204;
+    } else {
+      status = 403;
+    }
   }
 
   yield next;
 });
 
-app.get('/bookings', auth(httpBasicAuthCredentials), function* (next) {
+// app.get('/bookings', auth(httpBasicAuthCredentials), function* (next) {
+app.get('/bookings', isAuthenticated, function* (next) {
   if (typeof this.query.userid !== 'undefined') {
     searchParameters.userid = this.query.userid;
   }
@@ -641,41 +726,49 @@ app.get('/bookings', auth(httpBasicAuthCredentials), function* (next) {
     limit: limit
   });
 
-  if (!bookings || bookings.length < 1) {
-    status = 404;
+  if(bookings) {
+    if(userHasPrivilege()) {
+      result = bookings;
+      status = 200;
+    } else {
+      status = 403;
+    }
   } else {
-    result = bookings;
-    status = 200;
+    status = 404;
   }
 
   yield next;
 });
 
-app.get('/bookings/:id', function* (next) {
+app.get('/bookings/:id', isAuthenticated, function* (next) {
   booking = yield db.collection('bookings').findById(this.params.id);
 
-  if (this.query.view === 'detailed') {
-    returnFields = {
-      '_id': 1,
-      'starttime': 1,
-      'endtime': 1,
-      'priceband': 1,
-      'facevalue': 1,
-      'discount_price': 1
-    };
+  if(booking) {
+    if(userHasPrivilege(booking.userid)) {
+      if (this.query.view === 'detailed') {
+        returnFields = {
+          '_id': 1,
+          'starttime': 1,
+          'endtime': 1,
+          'priceband': 1,
+          'facevalue': 1,
+          'discount_price': 1
+        };
 
-    event = yield db.collection('events').findById(booking.eventid, {
-      fields: returnFields
-    });
+        event = yield db.collection('events').findById(booking.eventid, {
+          fields: returnFields
+        });
 
-    booking.event = event;
-  }
+        booking.event = event;
+      }
 
-  if (!result || result.length < 1) {
-    status = 404;
+      result = booking;
+      status = 200;
+    } else {
+      status = 403;
+    }
   } else {
-    result = booking;
-    status = 200;
+    status = 404;
   }
 
   yield next;
@@ -689,38 +782,42 @@ app.post('/bookings', function* (next) {
     'strategies.local.email': 1
   };
 
-  user = yield db.collection('users').findById(document.userid, {
-    fields: returnFields
-  });
+  if(userHasPrivilege(document.userid)) {
+    // user = yield db.collection('users').findById(document.userid, {
+    //   fields: returnFields
+    // });
+    //
+    // if(!user) {
+    //   errorMessage = 'User referenced by booking could not be found.';
+    //   status = 409;
+    // }
 
-  if(!user || user.length < 1) {
-    errorMessage = 'User referenced by booking could not be found.';
-    status = 409;
-  }
+    booking = yield db.collection('bookings').insert(this.request.body);
 
-  booking = yield db.collection('bookings').insert(this.request.body);
-
-  if(booking.tickets >= 8) {
-    utilities.sendEmail({
-      subject: 'Booking target reached', // Subject line
-      email: utilities.emailSender.address
-    }, 'admin-booking');
-  }
-
-  if (!booking || booking.length < 1) {
-    status = 404;
-  } else {
-    utilities.sendEmail({
-      subject: 'Booking confirmed', // Subject line
-      email: user.strategies.local.email,
-      name: {
-        first: user.firstname,
-        last: user.lastname
+    if (!booking) {
+      status = 404;
+    } else {
+      if(booking.tickets >= 8) {
+        utilities.sendEmail({
+          subject: 'Booking target reached', // Subject line
+          email: utilities.emailSender.address
+        }, 'admin-booking');
       }
-    }, 'user-booking');
 
-    result = booking;
-    status = 201;
+      utilities.sendEmail({
+        subject: 'Booking confirmed', // Subject line
+        email: user.strategies.local.email,
+        name: {
+          first: user.firstname,
+          last: user.lastname
+        }
+      }, 'user-booking');
+
+      result = booking;
+      status = 201;
+    }
+  } else {
+    status = 403;
   }
 
   yield next;
@@ -735,59 +832,63 @@ app.put('/bookings/:id', function* (next) {
     };
   }
 
-  booking = yield db.collection('bookings').findAndModify({
-    _id: this.params.id
-  }, updateFields);
+  if(userHasPrivilege(document.userid)) {
+    booking = yield db.collection('bookings').findAndModify({
+      _id: this.params.id
+    }, updateFields);
 
-  if(booking && document.tickets >= 8) {
-    returnFields = {
-      _id: 1,
-      firstname: 1,
-      lastname: 1,
-      'strategies.local.email': 1
-    };
+    // if(booking && document.tickets >= 8) {
+    //   returnFields = {
+    //     _id: 1,
+    //     firstname: 1,
+    //     lastname: 1,
+    //     'strategies.local.email': 1
+    //   };
+    //
+    //   user = yield db.collection('users').findById(booking.userid, {
+    //     fields: returnFields
+    //   });
+    //
+    //   if(user && user.length > 0) {
+    //     utilities.sendEmail({
+    //       subject: 'Booking confirmed', // Subject line
+    //       email: user.strategies.local.email,
+    //       name: {
+    //         first: user.firstname,
+    //         last: user.lastname
+    //       }
+    //     }, 'user-booking');
+    //
+    //     utilities.sendEmail({
+    //       subject: 'Booking target reached', // Subject line
+    //       email: utilities.emailSender.address
+    //     }, 'admin-booking');
+    //
+    //     notification = {
+    //       channels: [''],
+    //       data: {
+    //         alert: 'Booking target reached for booking reference #' + booking._id
+    //       }
+    //     };
+    //
+    //     kaiseki.sendPushNotification(notification, function(error, result, contents, success) {
+    //       if (success) {
+    //         console.log('Push notification successfully sent:', contents);
+    //       } else {
+    //         console.log('Could not send push notification:', error);
+    //       }
+    //     });
+    //   }
+    // }
 
-    user = yield db.collection('users').findById(booking.userid, {
-      fields: returnFields
-    });
-
-    if(user && user.length > 0) {
-      utilities.sendEmail({
-        subject: 'Booking confirmed', // Subject line
-        email: user.strategies.local.email,
-        name: {
-          first: user.firstname,
-          last: user.lastname
-        }
-      }, 'user-booking');
-
-      utilities.sendEmail({
-        subject: 'Booking target reached', // Subject line
-        email: utilities.emailSender.address
-      }, 'admin-booking');
-
-      notification = {
-        channels: [''],
-        data: {
-          alert: 'Booking target reached for booking reference #' + booking._id
-        }
-      };
-
-      kaiseki.sendPushNotification(notification, function(error, result, contents, success) {
-        if (success) {
-          console.log('Push notification successfully sent:', contents);
-        } else {
-          console.log('Could not send push notification:', error);
-        }
-      });
+    if (!booking) {
+      status = 404;
+    } else {
+      result = booking;
+      status = 200;
     }
-  }
-
-  if (!booking || booking.length < 1) {
-    status = 404;
   } else {
-    result = booking;
-    status = 200;
+    status = 403;
   }
 
   yield next;
@@ -795,21 +896,25 @@ app.put('/bookings/:id', function* (next) {
 
 // Routes: Payments
 app.del('/payments/:id', function* (next) {
-  payment = yield db.collection('payments').remove({
-    _id: this.params.id
-  });
+  if(userHasPrivilege()) {
+    payment = yield db.collection('payments').remove({
+      _id: this.params.id
+    });
 
-  if (!payment || payment.length < 1) {
-    status = 404;
+    if (payment) {
+      status = 404;
+    } else {
+      result = payment;
+      status = 204;
+    }
   } else {
-    result = payment;
-    status = 200;
+    status = 403;
   }
 
   yield next;
 });
 
-app.get('/payments', function* (next) {
+app.get('/payments', isAuthenticated, function* (next) {
   if (typeof this.query.processor !== 'undefined') {
     searchParameters.processor = this.query.processor;
   } else if (typeof this.query.token !== 'undefined') {
@@ -826,28 +931,46 @@ app.get('/payments', function* (next) {
     }
   }
 
-  payments = (searchParameters !== null) ? yield db.collection('payments').find(searchParameters, {
-    limit: limit
-  }) : null;
+  if(userHasPrivilege()) {
+    payments = (searchParameters !== null) ? yield db.collection('payments').find(searchParameters, {
+      limit: limit
+    }) : null;
 
-  if (!payments || payments.length < 1) {
-    status = 404;
+    if (!payments) {
+      status = 404;
+    } else {
+      result = payments;
+      status = 200;
+    }
   } else {
-    result = payments;
-    status = 200;
+    status = 403;
   }
 
   yield next;
 });
 
-app.get('/payments/:id', function* (next) {
-  payment = yield db.collection('payments').findById(this.params.id);
+app.get('/payments/:id', isAuthenticated, function* (next) {
+  payment = yield db.collection('payments').findOne({
+    _id: this.params.id
+  });
 
-  if (!payment || payment.length < 1) {
+  if (!payment) {
     status = 404;
   } else {
-    result = payment;
-    status = 200;
+    booking = yield db.collection('booking').findOne({
+      _id: payment.bookingid
+    });
+
+    if (!booking) {
+      status = 422;
+    } else {
+      if(userHasPrivilege(booking.userid)) {
+        result = payment;
+        status = 200;
+      } else {
+        status = 403;
+      }
+    }
   }
 
   yield next;
@@ -861,37 +984,43 @@ app.post('/payments', function* (next) {
   } else {
     booking = yield db.collection('bookings').findById(document.bookingid, {});
 
-    if (!booking || booking.length < 1) {
+    if (!booking) {
       status = 404;
     } else {
       status = 201;
 
       user = yield db.collection('users').findById(booking.userid, {});
-      if (!user || user.length < 1) {
+
+      if (!user) {
         status = 404;
       } else {
-        chargeInfo = {
-          amount: document.amount,
-          currency: document.currency,
-          customer: user.stripeid,
-          card: user.stripetoken,
-          metadata: {
-            bookingid: document.bookingid
-          },
-          capture: 'true',
-          description: document.description
-        };
+        if(userHasPrivilege(user._id)) {
+          chargeInfo = {
+            amount: document.amount,
+            currency: document.currency,
+            customer: user.stripeid,
+            card: user.stripetoken,
+            metadata: {
+              bookingid: document.bookingid
+            },
+            capture: 'true',
+            description: document.description
+          };
 
-        charge = yield createChargeBoundThunk(chargeInfo);
+          charge = yield createChargeBoundThunk(chargeInfo);
 
-        payment = yield db.collection('payments').insert(charge);
+          payment = yield db.collection('payments').insert(charge);
 
-        if (!payment || payment.length < 1) {
-          status = 404;
+          if (!payment) {
+            status = 404;
+          } else {
+            result = payment;
+            status = 201;
+          }
         } else {
-          result = payment;
-          status = 201;
+          status = 403;
         }
+
       }
     }
   }
@@ -900,16 +1029,20 @@ app.post('/payments', function* (next) {
 });
 
 // Routes: Shows
-app.del('/shows/:id', function* (next) {
-  show = yield db.collection('shows').remove({
-    _id: this.params.id
-  });
+app.del('/shows/:id', isAuthenticated, function* (next) {
+  if(userHasPrivilege()) {
+    show = yield db.collection('shows').remove({
+      _id: this.params.id
+    });
 
-  if (!show || show.length < 1) {
-    status = 404;
+    if (!show) {
+      status = 404;
+    } else {
+      result = show;
+      status = 204;
+    }
   } else {
-    result = show;
-    status = 200;
+    status = 403;
   }
 
   yield next;
@@ -917,7 +1050,9 @@ app.del('/shows/:id', function* (next) {
 
 app.get('/shows', function* (next) {
   if (typeof this.query.name !== 'undefined') {
-    searchParameters.name = this.query.name;
+    if (typeof this.query.lang !== 'undefined') {
+      searchParameters.name[this.query.lang] = this.query.name;
+    }
   } else if (typeof this.query.theatre !== 'undefined') {
     searchParameters.theatre = this.query.theatre;
   } else if (typeof this.query !== 'undefined') {
@@ -936,7 +1071,7 @@ app.get('/shows', function* (next) {
     limit: limit
   }) : null;
 
-  if (!shows || shows.length < 1) {
+  if (!shows) {
     status = 404;
   } else {
     if (typeof this.query.lang !== 'undefined') {
@@ -960,7 +1095,7 @@ app.get('/shows', function* (next) {
 app.get('/shows/:id', function* (next) {
   show = yield db.collection('shows').findById(this.params.id);
 
-  if (!show || show.length < 1) {
+  if (!show) {
     status = 404;
   } else {
     if (typeof this.query.lang !== 'undefined') {
@@ -981,20 +1116,24 @@ app.get('/shows/:id', function* (next) {
   yield next;
 });
 
-app.post('/shows', function* (next) {
-  show = yield db.collection('shows').insert(document);
+app.post('/shows', isAuthenticated, function* (next) {
+  if(userHasPrivilege()) {
+    show = yield db.collection('shows').insert(document);
 
-  if (!show || show.length < 1) {
-    status = 404;
+    if (!show) {
+      status = 404;
+    } else {
+      result = show;
+      status = 201;
+    }
   } else {
-    result = show;
-    status = 201;
+    status = 403;
   }
 
   yield next;
 });
 
-app.put('/shows/:id', function* (next) {
+app.put('/shows/:id', isAuthenticated, function* (next) {
   if (this.query.replace === 'true') {
     updateFields = document;
   } else {
@@ -1003,15 +1142,19 @@ app.put('/shows/:id', function* (next) {
     };
   }
 
-  show = yield db.collection('shows').findAndModify({
-    _id: this.params.id
-  }, updateFields);
+  if(userHasPrivilege()) {
+    show = yield db.collection('shows').findAndModify({
+      _id: this.params.id
+    }, updateFields);
 
-  if (!show || show.length < 1) {
-    status = 404;
+    if (!show) {
+      status = 404;
+    } else {
+      result = show;
+      status = 200;
+    }
   } else {
-    result = show;
-    status = 200;
+    status = 403;
   }
 
   yield next;
@@ -1031,15 +1174,19 @@ app.post('/shows/:id/reviews', function* (next) {
   //   };
   // }
 
-  show = yield db.collection('shows').findAndModify({
-    _id: this.params.id
-  }, updateFields);
+  if(userHasPrivilege()) {
+    show = yield db.collection('shows').findAndModify({
+      _id: this.params.id
+    }, updateFields);
 
-  if (!show || show.length < 1) {
-    status = 404;
+    if (!show) {
+      status = 404;
+    } else {
+      result = show;
+      status = 201;
+    }
   } else {
-    result = show;
-    status = 201;
+    status = 403;
   }
 
   yield next;
@@ -1058,15 +1205,19 @@ app.put('/shows/:id/reviews', function* () {
     };
   }
 
-  show = yield db.collection('shows').findAndModify({
-    _id: this.params.id
-  }, updateFields);
+  if(userHasPrivilege()) {
+    show = yield db.collection('shows').findAndModify({
+      _id: this.params.id
+    }, updateFields);
 
-  if (!show || show.length < 1) {
-    status = 404;
+    if (!show) {
+      status = 404;
+    } else {
+      result = show;
+      status = 200;
+    }
   } else {
-    result = show;
-    status = 200;
+    status = 403;
   }
 
   yield next;
@@ -1080,10 +1231,29 @@ app.get(/^([^.]+)$/, function* (next) {
 }); //matches everything without an extension
 
 app.use(function *(next) {
-  body.error = errorMessage;
-  body.originalUrl = this.request.originalUrl;
-  body.result = result;
   body.status = status; // use HTTP status code
+  if(!errorMessage) {
+    switch(body.status) {
+      case 400:
+        errorMessage = messages.badRequest;
+      break;
+      case 401:
+        errorMessage = messages.unauthorised;
+      break;
+      case 403:
+        errorMessage = messages.forbidden;
+      break;
+      case 404:
+        errorMessage = messages.resourceNotFound;
+      break;
+      case 422:
+        errorMessage = messages.unprocessableEntity;
+      break;
+    }
+  }
+
+  body.error = errorMessage;
+  body.result = result;
 
   this.body = body;
   this.status = status;
