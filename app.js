@@ -66,6 +66,7 @@ var portEnd = null;
 var argv = require('yargs').argv;
 var cluster = require('cluster');
 // var database = require(__dirname + '/applications/database');
+var debug = require('debug');
 // var http = require('http');
 var koa = require('koa');
 var logger = require('koa-logger');
@@ -83,6 +84,8 @@ var application = null;
 
 // wrap subsequent middleware in a logger
 // app.use(logger()); // very verbose
+
+debug('booting');
 
 // use logger
 app.use(function *(next) {

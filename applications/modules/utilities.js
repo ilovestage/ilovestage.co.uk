@@ -79,7 +79,7 @@ var utilities = {
           console.log(error);
         } else {
           var mailOptions = {
-            from: emailSender.name + ' <' + emailSender.address + '>', // sender address
+            from: utilities.emailSender.name + ' <' + utilities.emailSender.address + '>', // sender address
             to: {
               name: locals.name.first,
               address: locals.email
@@ -89,7 +89,7 @@ var utilities = {
             html: html // html body
           };
 
-          transporter.sendMail(mailOptions, function (error, info) {
+          utilities.transporter.sendMail(mailOptions, function (error, info) {
             var response = {};
 
             if (error) {

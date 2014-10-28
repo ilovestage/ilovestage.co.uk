@@ -285,7 +285,32 @@ app.get('/events', function* (next) {
   _(events).forEach(function (doc) {
 		co(function *() {
       doc.bookings = yield db.collection('bookings').count({
-        eventid: doc._id
+        eventid: doc._id.toString()
+      });
+
+      // bookings = yield db.collection('bookings').col.aggregate([
+      db.collection('bookings').col.aggregate([
+        {
+          $match: {
+            eventid: doc._id.toString()
+          }
+        },
+        {
+          $group: {
+            // _id: null,
+            _id: '$eventid',
+            total: {
+              $sum: '$tickets'
+            }
+          }
+        }
+      ],
+      function (err, result) {
+        if(result && result[0] && result[0].total) {
+          doc.ticketsBooked = result[0].total;
+        } else {
+          doc.ticketsBooked = 0;
+        }
       });
 		})(next);
   });
@@ -807,7 +832,7 @@ app.get('/bookings/:id', isAuthenticated, function* (next) {
   yield next;
 });
 
-app.post('/bookings', function* (next) {
+app.post('/bookings', isAuthenticated, function* (next) {
   returnFields = {
     _id: 1,
     firstname: 1,
@@ -816,14 +841,14 @@ app.post('/bookings', function* (next) {
   };
 
   if(userHasPrivilege(document.userid)) {
-    // user = yield db.collection('users').findById(document.userid, {
-    //   fields: returnFields
-    // });
-    //
-    // if(!user) {
-    //   errorMessage = 'User referenced by booking could not be found.';
-    //   status = 409;
-    // }
+    user = yield db.collection('users').findById(document.userid, {
+      fields: returnFields
+    });
+
+    if(!user) {
+      errorMessage = 'User referenced by booking could not be found.';
+      status = 409;
+    }
 
     booking = yield db.collection('bookings').insert(this.request.body);
 

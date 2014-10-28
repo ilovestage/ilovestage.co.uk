@@ -40,6 +40,7 @@
     "co-body": "^1.0.0",
     "co-monk": "^1.0.0",
     "co-views": "^0.2.0",
+    "debug": "^2.1.0",
     "dot-object": "^0.3.0",
     "ejs": "^1.0.0",
     "email-templates": "^1.1.2",
@@ -118,7 +119,7 @@
       "source": "source"
     },
     "database": {
-      "key": "andthestageloveme123"
+      "key": "Curtainca11"
     },
     "http": {
       "auth": {
