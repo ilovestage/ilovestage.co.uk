@@ -48,6 +48,7 @@ var notification;
 var orParameters;
 var result;
 var searchParameters;
+var sortParameters;
 var status;
 
 var booking;
@@ -81,6 +82,7 @@ messages.requiresAdminPrivilege = 'Operation requires administrator-level privil
 messages.requiresAgentPrivilege = 'Operation requires agent-level privileges.';
 messages.resourceNotFound = 'Resource not found.';
 // messages.resourceNotAuthorised = 'Operation requires authorisation.';
+messages.specifyContentType = 'Unsupported media type';
 messages.unauthorised = 'Authorisation required.';
 messages.unprocessableEntity = 'The request was well-formed but was unable to be followed due to semantic errors.';
 
@@ -105,6 +107,7 @@ app.use(function *(next) {
   orParameters = [];
   result = null;
   searchParameters = {};
+  sortParameters = {};
   status = null;
 
   booking = null;
@@ -138,6 +141,23 @@ app.use(function *(next) {
   }
 
   body.originalUrl = this.request.originalUrl;
+
+  if((typeof this.request.header['content-type'] === 'undefined') && (this.query.format !== 'json')) {
+    errorMessage = messages.specifyContentType;
+    status = 415;
+
+    body.status = status; // use HTTP status code
+    body.error = errorMessage;
+    body.result = result;
+
+    this.body = body;
+    this.status = status;
+    this.type = 'application/json';
+
+    this.set('WWW-Authenticate', 'Basic');
+
+    return false;
+  }
 
   try {
     yield next;
@@ -297,7 +317,9 @@ app.del('/events/:id', isAuthenticated, function* (next) {
 });
 
 app.get('/events/:id', function* (next) {
-  event = yield db.collection('events').findById(this.params.id);
+  event = yield db.collection('events').findOne({
+    _id: this.params.id
+  });
 
   if (!event) {
     status = 404;
@@ -316,7 +338,9 @@ app.get('/events/:id', function* (next) {
         'images': 1
       };
 
-      show = yield db.collection('shows').findById(event.showid, {
+      show = yield db.collection('shows').findOne({
+        _id: event.showid
+      }, {
         fields: returnFields
       });
 
@@ -714,6 +738,12 @@ app.get('/bookings', isAuthenticated, function* (next) {
     searchParameters.status = this.query.status;
   }
 
+  if (typeof this.query.sort !== 'undefined') {
+    // searchParameters.bookings = this.query.bookings;
+    sortParameters[this.query.sort] = (this.query.order !== 'ascending') ? -1 : 1;
+    console.log(this.query.sort, this.query.order, sortParameters);
+  }
+
   if (this.query.limit && (typeof parseInt(this.query.limit) === 'number')) {
     limit = parseInt(this.query.limit);
 
@@ -723,6 +753,7 @@ app.get('/bookings', isAuthenticated, function* (next) {
   }
 
   bookings = yield db.collection('bookings').find(searchParameters, {
+    sort: sortParameters,
     limit: limit
   });
 
@@ -741,7 +772,9 @@ app.get('/bookings', isAuthenticated, function* (next) {
 });
 
 app.get('/bookings/:id', isAuthenticated, function* (next) {
-  booking = yield db.collection('bookings').findById(this.params.id);
+  booking = yield db.collection('bookings').findOne({
+    _id: this.params.id
+  });
 
   if(booking) {
     if(userHasPrivilege(booking.userid)) {
@@ -1245,6 +1278,9 @@ app.use(function *(next) {
       break;
       case 404:
         errorMessage = messages.resourceNotFound;
+      break;
+      case 415:
+        errorMessage = messages.specifyContentType;
       break;
       case 422:
         errorMessage = messages.unprocessableEntity;
