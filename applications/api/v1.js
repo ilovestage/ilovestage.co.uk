@@ -288,7 +288,6 @@ app.get('/events', function* (next) {
         eventid: doc._id.toString()
       });
 
-      // bookings = yield db.collection('bookings').col.aggregate([
       db.collection('bookings').col.aggregate([
         {
           $match: {
@@ -297,7 +296,6 @@ app.get('/events', function* (next) {
         },
         {
           $group: {
-            // _id: null,
             _id: '$eventid',
             total: {
               $sum: '$tickets'
@@ -382,6 +380,10 @@ app.get('/events/:id', function* (next) {
 app.post('/events', isAuthenticated, function* (next) {
   document.starttime = new Date(document.starttime);
   document.endtime = new Date(document.endtime);
+
+  if(!document.status) {
+    document.status = 'pending';
+  }
 
   if(userHasPrivilege()) {
     events = yield db.collection('events').insert(document);
