@@ -1,7 +1,9 @@
+'use strict';
+
 var packageJson = require(__dirname + '/../package.json');
 var config = packageJson.config.environment[process.env.NODE_ENV || 'development'];
 
-var co = require('co');
+// var co = require('co');
 var wrap = require('co-monk');
 var monk = require('monk');
 
@@ -11,7 +13,7 @@ var application = function(configuration) {
   var database;
 
   // private constructor
-  var __construct = function(configuration) {
+  var __construct = (function(configuration) {
     // console.log('Object Created.');
     var connectionString = '';
 
@@ -41,7 +43,7 @@ var application = function(configuration) {
 
     database = monk(connectionString);
     // console.log('database', database);
-  }();
+  })();
 
   this.collection = function(collection) {
     return wrap(database.get(collection));

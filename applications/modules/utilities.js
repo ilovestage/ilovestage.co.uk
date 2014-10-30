@@ -2,9 +2,9 @@
 
 var packageJson = require(__dirname + '/../../package.json');
 var environment = process.env.NODE_ENV ? process.env.NODE_ENV : 'development';
-var config = packageJson.config.environment[environment];
 
 var _ = require('lodash');
+var crypto = require('crypto');
 var emailTemplates = require('email-templates');
 var mcapi = require('mailchimp-api/mailchimp');
 var moment = require('moment');
@@ -34,8 +34,22 @@ var utilities = {
 
   validateObjectId: function(id) {
     var bool = false;
-    if(id.length === 24) bool = /[a-f]+/.test(id);
+    if(id.length === 24) {
+      bool = /[a-f]+/.test(id);
+    }
     return bool;
+  },
+
+  getEncryptedUid: function(uid) {
+    var hash = crypto.createHmac('sha512', packageJson.config.salts.uid);
+    hash.update(uid.toString());
+    return hash.digest('hex');
+  },
+
+  getEncryptedPassword: function(password) {
+    var hash = crypto.createHmac('sha512', packageJson.config.salts.password);
+    hash.update(password.toString());
+    return hash.digest('hex');
   },
 
   addUserToMailingList: function(locals) {
@@ -177,11 +191,11 @@ var utilities = {
     // console.log('qs', qs.parse(this.querystring));
     var currentDate = new Date();
     var dateParameters = {};
-    var searchParameters = {};
+    var searchFields = {};
     var status = null;
 
     if (nestedQuery.start || nestedQuery.end) {
-      searchParameters.starttime = {};
+      searchFields.starttime = {};
 
       if (nestedQuery.start) {
         var dateStart = null;
@@ -208,7 +222,7 @@ var utilities = {
         // console.log('dateStart', dateStart);
 
         if (!isNaN(dateStart.getTime())) {
-          searchParameters.starttime.$gte = dateStart;
+          searchFields.starttime.$gte = dateStart;
         } else {
           status = 400;
         }
@@ -240,7 +254,7 @@ var utilities = {
         // console.log('dateEnd', dateEnd);
 
         if (!isNaN(dateEnd.getTime())) {
-          searchParameters.starttime.$lt = dateEnd;
+          searchFields.starttime.$lt = dateEnd;
         } else {
           status = 400;
         }
@@ -248,27 +262,27 @@ var utilities = {
       }
     } else if (nestedQuery.range && nestedQuery.units && nestedQuery.timeframe) {
       // console.log('in ranged query');
-      searchParameters.starttime = {};
+      searchFields.starttime = {};
 
       if(nestedQuery.timeframe === 'past') {
         var rangeStart = moment(currentDate).subtract(nestedQuery.range, nestedQuery.units).toDate(); // e.g. (3, 'months') gives "3 months before currentDate"
 
-        searchParameters.starttime.$gte = rangeStart;
-        searchParameters.starttime.$lt = currentDate;
+        searchFields.starttime.$gte = rangeStart;
+        searchFields.starttime.$lt = currentDate;
       } else if(nestedQuery.timeframe === 'future') {
         var rangeEnd = moment(currentDate).add(nestedQuery.range, nestedQuery.units).toDate(); // e.g. (3, 'months') gives "3 months after currentDate"
 
-        searchParameters.starttime.$gte = currentDate;
-        searchParameters.starttime.$lt = rangeEnd;
+        searchFields.starttime.$gte = currentDate;
+        searchFields.starttime.$lt = rangeEnd;
       }
 
-      // console.log('searchParameters', searchParameters);
+      // console.log('searchFields', searchFields);
     }
 
     return {
       status: status,
       dateParameters: dateParameters,
-      searchParameters: searchParameters
+      searchFields: searchFields
     };
 
   }

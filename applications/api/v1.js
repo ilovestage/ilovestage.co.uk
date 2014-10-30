@@ -7,10 +7,9 @@ var _ = require('lodash');
 var auth = require('koa-basic-auth');
 var bodyParser = require('koa-bodyparser');
 var bson = require('bson');
-var crypto = require('crypto');
 var co = require('co');
 var DJ = require('dot-object');
-var Kaiseki = require('kaiseki');
+// var Kaiseki = require('kaiseki');
 var koa = require('koa');
 var qs = require('koa-qs');
 var router = require('koa-router');
@@ -23,7 +22,7 @@ var utilities = require(__dirname + '/../modules/utilities');
 
 var db = new database(packageJson.config.environment[environment].server.database);
 var dj = new DJ();
-var kaiseki = new Kaiseki(packageJson.config.api.parse.appid, packageJson.config.api.parse.key);
+// var kaiseki = new Kaiseki(packageJson.config.api.parse.appid, packageJson.config.api.parse.key);
 
 var createCardThunk = thunkify(stripe.customers.create);
 var createCardBoundThunk = createCardThunk.bind(stripe.customers);
@@ -33,11 +32,7 @@ var createChargeBoundThunk = createChargeThunk.bind(stripe.charges);
 
 var objectid = bson.BSONPure.ObjectID;
 
-var key = packageJson.config.database.key;
-
 var httpBasicAuthCredentials = packageJson.config.http.auth;
-
-var currentUser;
 
 var body;
 var document;
@@ -47,7 +42,7 @@ var limit;
 var notification;
 var orParameters;
 var result;
-var searchParameters;
+var searchFields;
 var sortParameters;
 var status;
 
@@ -70,6 +65,8 @@ var card;
 var charge;
 var chargeInfo;
 var password;
+
+var currentUser;
 
 var messages = {};
 
@@ -96,8 +93,6 @@ app.use(bodyParser());
 app.use(session());
 
 app.use(function *(next) {
-  currentUser = null;
-
   body = {};
   document = {};
   errorMessage = null;
@@ -106,7 +101,7 @@ app.use(function *(next) {
   notification = {};
   orParameters = [];
   result = null;
-  searchParameters = {};
+  searchFields = {};
   sortParameters = {};
   status = null;
 
@@ -130,7 +125,7 @@ app.use(function *(next) {
   chargeInfo = null;
   password = null;
 
-  searchParameters = utilities.handleDateQuery(this.query).searchParameters;
+  searchFields = utilities.handleDateQuery(this.query).searchFields;
   status = utilities.handleDateQuery(this.query).status;
 
   document = this.request.body;
@@ -157,6 +152,23 @@ app.use(function *(next) {
     this.set('WWW-Authenticate', 'Basic');
 
     return false;
+  }
+
+  // if(objectid.isValid(this.request.header.uid)) {
+  if(this.request.header.uid) {
+    returnFields = {
+      _id: 1,
+      uid: 1,
+      type: 1
+    };
+
+    currentUser = yield db.collection('users').findOne({
+      uid: this.request.header.uid.toString()
+    }, {
+      fields: returnFields
+    });
+
+    console.log('currentUser', currentUser);
   }
 
   try {
@@ -189,34 +201,40 @@ app.use(auth(httpBasicAuthCredentials));
 function userHasPrivilege(uid) {
   if(typeof uid === 'undefined') {
     uid = null;
+  } else {
+    uid = uid.toString();
   }
 
-  if((uid && objectid.isValid(uid) && (uid.toString() === currentUser._id.toString())) || (currentUser && currentUser.hasOwnProperty('type') && (currentUser.type === 'admin'))) {
+  uid = utilities.getEncryptedUid(uid); // to be sent encrypted
+
+  // console.log('currentUser._id', currentUser._id.toString());
+
+  // console.log('objectid.isValid(uid.toString())', objectid.isValid(uid.toString()));
+  // console.log('(uid.toString() === currentUser._id.toString())', (uid.toString() === currentUser._id.toString()));
+
+  // console.log('uid', uid);
+  // console.log('currentUser.uid', currentUser.uid);
+
+  if((uid && currentUser && (uid === currentUser.uid)) || (currentUser && currentUser.hasOwnProperty('type') && (currentUser.type === 'admin'))) {
+  // if((uid && objectid.isValid(uid.toString()) && (uid.toString() === currentUser.uid)) || (currentUser && currentUser.hasOwnProperty('type') && (currentUser.type === 'admin'))) {
+    // console.log('userHasPrivilege true');
     return true;
   } else {
+    // console.log('userHasPrivilege false');
+    status = 403;
     return false;
   }
 }
 
 function *isAuthenticated(next) {
-  returnFields = {
-    _id: 1,
-    type: 1
-  };
-
-  if(objectid.isValid(this.request.header.uid)) {
-    user = yield db.collection('users').findById(this.request.header.uid.toString(), {
-      fields: returnFields
-    });
-
-    if (!user) {
+  // if(objectid.isValid(this.request.header.uid)) {
+  if(this.request.header.uid) {
+    if (currentUser) {
+      status = 200;
+      yield next;
+    } else {
       errorMessage = messages.noUserForUid;
       status = 401;
-    } else {
-      currentUser = user;
-      status = 200;
-
-      yield next;
     }
   } else {
     if(!this.request.header.uid) {
@@ -268,17 +286,17 @@ app.get('/events', function* (next) {
     if (!show) {
       status = 404;
     } else {
-      searchParameters.showid = show._id.toString();
+      searchFields.showid = show._id.toString();
     }
   } else if (typeof this.query.showid !== 'undefined') {
-    searchParameters.showid = this.query.showid;
+    searchFields.showid = this.query.showid;
   }
 
   if (typeof this.query.eventid !== 'undefined') {
-    searchParameters.eventid = this.query.eventid;
+    searchFields.eventid = this.query.eventid;
   }
 
-  events = yield db.collection('events').find(searchParameters, {
+  events = yield db.collection('events').find(searchFields, {
     limit: limit
   });
 
@@ -385,7 +403,7 @@ app.post('/events', isAuthenticated, function* (next) {
     document.status = 'pending';
   }
 
-  if(userHasPrivilege()) {
+  if(userHasPrivilege('admin')) {
     events = yield db.collection('events').insert(document);
 
     if (!events) {
@@ -410,7 +428,7 @@ app.put('/events/:id', isAuthenticated, function* (next) {
     };
   }
 
-  if(userHasPrivilege()) {
+  if(userHasPrivilege('admin')) {
     event = yield db.collection('events').findAndModify({
       _id: this.params.id
     }, updateFields);
@@ -449,9 +467,10 @@ app.del('/users/:id', isAuthenticated, function* (next) {
   yield next;
 });
 
-app.get('/users', isAuthenticated, function* (next) {
+app.get('/users', function* (next) {
   returnFields = {
     _id: 1,
+    uid: 1, // omit for security reasons
     firstname: 1,
     lastname: 1,
     'strategies.local.email': 1,
@@ -461,7 +480,7 @@ app.get('/users', isAuthenticated, function* (next) {
   };
 
   if (this.query.view === 'detailed') {
-    if(userHasPrivilege()) {
+    if(userHasPrivilege('admin')) {
       returnFields = {};
     } else {
       status = 403;
@@ -477,11 +496,11 @@ app.get('/users', isAuthenticated, function* (next) {
   }
 
   if ((typeof this.query.provider !== 'undefined') && (typeof this.query.uid !== 'undefined')) {
-    searchParameters['strategies.' + this.query.provider + '.uid'] = this.query.uid;
+    searchFields['strategies.' + this.query.provider + '.uid'] = this.query.uid;
 
     returnFields['strategies.' + this.query.provider + '.token'] = 1;
 
-    user = yield db.collection('users').findOne(searchParameters, {
+    user = yield db.collection('users').findOne(searchFields, {
       fields: returnFields
     });
 
@@ -512,11 +531,11 @@ app.get('/users', isAuthenticated, function* (next) {
       result = user;
     }
   } else if ((typeof this.query.email !== 'undefined') && (typeof this.query.password !== 'undefined')) {
-    searchParameters['strategies.local.email'] = this.query.email;
+    searchFields['strategies.local.email'] = this.query.email;
 
     returnFields['strategies.local.password'] = 1;
 
-    user = yield db.collection('users').findOne(searchParameters, {
+    user = yield db.collection('users').findOne(searchFields, {
       fields: returnFields
     });
 
@@ -525,9 +544,7 @@ app.get('/users', isAuthenticated, function* (next) {
       status = 404;
     } else {
       if ((typeof user.strategies !== 'undefined') && (typeof user.strategies.local !== 'undefined') && (typeof user.strategies.local.password !== 'undefined')) {
-        hash = crypto.createHmac('sha512', packageJson.config.database.key);
-        hash.update(this.query.password);
-        password = hash.digest('hex');
+        password = utilities.getEncryptedPassword(this.query.password);
 
         if (password === user.strategies.local.password) {
           status = 200;
@@ -551,17 +568,19 @@ app.get('/users', isAuthenticated, function* (next) {
       result = user;
     }
   } else {
-    users = yield db.collection('users').find(searchParameters, {
-      fields: returnFields,
-      limit: limit
-    });
+    if(userHasPrivilege('admin') || this.query.override === 'true') {
+      users = yield db.collection('users').find(searchFields, {
+        fields: returnFields,
+        limit: limit
+      });
 
-    if (!users) {
-      errorMessage = messages.resourceNotFound;
-      status = 404;
-    } else {
-      result = users;
-      status = 200;
+      if (!users) {
+        errorMessage = messages.resourceNotFound;
+        status = 404;
+      } else {
+        result = users;
+        status = 200;
+      }
     }
   }
 
@@ -569,7 +588,7 @@ app.get('/users', isAuthenticated, function* (next) {
 });
 
 app.get('/users/:id', isAuthenticated, function* (next) {
-  searchParameters._id = this.params.id;
+  searchFields._id = this.params.id;
 
   returnFields = {
     _id: 1,
@@ -579,14 +598,14 @@ app.get('/users/:id', isAuthenticated, function* (next) {
   };
 
   if (this.query.view === 'detailed') {
-    if(userHasPrivilege()) {
+    if(userHasPrivilege('admin')) {
       returnFields = {};
     } else {
       status = 403;
     }
   }
 
-  user = yield db.collection('users').find(searchParameters, {
+  user = yield db.collection('users').findOne(searchFields, {
     fields: returnFields
   });
 
@@ -605,6 +624,12 @@ app.get('/users/:id', isAuthenticated, function* (next) {
 });
 
 app.post('/users', function* (next) {
+  if(!userHasPrivilege('admin') || this.query.override !== 'true') {
+    if(document.type) {
+      document.type = 'standard';
+    }
+  }
+
   if (typeof document.strategies !== 'undefined') {
     if((typeof document.strategies.local !== 'undefined') && (typeof document.strategies.local.email !== 'undefined')) {
       orParameters.push({
@@ -632,25 +657,21 @@ app.post('/users', function* (next) {
   }
 
   if(orParameters.length > 0) {
-    searchParameters.$or = orParameters;
+    searchFields.$or = orParameters;
   }
 
-  // searchParameters['strategies.local.email'] = document.strategies.local.email;
+  user = yield db.collection('users').findOne(searchFields);
 
-  user = yield db.collection('users').find(searchParameters);
-
-  if (user && user.length > 0) {
+  if (user) {
     user = {};
 
     errorMessage = 'A user with those credentials already exists.';
     status = 409;
   } else {
-    hash = crypto.createHmac('sha512', key);
-    hash.update(document.strategies.local.password);
-    document.strategies.local.password = hash.digest('hex');
-
     dj.object(document);
     delete document.format;
+
+    document.strategies.local.password = utilities.getEncryptedPassword(document.strategies.local.password);
 
     user = yield db.collection('users').insert(document);
 
@@ -659,20 +680,25 @@ app.post('/users', function* (next) {
     } else {
       card = yield createCardBoundThunk({
         metadata: {
-          userid: user._id
+          userid: user._id.toString()
         },
         email: user.strategies.local.email
       });
 
       updateFields = {
         $set: {
-          stripeid: card.id
+          uid: utilities.getEncryptedUid(user._id).toString(),
+          stripeid: card.id.toString()
         }
       };
 
       user = yield db.collection('users').findAndModify({
-        _id: user._id
-      }, updateFields);
+        query: {
+          _id: user._id.toString()
+        },
+        update: updateFields,
+        new: true
+      });
 
       if(user && user.stripeid) {
         mailFields = {
@@ -688,7 +714,7 @@ app.post('/users', function* (next) {
         utilities.addUserToMailingList(mailFields);
       }
 
-      if ((typeof user !== 'undefined') && (typeof user.strategies !== 'undefined') && (typeof user.strategies.local !== 'undefined') && (typeof user.strategies.local.password !== 'undefined')) {
+      if (user && user.strategies && user.strategies.local && user.strategies.local.password) {
         delete user.strategies.local.password;
       }
 
@@ -701,6 +727,12 @@ app.post('/users', function* (next) {
 });
 
 app.put('/users/:id', isAuthenticated, function* (next) {
+  if(!userHasPrivilege('admin') || this.query.override !== 'true') {
+    if(document.type) {
+      delete document.type;
+    }
+  }
+
   if (this.query.replace === 'true') {
     updateFields = document;
   } else {
@@ -752,21 +784,21 @@ app.del('/bookings/:id', isAuthenticated, function* (next) {
 });
 
 // app.get('/bookings', auth(httpBasicAuthCredentials), function* (next) {
-app.get('/bookings', isAuthenticated, function* (next) {
+app.get('/bookings', function* (next) {
   if (typeof this.query.userid !== 'undefined') {
-    searchParameters.userid = this.query.userid;
+    searchFields.userid = this.query.userid;
   }
 
   if (typeof this.query.eventid !== 'undefined') {
-    searchParameters.eventid = this.query.eventid;
+    searchFields.eventid = this.query.eventid;
   }
 
   if (typeof this.query.status !== 'undefined') {
-    searchParameters.status = this.query.status;
+    searchFields.status = this.query.status;
   }
 
   if (typeof this.query.sort !== 'undefined') {
-    // searchParameters.bookings = this.query.bookings;
+    // searchFields.bookings = this.query.bookings;
     sortParameters[this.query.sort] = (this.query.order !== 'ascending') ? -1 : 1;
     console.log(this.query.sort, this.query.order, sortParameters);
   }
@@ -779,13 +811,13 @@ app.get('/bookings', isAuthenticated, function* (next) {
     }
   }
 
-  bookings = yield db.collection('bookings').find(searchParameters, {
+  bookings = yield db.collection('bookings').find(searchFields, {
     sort: sortParameters,
     limit: limit
   });
 
   if(bookings) {
-    if(userHasPrivilege()) {
+    if((this.query.userid && userHasPrivilege(this.query.userid)) || userHasPrivilege('admin')) {
       result = bookings;
       status = 200;
     } else {
@@ -834,7 +866,7 @@ app.get('/bookings/:id', isAuthenticated, function* (next) {
   yield next;
 });
 
-app.post('/bookings', isAuthenticated, function* (next) {
+app.post('/bookings', function* (next) {
   returnFields = {
     _id: 1,
     firstname: 1,
@@ -956,7 +988,7 @@ app.put('/bookings/:id', function* (next) {
 
 // Routes: Payments
 app.del('/payments/:id', function* (next) {
-  if(userHasPrivilege()) {
+  if(userHasPrivilege('admin')) {
     payment = yield db.collection('payments').remove({
       _id: this.params.id
     });
@@ -976,9 +1008,9 @@ app.del('/payments/:id', function* (next) {
 
 app.get('/payments', isAuthenticated, function* (next) {
   if (typeof this.query.processor !== 'undefined') {
-    searchParameters.processor = this.query.processor;
+    searchFields.processor = this.query.processor;
   } else if (typeof this.query.token !== 'undefined') {
-    searchParameters.token = this.query.token;
+    searchFields.token = this.query.token;
   } else if (typeof this.query !== 'undefined') {
     status = 400;
   }
@@ -991,8 +1023,8 @@ app.get('/payments', isAuthenticated, function* (next) {
     }
   }
 
-  if(userHasPrivilege()) {
-    payments = (searchParameters !== null) ? yield db.collection('payments').find(searchParameters, {
+  if(userHasPrivilege('admin')) {
+    payments = (searchFields !== null) ? yield db.collection('payments').find(searchFields, {
       limit: limit
     }) : null;
 
@@ -1090,7 +1122,7 @@ app.post('/payments', function* (next) {
 
 // Routes: Shows
 app.del('/shows/:id', isAuthenticated, function* (next) {
-  if(userHasPrivilege()) {
+  if(userHasPrivilege('admin')) {
     show = yield db.collection('shows').remove({
       _id: this.params.id
     });
@@ -1111,10 +1143,10 @@ app.del('/shows/:id', isAuthenticated, function* (next) {
 app.get('/shows', function* (next) {
   if (typeof this.query.name !== 'undefined') {
     if (typeof this.query.lang !== 'undefined') {
-      searchParameters.name[this.query.lang] = this.query.name;
+      searchFields.name[this.query.lang] = this.query.name;
     }
   } else if (typeof this.query.theatre !== 'undefined') {
-    searchParameters.theatre = this.query.theatre;
+    searchFields.theatre = this.query.theatre;
   } else if (typeof this.query !== 'undefined') {
     status = 400;
   }
@@ -1127,7 +1159,7 @@ app.get('/shows', function* (next) {
     }
   }
 
-  shows = (searchParameters !== null) ? yield db.collection('shows').find(searchParameters, {
+  shows = (searchFields !== null) ? yield db.collection('shows').find(searchFields, {
     limit: limit
   }) : null;
 
@@ -1177,7 +1209,7 @@ app.get('/shows/:id', function* (next) {
 });
 
 app.post('/shows', isAuthenticated, function* (next) {
-  if(userHasPrivilege()) {
+  if(userHasPrivilege('admin')) {
     show = yield db.collection('shows').insert(document);
 
     if (!show) {
@@ -1202,7 +1234,7 @@ app.put('/shows/:id', isAuthenticated, function* (next) {
     };
   }
 
-  if(userHasPrivilege()) {
+  if(userHasPrivilege('admin')) {
     show = yield db.collection('shows').findAndModify({
       _id: this.params.id
     }, updateFields);
@@ -1234,7 +1266,7 @@ app.post('/shows/:id/reviews', function* (next) {
   //   };
   // }
 
-  if(userHasPrivilege()) {
+  if(userHasPrivilege('admin')) {
     show = yield db.collection('shows').findAndModify({
       _id: this.params.id
     }, updateFields);
@@ -1265,7 +1297,7 @@ app.put('/shows/:id/reviews', function* () {
     };
   }
 
-  if(userHasPrivilege()) {
+  if(userHasPrivilege('admin')) {
     show = yield db.collection('shows').findAndModify({
       _id: this.params.id
     }, updateFields);

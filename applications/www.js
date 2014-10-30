@@ -1,3 +1,5 @@
+'use strict';
+
 var packageJson = require(__dirname + '/../package.json');
 var config = packageJson.config.environment[process.env.NODE_ENV || 'development'];
 
@@ -5,8 +7,7 @@ require('./modules/auth');
 
 var _ = require('lodash');
 var koa = require('koa');
-var logger = require('koa-logger');
-var mount = require('koa-mount');
+// var mount = require('koa-mount');
 var passport = require('koa-passport');
 var router = require('koa-router');
 var session = require('koa-generic-session');
@@ -32,7 +33,7 @@ app.use(passport.session());
 var securedRouter = new router();
 var publicRouter = new router();
 
-var routeModules = [];
+// var routeModules = [];
 // routeModules.general = require(__dirname + '/routes/general');
 // routeModules.bookings = require(__dirname + '/routes/bookings');
 // routeModules.events = require(__dirname + '/routes/events');

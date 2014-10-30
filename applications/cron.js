@@ -31,7 +31,7 @@ var app = koa();
 var visitor = ua(packageJson.config.applications.cron.googleanalytics.key);
 
 // var result = null;
-var searchParameters = {};
+var searchFields = {};
 var returnFields = {};
 var updateFields = {};
 var insertFields = {};
@@ -53,23 +53,23 @@ app.use(function* (next) {
 
 switch(argv.job) {
   case 'bookings-finalise':
-    searchParameters.bookings = {
+    searchFields.bookings = {
       status: 'pending',
       tickets: {
         $gte: ticketBookingThreshold
       }
     };
 
-    searchParameters.events = {
+    searchFields.events = {
       starttime: {
         $gte: currentDate,
         $lt: rangeStart
       }
     };
 
-    searchParameters.payments = {};
+    searchFields.payments = {};
 
-    searchParameters.users = {};
+    searchFields.users = {};
 
     returnFields.bookings = {
       '_id': 1,
@@ -102,7 +102,7 @@ switch(argv.job) {
     };
 
     co(function *() {
-      var booking = yield bookings.find(searchParameters.bookings, {
+      var booking = yield bookings.find(searchFields.bookings, {
         fields: returnFields.bookings
       });
 
@@ -111,21 +111,21 @@ switch(argv.job) {
       _(booking).forEach(function(doc) {
         co(function *() {
           // console.log('doc', doc);
-          searchParameters.events._id = doc.eventid.toString(); //reset variable;
+          searchFields.events._id = doc.eventid.toString(); //reset variable;
 
-          var event = yield events.findOne(searchParameters.events, {
+          var event = yield events.findOne(searchFields.events, {
             fields: returnFields.events
           });
 
           if (event) {
-            searchParameters.payments.eventid = doc.eventid.toString(); //reset variable;
-            searchParameters.users._id = doc.userid.toString(); //reset variable;
+            searchFields.payments.eventid = doc.eventid.toString(); //reset variable;
+            searchFields.users._id = doc.userid.toString(); //reset variable;
 
-            // var payment = yield payments.findOne(searchParameters.payments, {
+            // var payment = yield payments.findOne(searchFields.payments, {
             //   fields: returnFields.payments
             // });
 
-            var user = yield users.findOne(searchParameters.users, {
+            var user = yield users.findOne(searchFields.users, {
               fields: returnFields.users
             });
 
@@ -166,7 +166,7 @@ switch(argv.job) {
                   var payment = yield payments.insert(insertFields.payments);
                   console.log('payment', payment);
 
-                  var updatedBooking = yield bookings.findAndModify(searchParameters.bookings, updateFields.bookings);
+                  var updatedBooking = yield bookings.findAndModify(searchFields.bookings, updateFields.bookings);
                   console.log('updatedBooking', updatedBooking);
 
                   utilities.sendEmail('user-booking', {
@@ -185,7 +185,7 @@ switch(argv.job) {
                 var payment = yield payments.insert(insertFields.payments);
                 console.log('payment', payment);
 
-                var updatedBooking = yield bookings.findAndModify(searchParameters.bookings, updateFields.bookings);
+                var updatedBooking = yield bookings.findAndModify(searchFields.bookings, updateFields.bookings);
                 console.log('updatedBooking', updatedBooking);
 
                 utilities.sendEmail('admin-booking', {
