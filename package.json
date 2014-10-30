@@ -118,8 +118,9 @@
       "build": "build",
       "source": "source"
     },
-    "database": {
-      "key": "Curtainca11"
+    "salts": {
+      "uid": "Curtainca11",
+      "password": "andthestageloveme123"
     },
     "http": {
       "auth": {
