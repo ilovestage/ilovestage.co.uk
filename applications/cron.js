@@ -13,7 +13,7 @@ var thunkify = require('thunkify');
 var ua = require('universal-analytics');
 
 var database = require(__dirname + '/database');
-var utilities = require(__dirname + '/modules/utilities');
+var utilities = require(__dirname + '/_utilities/utilities');
 
 var db = new database(config.server.database);
 

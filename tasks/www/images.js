@@ -1,22 +1,17 @@
 'use strict';
 
-var browserSync = require('browser-sync');
 var changed = require('gulp-changed');
 var gulp = require('gulp');
 var imagemin = require('gulp-imagemin');
 // var notify = require('gulp-notify');
-var path = require('path');
 // var pngcrush = require('imagemin-pngcrush');
+// var sync = require('browser-sync');
 
-var reload = browserSync.reload;
-
-var directory = {};
-directory.source = path.resolve(__dirname + '/../../source/www');
-directory.destination = path.resolve(__dirname + '/../../build/www');
+var directory = require('../_utilities/directory');
 
 gulp.task('images', function() {
   return gulp.src(directory.source + '/images/**/*.{gif,jpg,png}')
-  .pipe(changed(directory.source))
+  .pipe(changed(directory.destination + '/images'))
   .pipe(
     imagemin({
       progressive: true,
@@ -28,12 +23,13 @@ gulp.task('images', function() {
       ]
     })
   )
-  .pipe(gulp.dest(directory.destination + '/images'))
-  .pipe(
-    reload({
-      stream:true
-    })
-  );
+  .pipe(gulp.dest(directory.destination + '/images'));
+  // .pipe(
+  //   sync.reload({
+  //     stream: true,
+  //     once: true
+  //   })
+  // );
   // .pipe(
   //   notify({
   //     message: 'images task completed on <%= options.date %>',

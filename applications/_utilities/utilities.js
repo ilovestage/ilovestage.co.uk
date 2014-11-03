@@ -1,9 +1,10 @@
 'use strict';
 
 var packageJson = require(__dirname + '/../../package.json');
-var environment = process.env.NODE_ENV ? process.env.NODE_ENV : 'development';
+// var config = packageJson.config.environment[process.env.NODE_ENV || 'development'];
 
 var _ = require('lodash');
+var bson = require('bson');
 var crypto = require('crypto');
 var emailTemplates = require('email-templates');
 var mcapi = require('mailchimp-api/mailchimp');
@@ -12,6 +13,8 @@ var nodemailer = require('nodemailer');
 var path = require('path');
 
 var templatesDir = path.resolve(__dirname, '../..', 'source/emails');
+
+// var objectid = bson.BSONPure.ObjectID;
 
 var mc = new mcapi.Mailchimp(packageJson.config.api.mailchimp.key);
 
@@ -34,9 +37,16 @@ var utilities = {
 
   validateObjectId: function(id) {
     var bool = false;
-    if(id.length === 24) {
-      bool = /[a-f]+/.test(id);
+    // if(id.length === 24) {
+    //   bool = /[a-f]+/.test(id);
+    // }
+    // console.log('obj:', bson.BSONPure.ObjectID);
+    try {
+      bool = bson.BSONPure.ObjectID(id);
+    } catch(error) {
+      console.log('error', error);
     }
+
     return bool;
   },
 

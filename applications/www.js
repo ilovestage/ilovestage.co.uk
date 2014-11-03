@@ -3,7 +3,7 @@
 var packageJson = require(__dirname + '/../package.json');
 var config = packageJson.config.environment[process.env.NODE_ENV || 'development'];
 
-require('./modules/auth');
+require('./_utilities/auth');
 
 var _ = require('lodash');
 var koa = require('koa');

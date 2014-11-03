@@ -6,7 +6,6 @@ var environment = process.env.NODE_ENV ? process.env.NODE_ENV : 'development';
 var _ = require('lodash');
 var auth = require('koa-basic-auth');
 var bodyParser = require('koa-bodyparser');
-var bson = require('bson');
 var co = require('co');
 var DJ = require('dot-object');
 // var Kaiseki = require('kaiseki');
@@ -17,8 +16,10 @@ var session = require('koa-generic-session');
 var stripe = require('stripe')(packageJson.config.environment[environment].api.stripe.key);
 var thunkify = require('thunkify');
 
-var database = require(__dirname + '/../database');
-var utilities = require(__dirname + '/../modules/utilities');
+var database = require(__dirname + '/../_utilities/database');
+var schemas = require(__dirname + '/../_utilities/schemas');
+var utilities = require(__dirname + '/../_utilities/utilities');
+var validator = require(__dirname + '/../_utilities/validator');
 
 var db = new database(packageJson.config.environment[environment].server.database);
 var dj = new DJ();
@@ -29,8 +30,6 @@ var createCardBoundThunk = createCardThunk.bind(stripe.customers);
 
 var createChargeThunk = thunkify(stripe.charges.create);
 var createChargeBoundThunk = createChargeThunk.bind(stripe.charges);
-
-var objectid = bson.BSONPure.ObjectID;
 
 var httpBasicAuthCredentials = packageJson.config.http.auth;
 
@@ -630,97 +629,102 @@ app.post('/users', function* (next) {
     }
   }
 
-  if (typeof document.strategies !== 'undefined') {
-    if((typeof document.strategies.local !== 'undefined') && (typeof document.strategies.local.email !== 'undefined')) {
-      orParameters.push({
-        'strategies.local.email': document.strategies.local.email
-      });
+  if(validator.validate(document, schemas.user, false, true)) {
+    if (typeof document.strategies !== 'undefined') {
+      if((typeof document.strategies.local !== 'undefined') && (typeof document.strategies.local.email !== 'undefined')) {
+        orParameters.push({
+          'strategies.local.email': document.strategies.local.email
+        });
+      }
+
+      if((typeof document.strategies.oauth2 !== 'undefined') && (typeof document.strategies.oauth2.uid !== 'undefined')) {
+        orParameters.push({
+          'strategies.oauth2.uid': document.strategies.oauth2.uid
+        });
+      }
+
+      if((typeof document.strategies.facebook !== 'undefined') && (typeof document.strategies.facebook.uid !== 'undefined')) {
+        orParameters.push({
+          'strategies.facebook.uid': document.strategies.facebook.uid
+        });
+      }
+
+      if((typeof document.strategies.twitter !== 'undefined') && (typeof document.strategies.twitter.uid !== 'undefined')) {
+        orParameters.push({
+          'strategies.twitter.uid': document.strategies.twitter.uid
+        });
+      }
     }
 
-    if((typeof document.strategies.oauth2 !== 'undefined') && (typeof document.strategies.oauth2.uid !== 'undefined')) {
-      orParameters.push({
-        'strategies.oauth2.uid': document.strategies.oauth2.uid
-      });
+    if(orParameters.length > 0) {
+      searchFields.$or = orParameters;
     }
 
-    if((typeof document.strategies.facebook !== 'undefined') && (typeof document.strategies.facebook.uid !== 'undefined')) {
-      orParameters.push({
-        'strategies.facebook.uid': document.strategies.facebook.uid
-      });
-    }
+    user = yield db.collection('users').findOne(searchFields);
 
-    if((typeof document.strategies.twitter !== 'undefined') && (typeof document.strategies.twitter.uid !== 'undefined')) {
-      orParameters.push({
-        'strategies.twitter.uid': document.strategies.twitter.uid
-      });
-    }
-  }
+    if (user) {
+      user = {};
 
-  if(orParameters.length > 0) {
-    searchFields.$or = orParameters;
-  }
-
-  user = yield db.collection('users').findOne(searchFields);
-
-  if (user) {
-    user = {};
-
-    errorMessage = 'A user with those credentials already exists.';
-    status = 409;
-  } else {
-    dj.object(document);
-    delete document.format;
-
-    document.strategies.local.password = utilities.getEncryptedPassword(document.strategies.local.password);
-
-    user = yield db.collection('users').insert(document);
-
-    if (!user) {
-      status = 404;
+      errorMessage = 'A user with those credentials already exists.';
+      status = 409;
     } else {
-      card = yield createCardBoundThunk({
-        metadata: {
-          userid: user._id.toString()
-        },
-        email: user.strategies.local.email
-      });
+      dj.object(document);
+      delete document.format;
 
-      updateFields = {
-        $set: {
-          uid: utilities.getEncryptedUid(user._id).toString(),
-          stripeid: card.id.toString()
-        }
-      };
+      document.strategies.local.password = utilities.getEncryptedPassword(document.strategies.local.password);
 
-      user = yield db.collection('users').findAndModify({
-        query: {
-          _id: user._id.toString()
-        },
-        update: updateFields,
-        new: true
-      });
+      user = yield db.collection('users').insert(document);
 
-      if(user && user.stripeid) {
-        mailFields = {
-          subject: 'Welcome to I Love Stage', // Subject line
-          email: user.strategies.local.email,
-          name: {
-            first: user.firstname,
-            last: user.lastname
+      if (!user) {
+        status = 404;
+      } else {
+        card = yield createCardBoundThunk({
+          metadata: {
+            userid: user._id.toString()
+          },
+          email: user.strategies.local.email
+        });
+
+        updateFields = {
+          $set: {
+            uid: utilities.getEncryptedUid(user._id).toString(),
+            stripeid: card.id.toString()
           }
         };
 
-        // utilities.sendEmail(mailFields, 'user-signup');
-        utilities.addUserToMailingList(mailFields);
-      }
+        user = yield db.collection('users').findAndModify({
+          query: {
+            _id: user._id.toString()
+          },
+          update: updateFields,
+          new: true
+        });
 
-      if (user && user.strategies && user.strategies.local && user.strategies.local.password) {
-        delete user.strategies.local.password;
-      }
+        if(user && user.stripeid) {
+          mailFields = {
+            subject: 'Welcome to I Love Stage', // Subject line
+            email: user.strategies.local.email,
+            name: {
+              first: user.firstname,
+              last: user.lastname
+            }
+          };
 
-      result = user;
-      status = 201;
+          // utilities.sendEmail(mailFields, 'user-signup');
+          utilities.addUserToMailingList(mailFields);
+        }
+
+        if (user && user.strategies && user.strategies.local && user.strategies.local.password) {
+          delete user.strategies.local.password;
+        }
+
+        result = user;
+        status = 201;
+      }
     }
+  } else {
+    errorMessage = validator.error.message;
+    status = 400;
   }
 
   yield next;
@@ -1069,52 +1073,60 @@ app.get('/payments/:id', isAuthenticated, function* (next) {
 });
 
 app.post('/payments', function* (next) {
-  document.time = new Date();
+  console.log('document', document);
+  console.log('Valid: ' + validator.validate(document, schemas.payment, false, true)); // true
 
-  if(!document.hasOwnProperty('bookingid') || !document.hasOwnProperty('processor') || !document.hasOwnProperty('currency') || !document.hasOwnProperty('amount')) {
-    status = 400;
-  } else {
-    booking = yield db.collection('bookings').findById(document.bookingid, {});
+  if(validator.validate(document, schemas.payment, false, true)) {
+    document.time = new Date();
 
-    if (!booking) {
-      status = 404;
+    if(!document.hasOwnProperty('bookingid') || !document.hasOwnProperty('processor') || !document.hasOwnProperty('currency') || !document.hasOwnProperty('amount')) {
+      status = 400;
     } else {
-      status = 201;
+      booking = yield db.collection('bookings').findById(document.bookingid, {});
 
-      user = yield db.collection('users').findById(booking.userid, {});
-
-      if (!user) {
+      if (!booking) {
         status = 404;
       } else {
-        if(userHasPrivilege(user._id)) {
-          chargeInfo = {
-            amount: document.amount,
-            currency: document.currency,
-            customer: user.stripeid,
-            card: user.stripetoken,
-            metadata: {
-              bookingid: document.bookingid
-            },
-            capture: 'true',
-            description: document.description
-          };
+        status = 201;
 
-          charge = yield createChargeBoundThunk(chargeInfo);
+        user = yield db.collection('users').findById(booking.userid, {});
 
-          payment = yield db.collection('payments').insert(charge);
-
-          if (!payment) {
-            status = 404;
-          } else {
-            result = payment;
-            status = 201;
-          }
+        if (!user) {
+          status = 404;
         } else {
-          status = 403;
-        }
+          if(userHasPrivilege(user._id)) {
+            chargeInfo = {
+              amount: document.amount,
+              currency: document.currency,
+              customer: user.stripeid,
+              card: user.stripetoken,
+              metadata: {
+                bookingid: document.bookingid
+              },
+              capture: 'true',
+              description: document.description
+            };
 
+            charge = yield createChargeBoundThunk(chargeInfo);
+
+            payment = yield db.collection('payments').insert(charge);
+
+            if (!payment) {
+              status = 404;
+            } else {
+              result = payment;
+              status = 201;
+            }
+          } else {
+            status = 403;
+          }
+
+        }
       }
     }
+  } else {
+    errorMessage = validator.error.message;
+    status = 400;
   }
 
   yield next;
