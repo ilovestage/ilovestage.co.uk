@@ -4,9 +4,9 @@ var autoprefixer = require('gulp-autoprefixer');
 var gulp = require('gulp');
 var sass = require('gulp-ruby-sass');
 
-var handleErrors = require('../_utilities/handleErrors');
+var handleErrors = require(__dirname + '/_utilities/handleErrors');
 
-var config = require('../config').sass;
+var config = require(__dirname + '/_utilities/config').sass;
 
 gulp.task('sass', ['images'], function() {
   return gulp.src(config.src)

@@ -3,11 +3,16 @@
 var argv = require('yargs').argv;
 var requireDir = require('require-dir');
 
-console.log('Building ' + argv.application + ' application.');
+if(argv.application) {
+  console.log('Building ' + argv.application + ' application.');
 
-requireDir(
-  './tasks/' + argv.application,
-  {
-    recurse: true
-  }
-);
+  requireDir(
+    './tasks',
+    {
+      recurse: true
+    }
+  );
+} else {
+  console.log('No application defined.');
+  process.exit();
+}

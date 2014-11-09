@@ -14,7 +14,10 @@
     "email": "admin@ilovestage.com",
     "url": "http://ilovestage.com/about"
   },
-  "keywords": [],
+  "keywords": [
+    "london",
+    "tickets"
+  ],
   "repository": {
     "type": "git",
     "url": "https://github.com/ilovestage/ilovestage.com"
@@ -24,13 +27,14 @@
   },
   "license": "",
   "engines": {
-    "node": ">=0.12"
+    "node": ">=0.11.14"
   },
   "main": "app.js",
   "scripts": {
-    "start": "node --harmony app.js",
-    "debug": "node --harmony debug app.js",
-    "postinstall": "bower install; gulp",
+    "start": "gulp",
+    "preinstall": "./preinstall.sh",
+    "postinstall": "bower install; gulp;",
+    "bower": "bower",
     "gulp": "gulp",
     "grunt": "grunt"
   },
@@ -89,6 +93,7 @@
     "portscanner": "^1.0.0",
     "psi": "0.1.4",
     "qs": "2.2.4",
+    "require-dir": "^0.1.0",
     "restangular": "^1.4.0",
     "socket.io": "^1.0.4",
     "stripe": "^2.8.0",
@@ -112,6 +117,7 @@
     "gulp-autoprefixer": "^1.0.1",
     "gulp-changed": "^1.0.0",
     "gulp-imagemin": "^1.1.0",
+    "gulp-nodemon": "^1.0.4",
     "gulp-notify": "^2.0.0",
     "gulp-plumber": "^0.6.6",
     "gulp-ruby-sass": "^0.7.1",
@@ -167,6 +173,11 @@
       "cron": {
         "googleanalytics": {
           "key": "UA-55818646-3"
+        }
+      },
+      "www": {
+        "googleanalytics": {
+          "key": "UA-55818646-1"
         }
       }
     },

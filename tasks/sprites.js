@@ -5,7 +5,7 @@ var gulp = require('gulp');
 var spritesmith = require('gulp-spritesmith');
 var sync = require('browser-sync');
 
-var directory = require('../_utilities/directory');
+var directory = require(__dirname + '/_utilities/directory');
 
 gulp.task('sprites', function() {
   return gulp.src(directory.source + '/images/icons/**/*.png')

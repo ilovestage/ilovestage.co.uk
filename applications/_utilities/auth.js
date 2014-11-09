@@ -10,7 +10,7 @@ var FacebookStrategy = require('passport-facebook').Strategy;
 var TwitterStrategy = require('passport-twitter').Strategy;
 var GoogleStrategy = require('passport-google').Strategy;
 
-var database = require(__dirname + '/../database');
+var database = require(__dirname + '/database');
 
 var db = new database(config.server.database);
 

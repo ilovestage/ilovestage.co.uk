@@ -1,6 +1,6 @@
 'use strict';
 
-var directory = require(__dirname + '/_utilities/directory');
+var directory = require(__dirname + '/directory');
 
 module.exports = {
   browserSync: {

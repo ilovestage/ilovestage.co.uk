@@ -4,8 +4,8 @@ gulp.task(
   'build',
   [
     'browserify',
-    // 'sass',
+    'sass',
     // 'images',
-    // 'markup'
+    'markup'
   ]
 );

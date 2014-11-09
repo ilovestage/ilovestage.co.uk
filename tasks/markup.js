@@ -3,7 +3,7 @@
 var changed = require('gulp-changed');
 var gulp = require('gulp');
 
-var config = require('../config').markup;
+var config = require(__dirname + '/_utilities/config').markup;
 
 gulp.task('markup', function() {
   return gulp.src(config.src)

@@ -17,10 +17,10 @@ var watchify = require('watchify');
 var gulp = require('gulp');
 var source = require('vinyl-source-stream');
 
-var bundleLogger = require('../_utilities/bundleLogger');
-var handleErrors = require('../_utilities/handleErrors');
+var bundleLogger = require(__dirname + '/_utilities/bundleLogger');
+var handleErrors = require(__dirname + '/_utilities/handleErrors');
 
-var config = require('../config').browserify;
+var config = require(__dirname + '/_utilities/config').browserify;
 
 var browserifyTransform = [
   'jadeify',

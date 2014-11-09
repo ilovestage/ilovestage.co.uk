@@ -28,3 +28,6 @@ pm2 resurrect
 pm2 graceful all
 
 sudo reboot now
+
+Run shows importer:
+node --harmony app.js --application importer
