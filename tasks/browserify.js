@@ -13,9 +13,11 @@
 var environment = process.env.NODE_ENV ? process.env.NODE_ENV : 'development';
 
 var browserify = require('browserify');
-var watchify = require('watchify');
+var browserSync = require('browser-sync');
 var gulp = require('gulp');
+var jshint = require('gulp-jshint');
 var source = require('vinyl-source-stream');
+var watchify = require('watchify');
 
 var bundleLogger = require(__dirname + '/_utilities/bundleLogger');
 var handleErrors = require(__dirname + '/_utilities/handleErrors');
@@ -73,6 +75,9 @@ gulp.task('browserify', function(callback) {
         // Specify the output destination
         .pipe(gulp.dest(bundleConfig.dest))
         .on('end', reportFinished);
+        // .pipe(
+        //   browserSync.reload()
+        // );
     };
 
     if(global.isWatching) {

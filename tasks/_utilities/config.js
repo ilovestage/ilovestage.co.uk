@@ -4,19 +4,22 @@ var directory = require(__dirname + '/directory');
 
 module.exports = {
   browserSync: {
-    server: {
-      // We're serving the src folder as well for sass sourcemap linking
-      baseDir: [
-        directory.destination,
-        directory.source
-      ]
-    },
+    // server: {
+    //   // We're serving the src folder as well for sass sourcemap linking
+    //   baseDir: [
+    //     directory.destination,
+    //     directory.source
+    //   ]
+    // },
     files: [
       directory.destination + '/**',
       // Exclude Map files
       '!' + directory.destination + '/**.map'
     ],
-    tunnel: true
+    tunnel: true,
+    // proxy: "localhost:9000",
+    open: false
+    // browser: 'google chrome'
   },
   sass: {
     src: directory.source + '/styles/*.{sass, scss}',

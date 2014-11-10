@@ -58,10 +58,6 @@ function serveAssets() {
 
 var packageJson = require(__dirname + '/package.json');
 var environment = process.env.NODE_ENV ? process.env.NODE_ENV : 'development';
-var config = packageJson.config.environment[environment];
-
-var portStart = process.env.PORT ? process.env.PORT : config.server.koa.port;
-var portEnd = null;
 
 var argv = require('yargs').argv;
 var cluster = require('cluster');
@@ -77,6 +73,10 @@ var portscanner = require('portscanner');
 var router = require('koa-router');
 // var session = require('koa-session');
 var serve = require('koa-static');
+
+// var portStart = process.env.PORT ? process.env.PORT : packageJson.config.environment[environment].server.koa.port;
+var portStart = packageJson.config.applications[argv.application].port.start;
+var portEnd = packageJson.config.applications[argv.application].port.end;
 
 var app = koa();
 
@@ -109,14 +109,11 @@ app.poweredBy = false;
 // mount applications
 
 console.log('Requiring ' + argv.application + ' application.');
-
+console.log('app argv', argv);
 switch(argv.application) {
   case 'admin':
     application = require(__dirname + '/applications/admin');
     app.use(mount('/', application));
-
-    portStart = 5100;
-    portEnd = 5103;
 
     serveAssets();
     appListen();
@@ -124,9 +121,6 @@ switch(argv.application) {
   case 'api':
     application = require(__dirname + '/applications/api');
     app.use(mount('/', application));
-
-    portStart = 5020;
-    portEnd = 5023;
 
     appListen();
   break;
@@ -138,17 +132,11 @@ switch(argv.application) {
     application = require(__dirname + '/applications/socket');
     // app.use(mount('/', application));
 
-    portStart = 5200;
-    portEnd = 5203;
-
     appListen();
   break;
   case 'www':
     application = require(__dirname + '/applications/www');
     app.use(mount('/', application));
-
-    portStart = 5000;
-    portEnd = 5003;
 
     serveAssets();
     appListen();

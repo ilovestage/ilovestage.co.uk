@@ -62,6 +62,7 @@
     "koa": "^0.12.2",
     "koa-basic-auth": "^1.1.2",
     "koa-bodyparser": "^1.0.1",
+    "koa-browser-sync": "0.0.1",
     "koa-compress": "^1.0.7",
     "koa-generic-session": "^1.2.2",
     "koa-logger": "^1.2.1",
@@ -118,6 +119,7 @@
     "gulp-autoprefixer": "^1.0.1",
     "gulp-changed": "^1.0.0",
     "gulp-imagemin": "^1.1.0",
+    "gulp-jshint": "^1.9.0",
     "gulp-nodemon": "^1.0.4",
     "gulp-notify": "^2.0.0",
     "gulp-plumber": "^0.6.6",
@@ -162,21 +164,46 @@
     },
     "applications": {
       "admin": {
+        "port": {
+          "start": 5100,
+          "end": 5103
+        },
         "googleanalytics": {
           "key": ""
         }
       },
       "api": {
+        "port": {
+          "start": 5020,
+          "end": 5023
+        },
         "googleanalytics": {
           "key": "UA-55818646-2"
         }
       },
       "cron": {
+        "port": {
+          "start": 5100,
+          "end": 5103
+        },
         "googleanalytics": {
           "key": "UA-55818646-3"
         }
       },
+      "socket": {
+        "port": {
+          "start": 5200,
+          "end": 5203
+        },
+        "googleanalytics": {
+          "key": ""
+        }
+      },
       "www": {
+        "port": {
+          "start": 5000,
+          "end": 5003
+        },
         "googleanalytics": {
           "key": "UA-55818646-1"
         }

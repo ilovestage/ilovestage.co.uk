@@ -31,3 +31,6 @@ sudo reboot now
 
 Run shows importer:
 node --harmony app.js --application importer
+
+http://charliegleason.com/articles/harp-gulp-and-browsersync
+http://harpjs.com/

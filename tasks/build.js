@@ -5,7 +5,7 @@ gulp.task(
   [
     'browserify',
     'sass',
-    // 'images',
+    'images',
     'markup'
   ]
 );

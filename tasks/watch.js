@@ -12,14 +12,15 @@ var directory = require(__dirname + '/_utilities/directory');
 gulp.task(
   'watch',
   [
-    'setWatch',
-    'browserSync'
+    'browser-sync'
   ],
   function() {
-    // gulp.watch(directory.source + '/styles', ['sass']);
-    // gulp.watch(directory.source + '/images', ['images']);
-    // gulp.watch(directory.source + '/views', ['markup']);
-    // gulp.watch(directory.source + '/scripts', ['scripts']);
-    // gulp.watch(directory.source + '/sprites', ['sprites']);
+    global.isWatching = true;
+
+    gulp.watch(directory.source + '/styles', ['sass']);
+    gulp.watch(directory.source + '/images', ['images']);
+    gulp.watch(directory.source + '/views', ['markup']);
+    gulp.watch(directory.source + '/scripts', ['scripts']);
+    gulp.watch(directory.source + '/sprites', ['sprites']);
   }
 );

@@ -2,7 +2,7 @@
 
 var argv = require('yargs').argv;
 var requireDir = require('require-dir');
-
+console.log('gulp argv', argv);
 if(argv.application) {
   console.log('Building ' + argv.application + ' application.');
 
