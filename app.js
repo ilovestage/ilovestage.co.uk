@@ -109,7 +109,9 @@ app.poweredBy = false;
 // mount applications
 
 console.log('Requiring ' + argv.application + ' application.');
-console.log('app argv', argv);
+
+// console.log('app argv', argv);
+
 switch(argv.application) {
   case 'admin':
     application = require(__dirname + '/applications/admin');

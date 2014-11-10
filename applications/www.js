@@ -1,15 +1,20 @@
 'use strict';
 
 var packageJson = require(__dirname + '/../package.json');
-var config = packageJson.config.environment[process.env.NODE_ENV || 'development'];
+var environment = process.env.NODE_ENV ? process.env.NODE_ENV : 'development';
 
 require('./_utilities/auth');
 
+var _ = require('lodash');
+var argv = require('yargs').argv;
 var koa = require('koa');
+var router = require('koa-router');
+var serve = require('koa-static');
+var views = require('co-views');
 
 var app = koa();
 
-var render = views('source/views', {
+var render = views('source/www/views', {
   cache: true,
 
   map: {
@@ -18,8 +23,7 @@ var render = views('source/views', {
 });
 
 var defaults = {
-  // packageJson: packageJson,
-  config: config,
+  application: packageJson.config.applications[argv.application],
   lang: 'en',
   ngApp: 'general'
 };
@@ -27,12 +31,13 @@ var defaults = {
 // use koa-router
 app.use(router(app));
 
+app.use(serve('build/www'));
+
 if (app.env == 'development') {
   // No options or {init: false}
   // The snippet must be provide by BROWSERSYNC_SNIPPET environment variable
   app.use(require('koa-browser-sync')());
 }
-
 
 function *error404(next) {
   var settings = {

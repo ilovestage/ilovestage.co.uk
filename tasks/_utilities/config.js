@@ -16,14 +16,14 @@ module.exports = {
       // Exclude Map files
       '!' + directory.destination + '/**.map'
     ],
-    tunnel: true,
-    // proxy: "localhost:9000",
+    // tunnel: true,
+    // proxy: 'localhost:9000',
+    // browser: ['google chrome'],
     open: false
-    // browser: 'google chrome'
   },
   sass: {
-    src: directory.source + '/styles/*.{sass, scss}',
-    dest: directory.destination
+    src: directory.source + '/styles/*.scss',
+    dest: directory.destination + '/styles'
   },
   images: {
     src: directory.source + '/images/**',

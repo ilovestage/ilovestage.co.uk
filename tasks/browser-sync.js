@@ -10,14 +10,18 @@ var browserSync = require('browser-sync');
 var portStart = packageJson.config.applications[argv.application].port.start;
 var portEnd = packageJson.config.applications[argv.application].port.end;
 
+var portBrowserSync = packageJson.config.applications[argv.application].browsersync.port;
+
 var config = require(__dirname + '/_utilities/config').browserSync;
 
-// config.proxy = 'localhost:' + portStart;
+config.proxy = 'http://localhost:' + portStart;
 
-config.proxy = {
-  host: 'http://localhost',
-  port: portStart
-}
+// config.proxy = {
+//   host: 'http://localhost',
+//   port: portStart
+// }
+
+config.port = portBrowserSync;
 
 gulp.task(
   'browser-sync',
@@ -27,6 +31,6 @@ gulp.task(
   ],
   function() {
     // browserSync(config);
-    browserSync.init(null, config);
+    browserSync.init(config);
   }
 );
