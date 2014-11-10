@@ -13,6 +13,9 @@ module.exports = {
     // },
     files: [
       directory.destination + '/**',
+      'app.js',
+      'applications/_utilities/**/*.js',
+      // 'source/_utilities/views/**/*.html',
       // Exclude Map files
       '!' + directory.destination + '/**.map'
     ],

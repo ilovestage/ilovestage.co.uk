@@ -5,7 +5,7 @@ var browserSync = require('browser-sync');
 var gulp = require('gulp');
 var nodemon = require('gulp-nodemon');
 
-var BROWSER_SYNC_RELOAD_DELAY = 500;
+var BROWSER_SYNC_RELOAD_DELAY = 1500;
 
 gulp.task('nodemon', function (cb) {
   var called = false;
@@ -21,24 +21,28 @@ gulp.task('nodemon', function (cb) {
       // args: '--application www',
       // args: argv,
       // application: argv.application,
+      ext: 'js html',
       nodeArgs: ['--debug=9999'],
       ignore: [
-        '.get/',
-        'gulpfile.js',
+        '.git/',
+        // 'gulpfile.js',
         'node_modules/'
-      ],
-      watch: [
-        'app.js',
-        'applications/' + argv.application + '.js',
-        'applications/' + argv.application + '/',
-        'applications/_utilities/'
       ]
+      // ,
+      // watch: [
+      //   'app.js',
+      //   'applications/' + argv.application + '.js',
+      //   'applications/' + argv.application + '/**/*.js',
+      //   'applications/_utilities/**/*.js',
+      //   'source/' + argv.application + '/views/**/*.html',
+      //   'source/_utilities/views/**/*.html'
+      // ]
     }
   )
   .on(
     'start',
     function () {
-      // console.log('nodemon started', argv);
+      console.log('nodemon started');
       if (!called) {
         called = true;
         cb();
@@ -46,9 +50,15 @@ gulp.task('nodemon', function (cb) {
     }
   )
   .on(
+    'change',
+    function (files) {
+      console.log('Files changed: ', files);
+    }
+  )
+  .on(
     'restart',
-    function () {
-      // console.log('nodemon restarted', argv);
+    function (files) {
+      console.log('App restarted due to: ', files);
       setTimeout(
         function () {
           browserSync.reload(
@@ -59,6 +69,12 @@ gulp.task('nodemon', function (cb) {
         },
         BROWSER_SYNC_RELOAD_DELAY
       );
+    }
+  )
+  .on(
+    'quit',
+    function () {
+      console.log('App has quit');
     }
   );
 });

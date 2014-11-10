@@ -10,7 +10,7 @@ var config = require(__dirname + '/_utilities/config').markup;
 
 gulp.task('markup', function() {
   return gulp.src(config.src)
-  .pipe(changed(config.dest));
+  .pipe(changed(config.dest))
   // .pipe(htmlhint())
   // .pipe(htmlhint.reporter())
   // .pipe(w3cjs())

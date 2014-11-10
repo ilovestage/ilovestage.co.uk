@@ -23,6 +23,12 @@ config.proxy = 'http://localhost:' + portStart;
 
 config.port = portBrowserSync;
 
+// config.files.push(
+//   'applications/' + argv.application + '.js',
+//   'applications/' + argv.application + '/**/*.js',
+//   'source/' + argv.application + '/views/**/*.html'
+// );
+
 gulp.task(
   'browser-sync',
   [

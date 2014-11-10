@@ -33,7 +33,7 @@ app.use(router(app));
 
 app.use(serve('build/www'));
 
-if (app.env == 'development') {
+if (environment === 'development') {
   // No options or {init: false}
   // The snippet must be provide by BROWSERSYNC_SNIPPET environment variable
   app.use(require('koa-browser-sync')());
@@ -61,7 +61,7 @@ function *error404(next) {
   }
 }
 
-function *index(next) {
+function *index() {
   var settings = {
     bodyClass: 'home full-viewport-sections'
   };
