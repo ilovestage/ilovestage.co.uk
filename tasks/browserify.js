@@ -57,37 +57,26 @@ gulp.task('browserify', function(callback) {
       debug: config.debug
     });
 
-    // bundler.transform('debowerify');
     bundler.transform = browserifyTransform;
 
     var bundle = function() {
-      // Log when bundling starts
       bundleLogger.start(bundleConfig.outputName);
 
       return bundler
         .bundle()
-        // Report compile errors
         .on('error', handleErrors)
-        // Use vinyl-source-stream to make the stream gulp compatible. Specifiy the desired output filename here.
         .pipe(source(bundleConfig.outputName))
         .pipe(jshint())
-        // Specify the output destination
         .pipe(gulp.dest(bundleConfig.dest))
         .on('end', reportFinished);
-        // .pipe(
-        //   browserSync.reload()
-        // );
     };
 
     if(global.isWatching) {
-      // Wrap with watchify and rebundle on changes
       bundler = watchify(bundler);
-      // Rebundle on update
       bundler.on('update', bundle);
     }
 
     var reportFinished = function() {
-      // Log when bundling completes
       bundleLogger.end(bundleConfig.outputName);
 
       if(bundleQueue) {
@@ -103,6 +92,5 @@ gulp.task('browserify', function(callback) {
     return bundle();
   };
 
-  // Start bundling with Browserify for each bundleConfig specified
   config.bundleConfigs.forEach(browserifyThis);
 });
