@@ -1,0 +1,22 @@
+<!doctype html>
+<html lang="<%= lang %>">
+  <head>
+    <meta charset="utf-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+
+    <title><%= title %></title>
+
+    <meta name="description" content="<%= description %>" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <link href="/styles/styles.css" rel="stylesheet" />
+    <link rel="shortcut icon" href="/images/chrome/favicon.png" />
+  </head>
+  <body class="<%= bodyClass %>">
+    <% include ../../../_utilities/views/_includes/scripts/google.analytics.html %>
+    <%- body %>
+    <footer>
+      <span>&copy; 2014 I Love Stage, Inc.</span>
+    </footer>
+  </body>
+</html>

@@ -25,18 +25,28 @@ var render = views('source/www/views', {
 var defaults = {
   application: packageJson.config.applications[argv.application],
   lang: 'en',
-  ngApp: 'general'
+  title: 'I Love Stage',
+  description: 'I Love Stage'
 };
 
-// use koa-router
-app.use(router(app));
-
 app.use(serve('build/www'));
+
+app.use(router(app));
 
 if (environment === 'development') {
   // No options or {init: false}
   // The snippet must be provide by BROWSERSYNC_SNIPPET environment variable
   app.use(require('koa-browser-sync')());
+}
+
+function *renderEach(name, objs) {
+  var res = yield objs.map(function(obj){
+    var opts = {};
+    opts[name] = obj;
+    return render(name, opts);
+  });
+
+  return res.join('\n');
 }
 
 function *error404(next) {
@@ -46,32 +56,28 @@ function *error404(next) {
 
   _.merge(settings, defaults);
 
-  // console.log('app', app, getAllMethods(app));
-  // console.log('this.method', this.method, 'this.path', this.path);
-
-  // if (app.match(this.method, this.path)) {
-  if ('app.route', app.route) {
-    // console.log('app.match true');
-    yield next;
-  } else {
-    // console.log('app.match false');
-    // this.throw('404 / Not Found', 404)
-    this.body = yield render('error-404', settings);
-    this.status = 404;
-  }
+  this.body = yield render('error-404', settings);
+  this.status = 404;
 }
 
-function *index() {
+function *home() {
   var settings = {
     bodyClass: 'home full-viewport-sections'
   };
 
   _.merge(settings, defaults);
 
-  this.body = yield render('home', settings);
+  // var body = yield renderEach('user', db.users);
+  var body = yield render('home', settings);
+
+  settings.body = body;
+
+  var html = yield render('layouts/default', settings);
+
+  this.body = html;
 }
 
-app.get('/', index);
+app.get('/', home);
 
 app.get(/^([^.]+)$/, error404); //matches everything without an extension
 
