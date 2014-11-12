@@ -8,11 +8,12 @@ git config core.ignorecase false
 
 if [ $DISTRIB_ID = 'Ubuntu' ]; then
 	sudo update_rubygems
+	sudo gem install bundler
 else
 	gem update --system
+	gem install bundler
 fi
 
-gem install bundler
 bundle install
 
 exit
