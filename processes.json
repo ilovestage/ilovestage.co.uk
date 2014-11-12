@@ -68,8 +68,6 @@
       "env": {
         "NODE_ENV": "production"
       },
-      "exec_mode": "cluster_mode",
-      "instances": "4",
       "port": 5023
     },
     {
