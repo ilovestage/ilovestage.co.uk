@@ -1,0 +1,156 @@
+{
+  "apps" : [
+    {
+      "name": "api-1",
+      "script": "app.js",
+      "args": "['--application api']",
+      "log_date_format": "YYYY-MM-DD HH:mm Z",
+      "error_file": "./logs/api-error.log",
+      "out_file": "./logs/api-out.log",
+      "ignoreWatch": ["[\\/\\\\]\\./", "node_modules"],
+      "watch": true,
+      "node_args": "--harmony",
+      "cwd": "/var/www/ilovestage.co.uk",
+      "env": {
+        "NODE_ENV": "production",
+        "AWESOME_SERVICE_API_TOKEN": "xxx"
+      },
+      "exec_mode": "cluster_mode",
+      "instances": "4",
+      "port": 5020
+    },
+    {
+      "name": "api-2",
+      "script": "app.js",
+      "args": "['--application api']",
+      "log_date_format": "YYYY-MM-DD HH:mm Z",
+      "error_file": "./logs/api-error.log",
+      "out_file": "./logs/api-out.log",
+      "ignoreWatch": ["[\\/\\\\]\\./", "node_modules"],
+      "watch": true,
+      "node_args": "--harmony",
+      "cwd": "/var/www/ilovestage.co.uk",
+      "env": {
+        "NODE_ENV": "production",
+        "AWESOME_SERVICE_API_TOKEN": "xxx"
+      },
+      "exec_mode": "cluster_mode",
+      "instances": "4",
+      "port": 5021
+    },
+    {
+      "name": "api-3",
+      "script": "app.js",
+      "args": "['--application api']",
+      "log_date_format": "YYYY-MM-DD HH:mm Z",
+      "error_file": "./logs/api-error.log",
+      "out_file": "./logs/api-out.log",
+      "ignoreWatch": ["[\\/\\\\]\\./", "node_modules"],
+      "watch": true,
+      "node_args": "--harmony",
+      "cwd": "/var/www/ilovestage.co.uk",
+      "env": {
+        "NODE_ENV": "production",
+        "AWESOME_SERVICE_API_TOKEN": "xxx"
+      },
+      "exec_mode": "cluster_mode",
+      "instances": "4",
+      "port": 5022
+    },
+    {
+      "name": "api-4",
+      "script": "app.js",
+      "args": "['--application api']",
+      "log_date_format": "YYYY-MM-DD HH:mm Z",
+      "error_file": "./logs/api-error.log",
+      "out_file": "./logs/api-out.log",
+      "ignoreWatch": ["[\\/\\\\]\\./", "node_modules"],
+      "watch": true,
+      "node_args": "--harmony",
+      "cwd": "/var/www/ilovestage.co.uk",
+      "env": {
+        "NODE_ENV": "production",
+        "AWESOME_SERVICE_API_TOKEN": "xxx"
+      },
+      "exec_mode": "cluster_mode",
+      "instances": "4",
+      "port": 5023
+    },
+    {
+      "name": "www-1",
+      "script": "app.js",
+      "args": "['--application www']",
+      "log_date_format": "YYYY-MM-DD HH:mm Z",
+      "error_file": "./logs/www-error.log",
+      "out_file": "./logs/www-out.log",
+      "ignoreWatch": ["[\\/\\\\]\\./", "node_modules"],
+      "watch": true,
+      "node_args": "--harmony",
+      "cwd": "/var/www/ilovestage.co.uk",
+      "env": {
+        "NODE_ENV": "production",
+        "AWESOME_SERVICE_API_TOKEN": "xxx"
+      },
+      "exec_mode": "cluster_mode",
+      "instances": "4",
+      "port": 5000
+    },
+    {
+      "name": "www-2",
+      "script": "app.js",
+      "args": "['--application www']",
+      "log_date_format": "YYYY-MM-DD HH:mm Z",
+      "error_file": "./logs/www-error.log",
+      "out_file": "./logs/www-out.log",
+      "ignoreWatch": ["[\\/\\\\]\\./", "node_modules"],
+      "watch": true,
+      "node_args": "--harmony",
+      "cwd": "/var/www/ilovestage.co.uk",
+      "env": {
+        "NODE_ENV": "production",
+        "AWESOME_SERVICE_API_TOKEN": "xxx"
+      },
+      "exec_mode": "cluster_mode",
+      "instances": "4",
+      "port": 5001
+    },
+    {
+      "name": "www-3",
+      "script": "app.js",
+      "args": "['--application www']",
+      "log_date_format": "YYYY-MM-DD HH:mm Z",
+      "error_file": "./logs/www-error.log",
+      "out_file": "./logs/www-out.log",
+      "ignoreWatch": ["[\\/\\\\]\\./", "node_modules"],
+      "watch": true,
+      "node_args": "--harmony",
+      "cwd": "/var/www/ilovestage.co.uk",
+      "env": {
+        "NODE_ENV": "production",
+        "AWESOME_SERVICE_API_TOKEN": "xxx"
+      },
+      "exec_mode": "cluster_mode",
+      "instances": "4",
+      "port": 5002
+    },
+    {
+      "name": "www-4",
+      "script": "app.js",
+      "args": "['--application www']",
+      "log_date_format": "YYYY-MM-DD HH:mm Z",
+      "error_file": "./logs/www-error.log",
+      "out_file": "./logs/www-out.log",
+      "ignoreWatch": ["[\\/\\\\]\\./", "node_modules"],
+      "watch": true,
+      "node_args": "--harmony",
+      "cwd": "/var/www/ilovestage.co.uk",
+      "env": {
+        "NODE_ENV": "production",
+        "AWESOME_SERVICE_API_TOKEN": "xxx"
+      },
+      "exec_mode": "cluster_mode",
+      "instances": "4",
+      "port": 5003
+    }
+  ]
+}
