@@ -31,7 +31,7 @@
   },
   "main": "app.js",
   "scripts": {
-    "start": " gulp --debug --application",
+    "start": "gulp --debug --application",
     "preinstall": "./npm-preinstall.sh",
     "postinstall": "./npm-postinstall.sh",
     "bower": "bower",
