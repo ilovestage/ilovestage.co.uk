@@ -25,14 +25,6 @@ brew install graphicsmagick
 brew install mongodb
 brew install node
 
-npm cache clean -f
-npm install -g n
-npm install -g npm-update-all
-npm install -g gulp
-npm install -g imagemin
-n latest
-node -v
-
 brew cask install atom
 brew cask install cakebrew
 brew cask install deltawalker
