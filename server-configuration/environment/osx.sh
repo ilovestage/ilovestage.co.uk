@@ -34,3 +34,5 @@ brew cask install google-chrome
 brew cask install tower
 brew cask install transmit
 brew cask install skype
+
+exit
