@@ -34,6 +34,7 @@
     "start": "gulp --debug --application",
     "preinstall": "./npm-preinstall.sh",
     "postinstall": "./npm-postinstall.sh",
+    "deploy": "./deploy.sh",
     "bower": "bower",
     "gulp": "gulp",
     "grunt": "grunt"
