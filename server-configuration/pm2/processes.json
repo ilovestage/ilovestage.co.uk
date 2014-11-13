@@ -7,15 +7,17 @@
       "log_date_format": "YYYY-MM-DD HH:mm Z",
       "error_file": "./logs/api-error.log",
       "out_file": "./logs/api-out.log",
-      "ignoreWatch": ["[\\/\\\\]\\./", "node_modules", "bower_components"],
+      "ignoreWatch": [
+        "[\\/\\\\]\\./",
+        "node_modules",
+        "bower_components"
+      ],
       "watch": true,
       "node_args": "--harmony",
       "cwd": "/var/www/ilovestage.co.uk",
       "env": {
         "NODE_ENV": "production"
       },
-      "exec_mode": "cluster_mode",
-      "instances": "4",
       "port": 5020
     },
     {
@@ -25,15 +27,17 @@
       "log_date_format": "YYYY-MM-DD HH:mm Z",
       "error_file": "./logs/api-error.log",
       "out_file": "./logs/api-out.log",
-      "ignoreWatch": ["[\\/\\\\]\\./", "node_modules", "bower_components"],
+      "ignoreWatch": [
+        "[\\/\\\\]\\./",
+        "node_modules",
+        "bower_components"
+      ],
       "watch": true,
       "node_args": "--harmony",
       "cwd": "/var/www/ilovestage.co.uk",
       "env": {
         "NODE_ENV": "production"
       },
-      "exec_mode": "cluster_mode",
-      "instances": "4",
       "port": 5021
     },
     {
@@ -43,15 +47,17 @@
       "log_date_format": "YYYY-MM-DD HH:mm Z",
       "error_file": "./logs/api-error.log",
       "out_file": "./logs/api-out.log",
-      "ignoreWatch": ["[\\/\\\\]\\./", "node_modules", "bower_components"],
+      "ignoreWatch": [
+        "[\\/\\\\]\\./",
+        "node_modules",
+        "bower_components"
+      ],
       "watch": true,
       "node_args": "--harmony",
       "cwd": "/var/www/ilovestage.co.uk",
       "env": {
         "NODE_ENV": "production"
       },
-      "exec_mode": "cluster_mode",
-      "instances": "4",
       "port": 5022
     },
     {
@@ -61,7 +67,11 @@
       "log_date_format": "YYYY-MM-DD HH:mm Z",
       "error_file": "./logs/api-error.log",
       "out_file": "./logs/api-out.log",
-      "ignoreWatch": ["[\\/\\\\]\\./", "node_modules", "bower_components"],
+      "ignoreWatch": [
+        "[\\/\\\\]\\./",
+        "node_modules",
+        "bower_components"
+      ],
       "watch": true,
       "node_args": "--harmony",
       "cwd": "/var/www/ilovestage.co.uk",
@@ -77,15 +87,17 @@
       "log_date_format": "YYYY-MM-DD HH:mm Z",
       "error_file": "./logs/www-error.log",
       "out_file": "./logs/www-out.log",
-      "ignoreWatch": ["[\\/\\\\]\\./", "node_modules", "bower_components"],
+      "ignoreWatch": [
+        "[\\/\\\\]\\./",
+        "node_modules",
+        "bower_components"
+      ],
       "watch": true,
       "node_args": "--harmony",
       "cwd": "/var/www/ilovestage.co.uk",
       "env": {
         "NODE_ENV": "production"
       },
-      "exec_mode": "cluster_mode",
-      "instances": "4",
       "port": 5000
     },
     {
@@ -95,15 +107,17 @@
       "log_date_format": "YYYY-MM-DD HH:mm Z",
       "error_file": "./logs/www-error.log",
       "out_file": "./logs/www-out.log",
-      "ignoreWatch": ["[\\/\\\\]\\./", "node_modules", "bower_components"],
+      "ignoreWatch": [
+        "[\\/\\\\]\\./",
+        "node_modules",
+        "bower_components"
+      ],
       "watch": true,
       "node_args": "--harmony",
       "cwd": "/var/www/ilovestage.co.uk",
       "env": {
         "NODE_ENV": "production"
       },
-      "exec_mode": "cluster_mode",
-      "instances": "4",
       "port": 5001
     },
     {
@@ -113,15 +127,17 @@
       "log_date_format": "YYYY-MM-DD HH:mm Z",
       "error_file": "./logs/www-error.log",
       "out_file": "./logs/www-out.log",
-      "ignoreWatch": ["[\\/\\\\]\\./", "node_modules", "bower_components"],
+      "ignoreWatch": [
+        "[\\/\\\\]\\./",
+        "node_modules",
+        "bower_components"
+      ],
       "watch": true,
       "node_args": "--harmony",
       "cwd": "/var/www/ilovestage.co.uk",
       "env": {
         "NODE_ENV": "production"
       },
-      "exec_mode": "cluster_mode",
-      "instances": "4",
       "port": 5002
     },
     {
@@ -131,15 +147,17 @@
       "log_date_format": "YYYY-MM-DD HH:mm Z",
       "error_file": "./logs/www-error.log",
       "out_file": "./logs/www-out.log",
-      "ignoreWatch": ["[\\/\\\\]\\./", "node_modules", "bower_components"],
+      "ignoreWatch": [
+        "[\\/\\\\]\\./",
+        "node_modules",
+        "bower_components"
+      ],
       "watch": true,
       "node_args": "--harmony",
       "cwd": "/var/www/ilovestage.co.uk",
       "env": {
         "NODE_ENV": "production"
       },
-      "exec_mode": "cluster_mode",
-      "instances": "4",
       "port": 5003
     }
   ]
