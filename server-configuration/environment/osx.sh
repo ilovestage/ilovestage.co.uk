@@ -18,7 +18,11 @@ source ~/.bash_profile
 rbenv install 2.1.3
 rbenv global 2.1.3
 
-ruby -v
+#ruby -v
+
+sudo easy_install pip
+
+sudo pip install awscli
 
 brew install imagemagick
 brew install graphicsmagick
