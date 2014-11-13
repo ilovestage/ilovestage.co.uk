@@ -54,7 +54,7 @@ function *renderEach(name, objs) {
 
 function *error404(next) {
   var settings = {
-    bodyClass: 'error error404'
+    bodyClass: 'error error-404'
   };
 
   _.merge(settings, defaults);
@@ -65,7 +65,7 @@ function *error404(next) {
 
 function *home() {
   var settings = {
-    bodyClass: 'home full-viewport-sections'
+    bodyClass: 'home'
   };
 
   _.merge(settings, defaults);
