@@ -3,7 +3,7 @@
     {
       "name": "api-1",
       "script": "app.js",
-      "args": "[\"--application api\"]",
+      "args": "['--application', 'api']",
       "log_date_format": "YYYY-MM-DD HH:mm Z",
       "error_file": "./logs/api-error.log",
       "out_file": "./logs/api-out.log",
@@ -23,7 +23,7 @@
     {
       "name": "api-2",
       "script": "app.js",
-      "args": "[\"--application api\"]",
+      "args": "['--application', 'api']",
       "log_date_format": "YYYY-MM-DD HH:mm Z",
       "error_file": "./logs/api-error.log",
       "out_file": "./logs/api-out.log",
@@ -43,7 +43,7 @@
     {
       "name": "api-3",
       "script": "app.js",
-      "args": "[\"--application api\"]",
+      "args": "['--application', 'api']",
       "log_date_format": "YYYY-MM-DD HH:mm Z",
       "error_file": "./logs/api-error.log",
       "out_file": "./logs/api-out.log",
@@ -63,7 +63,7 @@
     {
       "name": "api-4",
       "script": "app.js",
-      "args": "[\"--application api\"]",
+      "args": "['--application', 'api']",
       "log_date_format": "YYYY-MM-DD HH:mm Z",
       "error_file": "./logs/api-error.log",
       "out_file": "./logs/api-out.log",
@@ -83,7 +83,7 @@
     {
       "name": "www-1",
       "script": "app.js",
-      "args": "[\"--application www\"]",
+      "args": "['--application', 'www']",
       "log_date_format": "YYYY-MM-DD HH:mm Z",
       "error_file": "./logs/www-error.log",
       "out_file": "./logs/www-out.log",
@@ -103,7 +103,7 @@
     {
       "name": "www-2",
       "script": "app.js",
-      "args": "[\"--application www\"]",
+      "args": "['--application', 'www']",
       "log_date_format": "YYYY-MM-DD HH:mm Z",
       "error_file": "./logs/www-error.log",
       "out_file": "./logs/www-out.log",
@@ -123,7 +123,7 @@
     {
       "name": "www-3",
       "script": "app.js",
-      "args": "[\"--application www\"]",
+      "args": "['--application', 'www']",
       "log_date_format": "YYYY-MM-DD HH:mm Z",
       "error_file": "./logs/www-error.log",
       "out_file": "./logs/www-out.log",
@@ -143,7 +143,7 @@
     {
       "name": "www-4",
       "script": "app.js",
-      "args": "[\"--application www\"]",
+      "args": "['--application', 'www']",
       "log_date_format": "YYYY-MM-DD HH:mm Z",
       "error_file": "./logs/www-error.log",
       "out_file": "./logs/www-out.log",
