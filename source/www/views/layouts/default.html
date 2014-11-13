@@ -9,10 +9,8 @@
     <meta name="description" content="<%= description %>" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
 
-    <link href="/styles/styles.css" rel="stylesheet" />
-    <link rel="shortcut icon" href="/images/chrome/favicon.png" />
-
-    <base href="<%= url.assets %>">
+    <link href="<%= url.assets %>/styles/styles.css" rel="stylesheet" />
+    <link rel="shortcut icon" href="<%= url.assets %>/images/chrome/favicon.png" />
   </head>
   <body class="<%= bodyClass %>">
     <% include ../../../_utilities/views/_includes/scripts/google.analytics.html %>
