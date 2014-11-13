@@ -24,6 +24,9 @@ var render = views('source/www/views', {
 
 var defaults = {
   application: packageJson.config.applications[argv.application],
+  url: {
+    assets: packageJson.config.environment[environment].url.assets
+  },
   lang: 'en',
   title: 'I Love Stage',
   description: 'I Love Stage'

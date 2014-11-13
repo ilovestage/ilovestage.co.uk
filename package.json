@@ -228,6 +228,9 @@
     },
     "environment": {
       "development": {
+        "url": {
+          "assets": "/"
+        },
         "server": {
           "database": {
             "protocol": "mongodb",
@@ -247,6 +250,9 @@
         }
       },
       "staging": {
+        "url": {
+          "assets": "/"
+        },
         "server": {
           "database": {
             "protocol": "mongodb",
@@ -266,6 +272,9 @@
         }
       },
       "production": {
+        "url": {
+          "assets": "//cdn.ilovestage.co.uk"
+        },
         "server": {
           "database": {
             "protocol": "mongodb",
