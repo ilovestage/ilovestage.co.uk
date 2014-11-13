@@ -1,5 +1,5 @@
 #!/bin/sh
 
-pm2 gracefulReload
+pm2 gracefulReload all
 
 exit
