@@ -229,7 +229,7 @@
     "environment": {
       "development": {
         "url": {
-          "assets": "/"
+          "assets": ""
         },
         "server": {
           "database": {
@@ -251,7 +251,7 @@
       },
       "staging": {
         "url": {
-          "assets": "/"
+          "assets": ""
         },
         "server": {
           "database": {
