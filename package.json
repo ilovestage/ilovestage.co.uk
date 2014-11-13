@@ -168,60 +168,55 @@
     },
     "applications": {
       "admin": {
-        "port": {
-          "start": 5100,
-          "end": 5103
+        "app": {
+          "port": 5200
         },
         "googleanalytics": {
-          "key": ""
+          "key": "UA-55818646-4"
         },
         "livereload": {
-          "port": 5150
+          "port": 5210
         },
         "browsersync": {
-          "port": 5160
+          "port": 5220
         }
       },
       "api": {
-        "port": {
-          "start": 5020,
-          "end": 5023
+        "app": {
+          "port": 5100
         },
         "googleanalytics": {
           "key": "UA-55818646-2"
         }
       },
       "cron": {
-        "port": {
-          "start": 5100,
-          "end": 5103
+        "app": {
+          "port": 5400
         },
         "googleanalytics": {
           "key": "UA-55818646-3"
         }
       },
       "socket": {
-        "port": {
-          "start": 5200,
-          "end": 5203
+        "app": {
+          "port": 5300
         },
         "googleanalytics": {
           "key": ""
         }
       },
       "www": {
-        "port": {
-          "start": 5000,
-          "end": 5003
+        "app": {
+          "port": 5000
         },
         "googleanalytics": {
           "key": "UA-55818646-1"
         },
         "livereload": {
-          "port": 5050
+          "port": 5010
         },
         "browsersync": {
-          "port": 5060
+          "port": 5020
         }
       }
     },
