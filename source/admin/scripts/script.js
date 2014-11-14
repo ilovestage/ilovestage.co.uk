@@ -1,7 +1,8 @@
 'use strict';
 
-// var _ = require('lodash');
-// var $ = require('jquery');
+var _ = require('lodash');
+var $ = require('jquery');
+var _ = require('lokijs');
 
 var greetings = require('./greetings');
 

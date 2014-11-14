@@ -30,5 +30,19 @@
     "parsleyjs": "~2.0.0",
     "director": "~1.2.2"
   },
-  "devDependencies": {}
+  "devDependencies": {},
+  "resolutions": {
+    "polymer": "~0.5.1",
+    "core-component-page": "^0.5.0",
+    "google-apis": "~0.4.0",
+    "core-shared-lib": "~0.5.0",
+    "core-signals": "^0.5.0",
+    "paper-ripple": "^0.5.0",
+    "core-icon": "^0.5.0",
+    "core-iconset": "^0.5.0",
+    "core-meta": "^0.5.0",
+    "core-icons": "^0.5.0",
+    "core-iconset-svg": "^0.5.0",
+    "font-roboto": "^0.5.0"
+  }
 }

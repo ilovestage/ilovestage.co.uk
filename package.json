@@ -69,6 +69,7 @@
     "koa-mount": "^1.3.0",
     "koa-passport": "^1.1.3",
     "koa-qs": "1.0.1",
+    "koa-redis": "^0.1.1",
     "koa-request": "^1.0.0",
     "koa-router": "^3.6.0",
     "koa-static": "^1.4.7",
@@ -92,7 +93,6 @@
     "passport-tumblr": "^0.1.2",
     "passport-twitter": "^1.0.2",
     "passport.socketio": "^3.4.1",
-    "polymer": "^0.4.1",
     "portscanner": "^1.0.0",
     "psi": "^0.1.5",
     "qs": "2.2.4",
@@ -150,10 +150,6 @@
     "vulcanize": "^0.6.2"
   },
   "config": {
-    "path": {
-      "build": "build",
-      "source": "source"
-    },
     "salts": {
       "uid": "Curtainca11",
       "password": "andthestageloveme123"
@@ -164,24 +160,36 @@
         "pass": "1c2c4ed06609421ae8a928c80069b87ba85fc14f"
       }
     },
+    "redis": {
+      "key": "Curt@inc@11"
+    },
     "applications": {
       "admin": {
         "app": {
           "port": 5200
+        },
+        "browsersync": {
+          "port": 5220
+        },
+        "debug": {
+          "port": 5230
         },
         "googleanalytics": {
           "key": "UA-55818646-4"
         },
         "livereload": {
           "port": 5210
-        },
-        "browsersync": {
-          "port": 5220
         }
       },
       "api": {
         "app": {
           "port": 5100
+        },
+        "browsersync": {
+          "port": 5120
+        },
+        "debug": {
+          "port": 5130
         },
         "googleanalytics": {
           "key": "UA-55818646-2"
@@ -191,6 +199,12 @@
         "app": {
           "port": 5400
         },
+        "browsersync": {
+          "port": 5420
+        },
+        "debug": {
+          "port": 5430
+        },
         "googleanalytics": {
           "key": "UA-55818646-3"
         }
@@ -198,6 +212,12 @@
       "socket": {
         "app": {
           "port": 5300
+        },
+        "browsersync": {
+          "port": 5320
+        },
+        "debug": {
+          "port": 5330
         },
         "googleanalytics": {
           "key": ""
@@ -207,14 +227,17 @@
         "app": {
           "port": 5000
         },
+        "browsersync": {
+          "port": 5020
+        },
+        "debug": {
+          "port": 5030
+        },
         "googleanalytics": {
           "key": "UA-55818646-1"
         },
         "livereload": {
           "port": 5010
-        },
-        "browsersync": {
-          "port": 5020
         }
       }
     },
@@ -274,6 +297,7 @@
       },
       "production": {
         "url": {
+          "api": "//api.ilovestage.co.uk",
           "assets": "//cdn.ilovestage.co.uk"
         },
         "server": {

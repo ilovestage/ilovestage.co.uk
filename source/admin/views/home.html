@@ -1,22 +1,18 @@
-<% include _includes/general/header.html %>
-
 <main>
+  <h1><%= title %></h1>
+  <core-ajax url="//<%= url.api.url %>/users" handleAs="json"></core-ajax>
 
-  <section id="section-hero" class="background" data-src="/images/sample/backgrounds/glinda_presides.jpg">
+  <script>
+    // Wait for 'polymer-ready'. Ensures the element is upgraded.
+    window.addEventListener('polymer-ready', function(e) {
+      var ajax = document.querySelector('core-ajax');
 
-    <div class="introduction">
-      <h1 class="overlay">I Love Stage</h1>
-      <h2 class="overlay">Administration Area</h2>
+      // Respond to events it fires.
+      ajax.addEventListener('core-response', function(e) {
+        console.log(this.response);
+      });
 
-      <a href="/login" class="btn btn-default">Log in</a>
-    </div>
-
-    <span class="credit">
-      <a href="/shows/wicked" class="overlay">Wicked</a>
-    </span>
-
-  </section>
-
+      ajax.go(); // Call its API methods.
+    });
+  </script>
 </main>
-
-<% include _includes/general/footer.html %>
