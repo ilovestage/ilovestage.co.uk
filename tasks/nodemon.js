@@ -5,6 +5,11 @@ var browserSync = require('browser-sync');
 var gulp = require('gulp');
 var nodemon = require('gulp-nodemon');
 
+var packageJson = require(__dirname + '/../package.json');
+var environment = process.env.NODE_ENV ? process.env.NODE_ENV : 'development';
+
+var portDebug = packageJson.config.applications[argv.application].debug.port;
+
 var BROWSER_SYNC_RELOAD_DELAY = 1500;
 
 gulp.task('nodemon', function (cb) {
@@ -22,7 +27,7 @@ gulp.task('nodemon', function (cb) {
       // args: argv,
       // application: argv.application,
       ext: 'js html',
-      nodeArgs: ['--debug=9999'],
+      nodeArgs: ['--debug=' + portDebug],
       ignore: [
         '.git/',
         // 'gulpfile.js',
