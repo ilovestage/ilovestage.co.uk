@@ -24,9 +24,9 @@ app.use(function* (next) {
   yield next;
 });
 
-app.use(mount('/v1', require(__dirname + '/api/v1')));
-// app.use(mount('/v2', require(__dirname + '/api/v2')));
+app.use(mount('/v1.0', require(__dirname + '/api/v1.0')));
+// app.use(mount('/v2.0', require(__dirname + '/api/v2')));
 
-app.redirect('/', '/v1');
+app.redirect('/', '/v1.0');
 
 module.exports = app;

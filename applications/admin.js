@@ -7,24 +7,50 @@ require('./_utilities/auth');
 
 var _ = require('lodash');
 // var _.str = require('underscore.string');
+var argv = require('yargs').argv;
 var koa = require('koa');
-// var mount = require('koa-mount');
+var mount = require('koa-mount');
 // var bodyParser = require('koa-bodyparser');
 var passport = require('koa-passport');
 var router = require('koa-router');
+var serve = require('koa-static');
 var session = require('koa-generic-session');
+var redisStore = require('koa-redis');
 var views = require('co-views');
+
+var defaults;
+
+var api = {};
+
+api.version = 1.0;
 
 var app = koa();
 
-app.use(session());
+app.name = argv.application;
+app.keys = ['keys', packageJson.config.redis.key];
 
-// app.use(bodyParser());
+app.use(function *(next) {
+  var apiUrl = (environment === 'production') ? packageJson.config.environment[environment].url.api : this.request.hostname + ':' + packageJson.config.applications.api.app.port;
 
-app.use(passport.initialize());
-app.use(passport.session());
+  api.url = apiUrl + '/v' + api.version.toFixed(1);
 
-var render = views('source/views', {
+  // console.log('api.url', api.url);
+
+  defaults = {
+    application: packageJson.config.applications[argv.application],
+    url: {
+      api: api,
+      assets: packageJson.config.environment[environment].url.assets
+    },
+    lang: 'en',
+    title: 'I Love Stage',
+    description: 'I Love Stage'
+  };
+
+  yield next;
+});
+
+var render = views('source/' + argv.application + '/views', {
   cache: true,
 
   map: {
@@ -32,140 +58,75 @@ var render = views('source/views', {
   }
 });
 
-var publicRouter = new router();
-
-var defaults = {
-  config: config,
-  lang: 'en',
-  ngApp: 'general'
-};
-
-function *error404(next) {
-  console.log('in error404');
-  var settings = {
-    bodyClass: 'error error404'
-  };
-
-  _.merge(settings, defaults);
-
-  if ('app.route', app.route) {
-    yield next;
-  } else {
-    // this.throw('404 / Not Found', 404)
-    this.body = yield render('error-404', settings);
-    this.status = 404;
-  }
-}
-
-function getAllMethods(object) {
-  // console.log('in getAllMethods');
-  return Object.getOwnPropertyNames(object).filter(function(property) {
-    return typeof object[property] === 'function';
-  });
-}
-
-function *index(next) {
-  var settings = {
-    bodyClass: 'home full-viewport-sections'
-  };
-
-  _.merge(settings, defaults);
-
-  this.body = yield render('home', settings);
-}
-
-function *secured(next) {
-  console.log('secured');
-  var settings = {
-    bodyClass: 'users full-viewport-sections secured'
-  };
-
-  _.merge(settings, defaults);
-
-  this.body = yield render('users-index', settings);
-}
-
-function *isAuthenticated(next) {
-  var url = this.path;
-  var urlParts = url.split('/');
-  var filename = urlParts[urlParts.length - 1];
-  var extension = filename.split('.').pop();
-  var patternFileWithExtension = /\.[0-9a-z]+$/i;
-  // var patternFileWithExtension = /^([^.]+)$/;
-
-  // console.log('∆∆∆∆∆∆∆∆∆∆');
-  // console.log('filename', filename);
-  // console.log('extension', extension);
-  // console.log('regex', filename === patternFileWithExtension);
-
-  // if (!this.req.isAuthenticated() && (this.request.originalUrl !== '/login') && (filename === patternFileWithExtension)) {
-  if (!this.req.isAuthenticated() && (this.request.originalUrl !== '/login') && (extension === filename)) {
-    // console.log('redirect');
-    this.redirect('/login');
-  } else {
-    // console.log('yield next');
-    yield next;
-  }
-
-  // console.log('^^^^^^^^^^');
-}
-
-function *login(next) {
-  var settings = {
-    bodyClass: 'login clear-header'
-  };
-
-  _.merge(settings, defaults);
-
-  this.body = yield render('login', settings);
-}
-
-function *logout(next) {
-  this.logout();
-  this.redirect('/');
-}
-
-// use koa-router
-app.use(router(app));
-// app.use(securedRouter);
-
-publicRouter.get('/', index);
-// app.get('/', index);
-
-// app.use(mount('/bookings', routeModules.bookings));
-// app.use(mount('/events', routeModules.events));
-// app.use(mount('/payments', routeModules.payments));
-// app.use(mount('/shows', routeModules.shows));
-// app.use(mount('/users', require(__dirname + '/admin/users')));
-
-publicRouter.get('/login', login);
-
-publicRouter.post('/login', passport.authenticate('local', {
-  successRedirect: '/',
-  failureRedirect: '/login'
+app.use(session({
+  store: redisStore({
+    host: 'session.7vappv.ng.0001.euw1.cache.amazonaws.com',
+    port: 6379
+  })
 }));
 
-publicRouter.get('/logout', logout);
+app.use(passport.initialize());
+app.use(passport.session());
 
-publicRouter.get(/^([^.]+)$/, error404); //matches everything without an extension
+app.use(function *(next) {
+  this.session.name = 'koa-redis';
+  yield next;
+});
 
-app.use(publicRouter.middleware());
+// app.use(bodyParser());
 
-app.use(isAuthenticated);
+app.use(serve('build/' + argv.application));
 
-var securedRouter = new router();
+app.use(mount('/bower_components', app.use(serve('bower_components'))));
 
-// securedRouter.get('/test', isAuthenticated, secured);
-securedRouter.get('/test', secured);
+app.use(router(app));
 
-// securedRouter.use(mount('/', routeModules.general)); // contains catch-all rule so mount last
-// app.use(mount('/users', routeModules.users));
-// publicRouter.use(mount('/', routeModules.error));
+if (environment === 'development') {
+  // No options or {init: false}
+  // The snippet must be provide by BROWSERSYNC_SNIPPET environment variable
+  app.use(require('koa-browser-sync')());
+}
 
-securedRouter.get(/^([^.]+)$/, error404); //matches everything without an extension
+// function *renderEach(name, objs) {
+//   var res = yield objs.map(function(obj){
+//     var opts = {};
+//     opts[name] = obj;
+//     return render(name, opts);
+//   });
+//
+//   return res.join('\n');
+// }
 
-app.use(securedRouter.middleware());
+function *error404(next) {
+  var settings = {
+    bodyClass: 'error error-404'
+  };
 
-// app.get(/^([^.]+)$/, error404); //matches everything without an extension
+  _.merge(settings, defaults);
+
+  this.body = yield render('error-404', settings);
+  this.status = 404;
+}
+
+function *home(next) {
+  var settings = {
+    bodyClass: 'home'
+  };
+
+  _.merge(settings, defaults);
+
+  // var body = yield renderEach('user', db.users);
+  var body = yield render('home', settings);
+
+  settings.body = body;
+
+  var html = yield render('layouts/default', settings);
+
+  this.body = html;
+}
+
+app.get('/', home);
+
+app.get(/^([^.]+)$/, error404); //matches everything without an extension
 
 module.exports = app;

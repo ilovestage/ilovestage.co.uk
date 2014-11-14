@@ -6,15 +6,19 @@ var environment = process.env.NODE_ENV ? process.env.NODE_ENV : 'development';
 require('./_utilities/auth');
 
 var _ = require('lodash');
+// var _.str = require('underscore.string');
 var argv = require('yargs').argv;
 var koa = require('koa');
+// var mount = require('koa-mount');
+// var bodyParser = require('koa-bodyparser');
+var passport = require('koa-passport');
 var router = require('koa-router');
 var serve = require('koa-static');
+var session = require('koa-generic-session');
+var redisStore = require('koa-redis');
 var views = require('co-views');
 
-var app = koa();
-
-var render = views('source/www/views', {
+var render = views('source/' + argv.application + '/views', {
   cache: true,
 
   map: {
@@ -32,7 +36,29 @@ var defaults = {
   description: 'I Love Stage'
 };
 
-app.use(serve('build/www'));
+var app = koa();
+
+app.name = argv.application;
+app.keys = ['keys', packageJson.config.redis.key];
+
+// app.use(session({
+//   store: redisStore({
+//     host: 'session.7vappv.ng.0001.euw1.cache.amazonaws.com',
+//     port: 6379
+//   })
+// }));
+//
+// app.use(passport.initialize());
+// app.use(passport.session());
+//
+// app.use(function *(next) {
+//   this.session.name = 'koa-redis';
+//   yield next;
+// });
+//
+// app.use(bodyParser());
+
+app.use(serve('build/' + argv.application));
 
 app.use(router(app));
 
@@ -42,15 +68,15 @@ if (environment === 'development') {
   app.use(require('koa-browser-sync')());
 }
 
-function *renderEach(name, objs) {
-  var res = yield objs.map(function(obj){
-    var opts = {};
-    opts[name] = obj;
-    return render(name, opts);
-  });
-
-  return res.join('\n');
-}
+// function *renderEach(name, objs) {
+//   var res = yield objs.map(function(obj){
+//     var opts = {};
+//     opts[name] = obj;
+//     return render(name, opts);
+//   });
+//
+//   return res.join('\n');
+// }
 
 function *error404(next) {
   var settings = {
@@ -63,7 +89,7 @@ function *error404(next) {
   this.status = 404;
 }
 
-function *home() {
+function *home(next) {
   var settings = {
     bodyClass: 'home'
   };
