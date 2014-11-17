@@ -30,7 +30,7 @@ pm2 graceful all
 sudo reboot now
 
 Run shows importer:
-node --harmony app.js --application importer
+node --harmony app.js --application importer --job shows-all
 
 node --harmony app.js --application api
 npm start app.js --application api
