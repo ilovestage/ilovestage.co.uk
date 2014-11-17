@@ -12,7 +12,7 @@ var stripe = require('stripe')(config.api.stripe.key);
 var thunkify = require('thunkify');
 var ua = require('universal-analytics');
 
-var database = require(__dirname + '/database');
+var database = require(__dirname + '/_utilities/database');
 var utilities = require(__dirname + '/_utilities/utilities');
 
 var db = new database(config.server.database);
