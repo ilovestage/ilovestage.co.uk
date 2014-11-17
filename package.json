@@ -212,6 +212,20 @@
           "key": "UA-55818646-3"
         }
       },
+      "importer": {
+        "app": {
+          "port": 5500
+        },
+        "browsersync": {
+          "port": 5520
+        },
+        "debug": {
+          "port": 5530
+        },
+        "googleanalytics": {
+          "key": "UA-55818646-5"
+        }
+      },
       "socket": {
         "app": {
           "port": 5300
