@@ -17,12 +17,6 @@ var utilities = require(__dirname + '/_utilities/utilities');
 
 var db = new database(config.server.database);
 
-var bookings = db.collection('bookings');
-var events = db.collection('events');
-var payments = db.collection('payments');
-var shows = db.collection('shows');
-var users = db.collection('users');
-
 var createChargeThunk = thunkify(stripe.charges.create);
 var createChargeBoundThunk = createChargeThunk.bind(stripe.charges);
 
@@ -37,7 +31,6 @@ var updateFields = {};
 var insertFields = {};
 
 var ticketBookingThreshold = 10;
-// var ticketBookingThreshold = 2; //test
 
 var currentDate = new Date();
 var rangeStart = moment(currentDate).add(7, 'days').toDate();
@@ -102,7 +95,7 @@ switch(argv.job) {
     };
 
     co(function *() {
-      var booking = yield bookings.find(searchFields.bookings, {
+      var booking = yield db.collection('bookings').find(searchFields.bookings, {
         fields: returnFields.bookings
       });
 
@@ -111,21 +104,21 @@ switch(argv.job) {
       _(booking).forEach(function(doc) {
         co(function *() {
           // console.log('doc', doc);
-          searchFields.events._id = doc.eventid.toString(); //reset variable;
+          searchFields.db.collection('events')._id = doc.eventid.toString(); //reset variable;
 
-          var event = yield events.findOne(searchFields.events, {
+          var event = yield db.collection('events').findOne(searchFields.events, {
             fields: returnFields.events
           });
 
           if (event) {
-            searchFields.payments.eventid = doc.eventid.toString(); //reset variable;
-            searchFields.users._id = doc.userid.toString(); //reset variable;
+            searchFields.db.collection('payments').eventid = doc.eventid.toString(); //reset variable;
+            searchFields.db.collection('users')._id = doc.userid.toString(); //reset variable;
 
-            // var payment = yield payments.findOne(searchFields.payments, {
+            // var payment = yield db.collection('payments').findOne(searchFields.payments, {
             //   fields: returnFields.payments
             // });
 
-            var user = yield users.findOne(searchFields.users, {
+            var user = yield db.collection('users').findOne(searchFields.users, {
               fields: returnFields.users
             });
 
@@ -148,9 +141,9 @@ switch(argv.job) {
 
               console.log('chargeInfo', chargeInfo);
 
-              insertFields.payments.bookingid = doc._id.toString();
-              insertFields.payments.token = user.stripeid;
-              insertFields.payments.time = currentDate;
+              insertFields.db.collection('payments').bookingid = doc._id.toString();
+              insertFields.db.collection('payments').token = user.stripeid;
+              insertFields.db.collection('payments').time = currentDate;
 
               try {
                 var charge = yield createChargeBoundThunk(chargeInfo);
@@ -158,15 +151,15 @@ switch(argv.job) {
                 if (charge) {
                   console.log('charge', charge);
 
-                  insertFields.payments.status = 'success';
-                  insertFields.payments.response = charge;
+                  insertFields.db.collection('payments').status = 'success';
+                  insertFields.db.collection('payments').response = charge;
 
-                  updateFields.bookings.$set.status = 'success';
+                  updateFields.db.collection('bookings').$set.status = 'success';
 
-                  var payment = yield payments.insert(insertFields.payments);
+                  var payment = yield db.collection('payments').insert(insertFields.payments);
                   console.log('payment', payment);
 
-                  var updatedBooking = yield bookings.findAndModify(searchFields.bookings, updateFields.bookings);
+                  var updatedBooking = yield db.collection('bookings').findAndModify(searchFields.bookings, updateFields.bookings);
                   console.log('updatedBooking', updatedBooking);
 
                   utilities.sendEmail('user-booking', {
@@ -177,15 +170,15 @@ switch(argv.job) {
               } catch(error) {
                 console.log('error', error); // ENOTFOUND
 
-                insertFields.payments.status = 'failure';
-                insertFields.payments.error = error;
+                insertFields.db.collection('payments').status = 'failure';
+                insertFields.db.collection('payments').error = error;
 
-                updateFields.bookings.$set.status = 'failure';
+                updateFields.db.collection('bookings').$set.status = 'failure';
 
-                var payment = yield payments.insert(insertFields.payments);
+                var payment = yield db.collection('payments').insert(insertFields.payments);
                 console.log('payment', payment);
 
-                var updatedBooking = yield bookings.findAndModify(searchFields.bookings, updateFields.bookings);
+                var updatedBooking = yield db.collection('bookings').findAndModify(searchFields.bookings, updateFields.bookings);
                 console.log('updatedBooking', updatedBooking);
 
                 utilities.sendEmail('admin-booking', {
