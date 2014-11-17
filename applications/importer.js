@@ -37,58 +37,70 @@ app.use(function* (next) {
   yield next;
 });
 
+var parser = csv.parse(
+  {
+    delimiter: '\n'
+  },
+  function(err, data) {
+    console.log('data', data);
+  }
+);
+
+var inputFile = path.normalize(__dirname + '/../data/import/shows/shows.xls - Theatres.csv');
+console.log(require(inputFile));
+
 switch(argv.job) {
   case 'shows-all':
-    var pattern = path.resolve(__dirname, '../data/import/shows/*.csv');
-    console.log('pattern', pattern);
-
-    var files = new Glob(
-      pattern,
-      {
-        sync: true
-      }
-    );
-
+    // var pattern = path.resolve(__dirname, '../data/import/shows/*.csv');
+    // console.log('pattern', pattern);
+    //
+    // var files = new Glob(
+    //   pattern,
+    //   {
+    //     sync: true
+    //   }
+    // );
+    //
     // console.log('files', files);
 
     // _(files).forEach(function(doc) {
     //   console.log('doc', doc);
     // });
 
-    // var empty = yield db.collection('shows').remove({});
     db.collectionSync('shows').remove({});
 
-    // var output = [];
     var transformer = csv.transform(function(data) {
       data.push(data.shift());
       return data;
     });
 
-    transformer.on('readable', function(){
-      // console.log('readable');
+    transformer.on('readable', function() {
       var row;
       while(row = transformer.read()) {
-        // console.log('row', row);
-        // output.push(row);
+        console.log('row', row);
         // row = {"heeey": "you"};
 
         var shows = db.collectionSync('shows').insert(row);
-        console.log('shows', shows);
+        // console.log('shows', shows);
       }
     });
 
     transformer.on('error', function(err) {
+      console.log('error');
       console.log(err.message);
     });
 
     transformer.on('finish', function(){
       // output.should.eql([ [ '2', '3', '4', '1' ], [ 'b', 'c', 'd', 'a' ] ]);
+      console.log('Importer application finished.');
     });
 
-    transformer.write(['1','2','3','4']);
-    transformer.write(['a','b','c','d']);
+    // transformer.write(['1','2','3','4']);
+    // transformer.write(['a','b','c','d']);
 
     // iterate over CSV rows, send each to the transformer, convert the structure in the readable transformer state and then save in the  readable transformer state.
+    console.log('inputFile', inputFile);
+    fs.createReadStream(inputFile).pipe(parser);
 
     transformer.end();
 
