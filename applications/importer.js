@@ -28,16 +28,6 @@ var visitor = ua(packageJson.config.applications.importer.googleanalytics.key);
 
 var currentDate = new Date();
 
-var promise = {
-  db: {
-    shows: co.wrap(function* (val) {
-      return yield Promise.resolve(val);
-    })
-  }
-};
-
-
-
 app.use(function* (next) {
   var job = argv.job.split('-');
 
@@ -66,7 +56,7 @@ switch(argv.job) {
     // });
 
     // var empty = yield db.collection('shows').remove({});
-    db.collection('shows').remove({});
+    db.collectionSync('shows').remove({});
 
     // var output = [];
     var transformer = csv.transform(function(data) {
@@ -75,15 +65,15 @@ switch(argv.job) {
     });
 
     transformer.on('readable', function(){
-      console.log('readable');
+      // console.log('readable');
       var row;
       while(row = transformer.read()) {
-        console.log('row', row);
+        // console.log('row', row);
         // output.push(row);
+        // row = {"heeey": "you"};
 
-        promise.db.shows(true).then(function (row) {
-          console.log(row);
-        });
+        var shows = db.collectionSync('shows').insert(row);
+        console.log('shows', shows);
       }
     });
 
@@ -98,8 +88,9 @@ switch(argv.job) {
     transformer.write(['1','2','3','4']);
     transformer.write(['a','b','c','d']);
 
-    transformer.end();
+    // iterate over CSV rows, send each to the transformer, convert the structure in the readable transformer state and then save in the  readable transformer state.
 
+    transformer.end();
 
   break;
 }
