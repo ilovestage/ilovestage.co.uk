@@ -1,0 +1,55 @@
+<!--
+@group Custom Elements
+@element custom-navigation-menu
+@extends core-menu
+-->
+
+<link rel="import" href="/bower_components/core-ajax/core-ajax.html">
+<link rel="import" href="/bower_components/core-item/core-item.html">
+<link rel="import" href="/bower_components/core-menu/core-menu.html">
+
+<!-- <polymer-element name="custom-navigation-menu" extends="core-menu" noscript> -->
+<polymer-element name="custom-navigation-menu" attributes="url headers">
+
+  <template>
+
+    <core-ajax
+      auto
+      url="{{url}}"
+      handleAs="json"
+      response="{{items}}"
+    ></core-ajax>
+
+    <!--
+    <core-ajax
+      auto
+      url="http://www.filltext.com/"
+      params='{
+        "rows": "3",
+        "fname": "{firstName}"
+      }'
+      handleAs="json"
+      response="{{items}}"
+    ></core-ajax>
+    -->
+
+    <core-menu>
+      <template repeat="{{item, i in items}}">
+        <core-item label="{{item.fname}}"></core-item>
+      </template>
+    </core-menu>
+
+  </template>
+
+  <script>
+  (function() {
+
+    Polymer('custom-navigation-menu', {
+      // url: '',
+      // headers: ''
+    });
+
+  })();
+  </script>
+
+</polymer-element>

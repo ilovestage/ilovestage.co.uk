@@ -1,0 +1,36 @@
+<!--
+@group Custom Elements
+@element custom-navigation-menu
+@extends core-menu
+-->
+
+<link rel="import" href="../core-ajax/core-ajax.html">
+<link rel="import" href="../core-item/core-item.html">
+<link rel="import" href="../core-menu/core-menu.html">
+
+<polymer-element name="custom-navigation-menu" extends="core-menu" noscript>
+
+  <template>
+<!--
+    url="//<%= url.api.url %>/users"
+    headers='{"Requested-With": "XMLHttpRequest"}'
+-->
+
+    <core-ajax
+      auto
+      url="http://www.filltext.com/"
+      params='{
+        "rows": "3",
+        "fname": "firstname"
+      }'
+      handleAs="json"
+      response="{{items}}"
+    ></core-ajax>
+
+    <template repeat="{{item, i in items}}">
+      <core-item label="item.fname"></core-item>
+    </template>
+
+  </template>
+
+</polymer-element>
