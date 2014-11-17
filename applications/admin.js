@@ -3,22 +3,24 @@
 var packageJson = require(__dirname + '/../package.json');
 var environment = process.env.NODE_ENV ? process.env.NODE_ENV : 'development';
 
-require('./_utilities/auth');
+// require('./_utilities/auth');
 
 var _ = require('lodash');
 // var _.str = require('underscore.string');
 var argv = require('yargs').argv;
+var bodyParser = require('koa-bodyparser');
 var koa = require('koa');
 var mount = require('koa-mount');
-// var bodyParser = require('koa-bodyparser');
 var passport = require('koa-passport');
 var router = require('koa-router');
 var serve = require('koa-static');
-var session = require('koa-generic-session');
-var redisStore = require('koa-redis');
+// var session = require('koa-generic-session');
+var session = require('koa-session-redis');
+// var redisStore = require('koa-redis');
 var views = require('co-views');
 
 var defaults;
+var redisConfiguration;
 
 var api = {};
 
@@ -27,14 +29,24 @@ api.version = 1.0;
 var app = koa();
 
 app.name = argv.application;
-app.keys = ['keys', packageJson.config.redis.key];
+
+if (environment === 'development') {
+  // No options or {init: false}
+  // The snippet must be provide by BROWSERSYNC_SNIPPET environment variable
+  app.use(require('koa-browser-sync')());
+}
 
 app.use(function *(next) {
   var apiUrl = (environment === 'production') ? packageJson.config.environment[environment].url.api : this.request.hostname + ':' + packageJson.config.applications.api.app.port;
+  var redisHost = (environment === 'production') ? packageJson.config.environment[environment].server.redis.host : this.request.hostname;
 
   api.url = apiUrl + '/v' + api.version.toFixed(1);
 
-  // console.log('api.url', api.url);
+  redisConfiguration = {
+    host: redisHost,
+    port: packageJson.config.environment[environment].server.redis.port,
+    ttl: 3600
+  }
 
   defaults = {
     application: packageJson.config.applications[argv.application],
@@ -58,34 +70,31 @@ var render = views('source/' + argv.application + '/views', {
   }
 });
 
-app.use(session({
-  store: redisStore({
-    host: 'session.7vappv.ng.0001.euw1.cache.amazonaws.com',
-    port: 6379
-  })
-}));
+app.use(bodyParser());
 
-app.use(passport.initialize());
-app.use(passport.session());
+// app.use(session({
+//   store: redisStore(redisConfiguration)
+// }));
+
+app.use(session({
+    store: redisConfiguration
+  }
+));
+
+// app.use(passport.initialize());
+// app.use(passport.session());
 
 app.use(function *(next) {
   this.session.name = 'koa-redis';
   yield next;
 });
 
-// app.use(bodyParser());
-
 app.use(serve('build/' + argv.application));
 
 app.use(mount('/bower_components', app.use(serve('bower_components'))));
+app.use(mount('/custom_components', app.use(serve('custom_components'))));
 
 app.use(router(app));
-
-if (environment === 'development') {
-  // No options or {init: false}
-  // The snippet must be provide by BROWSERSYNC_SNIPPET environment variable
-  app.use(require('koa-browser-sync')());
-}
 
 // function *renderEach(name, objs) {
 //   var res = yield objs.map(function(obj){
@@ -120,7 +129,8 @@ function *home(next) {
 
   settings.body = body;
 
-  var html = yield render('layouts/default', settings);
+  // var html = yield render('layouts/default', settings);
+  var html = yield render('layouts/core-scaffold', settings);
 
   this.body = html;
 }
