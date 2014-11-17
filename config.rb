@@ -34,6 +34,8 @@ sass_options = {
 }
 enable_sourcemaps = true
 
+add_import_path Sass::CssImporter::Importer.new("node_modules")
+
 # Workaround Compass bug
 module Compass::SassExtensions::Functions::Sprites
     def sprite_path(map)
