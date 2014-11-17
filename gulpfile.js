@@ -28,7 +28,7 @@ if(argv.application) {
   }
 
   requireDir(
-    './tasks',
+    './gulp_tasks',
     {
       recurse: true
     }

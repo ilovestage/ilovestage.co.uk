@@ -7,7 +7,7 @@ var gulp = require('gulp');
 var sass = require('gulp-sass');
 var sourcemaps = require('gulp-sourcemaps');
 
-// var directory = require(__dirname + '/_utilities/directory');
+var directory = require(__dirname + '/_utilities/directory');
 var handleErrors = require(__dirname + '/_utilities/handleErrors');
 
 var config = require(__dirname + '/_utilities/config').sass;
@@ -21,12 +21,15 @@ gulp.task('sass', function() {
   .pipe(sourcemaps.init())
   .pipe(
     sass(
-      // {
-        // compass: true,
-        // bundleExec: true
-        // sourcemap: true,
-        // sourcemapPath: '../sass'
-      // },
+      {
+        bundleExec: true,
+        compass: true,
+        includePaths: [
+          directory.bower_components,
+          directory.node_modules,
+          directory.utilities
+        ]
+      },
       {
         errLogToConsole: true
       }
