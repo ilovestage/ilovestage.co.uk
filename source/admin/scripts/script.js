@@ -2,7 +2,7 @@
 
 var _ = require('lodash');
 var $ = require('jquery');
-var _ = require('lokijs');
+var lokijs = require('lokijs');
 
 var greetings = require('./greetings');
 
