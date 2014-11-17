@@ -69,6 +69,8 @@ var currentUser;
 
 var messages = {};
 
+var bypassAuthentication;
+
 messages.badRequest = 'The request cannot be fulfilled due to bad syntax.';
 messages.forbidden = 'Operation forbidden.  Supplied uid not authenticated to access this resource or perform this operation.';
 messages.invalidUid = 'Invalid uid format.  Please provide a uid as a 24 character hexadecimal string.';
@@ -81,15 +83,16 @@ messages.resourceNotFound = 'Resource not found.';
 messages.specifyContentType = 'Unsupported media type';
 messages.unauthorised = 'Authorisation required.';
 messages.unprocessableEntity = 'The request was well-formed but was unable to be followed due to semantic errors.';
+messages.unknownError = 'An unknown error occurred.';
 
 var app = koa();
 
-app.version = 1.0;
+app.version = '1.0.0';
 
 qs(app);
 
-app.use(bodyParser());
-app.use(session());
+// app.use(bodyParser());
+// app.use(session());
 
 app.use(function *(next) {
   body = {};
@@ -115,6 +118,8 @@ app.use(function *(next) {
   user = null;
   users = null;
 
+  bypassAuthentication = false;
+
   mailFields = {};
   returnFields = {};
   updateFields = {};
@@ -136,40 +141,48 @@ app.use(function *(next) {
 
   body.originalUrl = this.request.originalUrl;
 
-  if((typeof this.request.header['content-type'] === 'undefined') && (this.query.format !== 'json')) {
-    errorMessage = messages.specifyContentType;
-    status = 415;
+  // if((typeof this.request.header['content-type'] === 'undefined') && (this.query.format !== 'json') && (this.query.responseType !== 'json')) {
+  //   errorMessage = messages.specifyContentType;
+  //   status = 415;
+  //
+  //   body.status = status; // use HTTP status code
+  //   body.error = errorMessage;
+  //   body.result = result;
+  //
+  //   this.body = body;
+  //   this.status = status;
+  //   this.type = 'application/json';
+  //
+  //   return false;
+  // }
 
-    body.status = status; // use HTTP status code
-    body.error = errorMessage;
-    body.result = result;
+  // if(this.query.bypass === 'true') {
+  //   bypassAuthentication = true;
+  //
+  //   currentUser = 'bypassed';
+  // } else {
+  //   if(this.request.header.uid) {
+  //     returnFields = {
+  //       _id: 1,
+  //       uid: 1,
+  //       type: 1
+  //     };
+  //
+  //     currentUser = yield db.collection('users').findOne({
+  //       uid: this.request.header.uid.toString()
+  //     }, {
+  //       fields: returnFields
+  //     });
+  //
+  //   }
+  //
+  // }
 
-    this.body = body;
-    this.status = status;
-    this.type = 'application/json';
+  yield next;
 
-    this.set('WWW-Authenticate', 'Basic');
+});
 
-    return false;
-  }
-
-  // if(objectid.isValid(this.request.header.uid)) {
-  if(this.request.header.uid) {
-    returnFields = {
-      _id: 1,
-      uid: 1,
-      type: 1
-    };
-
-    currentUser = yield db.collection('users').findOne({
-      uid: this.request.header.uid.toString()
-    }, {
-      fields: returnFields
-    });
-
-    console.log('currentUser', currentUser);
-  }
-
+app.use(function *(next) {
   try {
     yield next;
   } catch (error) {
@@ -192,10 +205,9 @@ app.use(function *(next) {
   }
 });
 
-app.use(router(app));
-
-// app.use(httpBasicAuthCredentials);
-app.use(auth(httpBasicAuthCredentials));
+if(bypassAuthentication !== true) {
+  app.use(auth(httpBasicAuthCredentials));
+}
 
 function userHasPrivilege(uid) {
   if(typeof uid === 'undefined') {
@@ -214,19 +226,18 @@ function userHasPrivilege(uid) {
   // console.log('uid', uid);
   // console.log('currentUser.uid', currentUser.uid);
 
-  if((uid && currentUser && (uid === currentUser.uid)) || (currentUser && currentUser.hasOwnProperty('type') && (currentUser.type === 'admin'))) {
+  if(bypassAuthentication === true) {
+    return true;
+  } else if((uid && currentUser && (uid === currentUser.uid)) || (currentUser && currentUser.hasOwnProperty('type') && (currentUser.type === 'admin'))) {
   // if((uid && objectid.isValid(uid.toString()) && (uid.toString() === currentUser.uid)) || (currentUser && currentUser.hasOwnProperty('type') && (currentUser.type === 'admin'))) {
-    // console.log('userHasPrivilege true');
     return true;
   } else {
-    // console.log('userHasPrivilege false');
     status = 403;
     return false;
   }
 }
 
 function *isAuthenticated(next) {
-  // if(objectid.isValid(this.request.header.uid)) {
   if(this.request.header.uid) {
     if (currentUser) {
       status = 200;
@@ -252,10 +263,14 @@ function *isAuthenticated(next) {
   this.body = body;
   this.status = status;
   this.type = 'application/json';
+
+  yield next;
 }
 
+app.use(router(app));
+
 app.get('/', function* (next) {
-  result = packageJson.name + ' API version ' + app.version.toFixed(1);
+  result = packageJson.name + ' API version ' + app.version;
   status = 200;
 
   yield next;
@@ -300,7 +315,7 @@ app.get('/events', function* (next) {
   });
 
   _(events).forEach(function (doc) {
-		co(function *() {
+    co(function *() {
       doc.bookings = yield db.collection('bookings').count({
         eventid: doc._id.toString()
       });
@@ -327,7 +342,7 @@ app.get('/events', function* (next) {
           doc.ticketsBooked = 0;
         }
       });
-		})(next);
+    })(next);
   });
 
   if (!events) {
@@ -567,7 +582,7 @@ app.get('/users', function* (next) {
       result = user;
     }
   } else {
-    if(userHasPrivilege('admin') || this.query.override === 'true') {
+    if(userHasPrivilege('admin')) {
       users = yield db.collection('users').find(searchFields, {
         fields: returnFields,
         limit: limit
@@ -623,7 +638,7 @@ app.get('/users/:id', isAuthenticated, function* (next) {
 });
 
 app.post('/users', function* (next) {
-  if(!userHasPrivilege('admin') || this.query.override !== 'true') {
+  if(!userHasPrivilege('admin')) {
     if(document.type) {
       document.type = 'standard';
     }
@@ -731,7 +746,7 @@ app.post('/users', function* (next) {
 });
 
 app.put('/users/:id', isAuthenticated, function* (next) {
-  if(!userHasPrivilege('admin') || this.query.override !== 'true') {
+  if(!userHasPrivilege('admin')) {
     if(document.type) {
       delete document.type;
     }
@@ -1296,7 +1311,7 @@ app.post('/shows/:id/reviews', function* (next) {
   yield next;
 });
 
-app.put('/shows/:id/reviews', function* () {
+app.put('/shows/:id/reviews', function* (next) {
   if (this.query.replace === 'true') {
     updateFields = {
       reviews: document
@@ -1335,9 +1350,10 @@ app.get(/^([^.]+)$/, function* (next) {
 }); //matches everything without an extension
 
 app.use(function *(next) {
+  console.log('status', status);
   body.status = status; // use HTTP status code
   if(!errorMessage) {
-    switch(body.status) {
+    switch(status) {
       case 400:
         errorMessage = messages.badRequest;
       break;
@@ -1355,6 +1371,10 @@ app.use(function *(next) {
       break;
       case 422:
         errorMessage = messages.unprocessableEntity;
+      break;
+      case null:
+        status = 500;
+        errorMessage = messages.unknownError;
       break;
     }
   }
