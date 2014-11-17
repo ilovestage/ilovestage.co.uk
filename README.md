@@ -35,5 +35,7 @@ node --harmony app.js --application importer
 node --harmony app.js --application api
 npm start app.js --application api
 
+redis-cli -h localhost -p 6379
+
 http://charliegleason.com/articles/harp-gulp-and-browsersync
 http://harpjs.com/
