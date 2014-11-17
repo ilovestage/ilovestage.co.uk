@@ -64,6 +64,7 @@
     "koa-bodyparser": "^1.2.0",
     "koa-browser-sync": "0.0.1",
     "koa-compress": "^1.0.8",
+    "koa-cors": "0.0.14",
     "koa-generic-session": "^1.2.2",
     "koa-logger": "^1.2.2",
     "koa-mount": "^1.3.0",
@@ -72,6 +73,7 @@
     "koa-redis": "^0.1.1",
     "koa-request": "^1.0.0",
     "koa-router": "^3.6.0",
+    "koa-session-redis": "^1.1.0",
     "koa-static": "^1.4.7",
     "lodash": "^2.4.1",
     "lokijs": "^1.0.2",
@@ -82,6 +84,7 @@
     "ng-table": "^0.3.2",
     "node-inspector": "^0.7.4",
     "nodemailer": "^1.3.0",
+    "normalize.css": "^3.0.2",
     "passport": "^0.2.1",
     "passport-facebook": "^1.0.3",
     "passport-google": "^0.3.0",
@@ -260,11 +263,14 @@
             "protocol": "mongodb",
             "host": "127.0.0.1",
             "name": "ilovestage",
-            "port": 17017,
+            "port": 27017,
             "credentials": {
               "username": null,
               "password": null
             }
+          },
+          "redis": {
+            "port": 6379
           }
         },
         "api": {
@@ -287,6 +293,9 @@
               "username": null,
               "password": null
             }
+          },
+          "redis": {
+            "port": 6379
           }
         },
         "api": {
@@ -310,6 +319,10 @@
               "username": "ilovestage",
               "password": "curtaincall1"
             }
+          },
+          "redis": {
+            "host": "session.7vappv.ng.0001.euw1.cache.amazonaws.com",
+            "port": 6379
           }
         },
         "api": {
