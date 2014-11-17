@@ -47,7 +47,11 @@ var application = function(configuration) {
 
   this.collection = function(collection) {
     return wrap(database.get(collection));
-  }
+  };
+
+  this.collectionSync = function(collection) {
+    return database.get(collection);
+  };
 
 };
 
