@@ -12,9 +12,10 @@ var ua = require('universal-analytics');
 var visitor = ua(packageJson.config.applications.api.googleanalytics.key);
 
 var versions = [
-  '1.0.0',
-  '1.0.1',
-  '2.0.0'
+  '1.0.0'
+  // ,
+  // '1.0.1',
+  // '2.0.0'
 ];
 
 var app = koa();
