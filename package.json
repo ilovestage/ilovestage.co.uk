@@ -292,6 +292,19 @@
           "stripe": {
             "key": "sk_test_jPWMsPFPKWQgn2HlAhWfs09B"
           }
+        },
+        "email": {
+          "transport": {
+            "service": "Gmail",
+            "auth": {
+              "user": "ilovestageapp@gmail.com",
+              "pass": "curtaincall"
+            }
+          },
+          "sender": {
+            "name": "I Love Stage UK",
+            "email": "ilovestageapp@gmail.com"
+          }
         }
       },
       "staging": {
@@ -316,6 +329,19 @@
         "api": {
           "stripe": {
             "key": "sk_test_jPWMsPFPKWQgn2HlAhWfs09B"
+          }
+        },
+        "email": {
+          "transport": {
+            "service": "Gmail",
+            "auth": {
+              "user": "ilovestageapp@gmail.com",
+              "pass": "curtaincall"
+            }
+          },
+          "sender": {
+            "name": "I Love Stage UK",
+            "email": "ilovestageapp@gmail.com"
           }
         }
       },
@@ -343,6 +369,19 @@
         "api": {
           "stripe": {
             "key": "sk_live_UINfCzU5LSdkaPoIDETge6iS"
+          }
+        },
+        "email": {
+          "transport": {
+            "service": "Gmail",
+            "auth": {
+              "user": "hello@ilovestage.co.uk",
+              "pass": "curtaincall"
+            }
+          },
+          "sender": {
+            "name": "I Love Stage UK",
+            "email": "hello@ilovestage.co.uk"
           }
         }
       }
