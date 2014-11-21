@@ -17,6 +17,9 @@ var stripe = require('stripe')(packageJson.config.environment[environment].api.s
 var thunkify = require('thunkify');
 
 var database = require(__dirname + '/../_utilities/database');
+var date = require(__dirname + '/../_utilities/date');
+var email = require(__dirname + '/../_utilities/email');
+var internationalization = require(__dirname + '/../_utilities/internationalization');
 var schemas = require(__dirname + '/../_utilities/schemas');
 var utilities = require(__dirname + '/../_utilities/utilities');
 var validator = require(__dirname + '/../_utilities/validator');
@@ -129,8 +132,8 @@ app.use(function *(next) {
   chargeInfo = null;
   password = null;
 
-  searchFields = utilities.handleDateQuery(this.query).searchFields;
-  status = utilities.handleDateQuery(this.query).status;
+  searchFields = date.handleDateQuery(this.query).searchFields;
+  status = date.handleDateQuery(this.query).status;
 
   document = this.request.body;
 
@@ -216,7 +219,7 @@ function userHasPrivilege(uid) {
     uid = uid.toString();
   }
 
-  uid = utilities.getEncryptedUid(uid); // to be sent encrypted
+  uid = cryptography.encryptUid(uid); // to be sent encrypted
 
   // console.log('currentUser._id', currentUser._id.toString());
 
@@ -558,7 +561,7 @@ app.get('/users', function* (next) {
       status = 404;
     } else {
       if ((typeof user.strategies !== 'undefined') && (typeof user.strategies.local !== 'undefined') && (typeof user.strategies.local.password !== 'undefined')) {
-        password = utilities.getEncryptedPassword(this.query.password);
+        password = cryptography.encryptPassword(this.query.password);
 
         if (password === user.strategies.local.password) {
           status = 200;
@@ -686,7 +689,7 @@ app.post('/users', function* (next) {
       dj.object(document);
       delete document.format;
 
-      document.strategies.local.password = utilities.getEncryptedPassword(document.strategies.local.password);
+      document.strategies.local.password = cryptography.encryptPassword(document.strategies.local.password);
 
       user = yield db.collection('users').insert(document);
 
@@ -702,7 +705,7 @@ app.post('/users', function* (next) {
 
         updateFields = {
           $set: {
-            uid: utilities.getEncryptedUid(user._id).toString(),
+            uid: cryptography.encryptUid(user._id).toString(),
             stripeid: card.id.toString()
           }
         };
@@ -725,8 +728,8 @@ app.post('/users', function* (next) {
             }
           };
 
-          // utilities.sendEmail(mailFields, 'user-signup');
-          utilities.addUserToMailingList(mailFields);
+          // email.send(mailFields, 'user-signup');
+          email.mailingList.addUser(mailFields);
         }
 
         if (user && user.strategies && user.strategies.local && user.strategies.local.password) {
@@ -909,13 +912,13 @@ app.post('/bookings', function* (next) {
       status = 404;
     } else {
       if(booking.tickets >= 8) {
-        utilities.sendEmail({
+        email.send({
           subject: 'Booking target reached', // Subject line
           email: utilities.emailSender.address
         }, 'admin-booking');
       }
 
-      utilities.sendEmail({
+      email.send({
         subject: 'Booking confirmed', // Subject line
         email: user.strategies.local.email,
         name: {
@@ -961,7 +964,7 @@ app.put('/bookings/:id', function* (next) {
     //   });
     //
     //   if(user && user.length > 0) {
-    //     utilities.sendEmail({
+    //     email.send({
     //       subject: 'Booking confirmed', // Subject line
     //       email: user.strategies.local.email,
     //       name: {
@@ -970,7 +973,7 @@ app.put('/bookings/:id', function* (next) {
     //       }
     //     }, 'user-booking');
     //
-    //     utilities.sendEmail({
+    //     email.send({
     //       subject: 'Booking target reached', // Subject line
     //       email: utilities.emailSender.address
     //     }, 'admin-booking');
@@ -1194,7 +1197,7 @@ app.get('/shows', function* (next) {
     status = 404;
   } else {
     if (typeof this.query.lang !== 'undefined') {
-      shows = utilities.handleInternationalization(
+      shows = internationalization.translate(
         shows,
         [
           'name',
@@ -1218,7 +1221,7 @@ app.get('/shows/:id', function* (next) {
     status = 404;
   } else {
     if (typeof this.query.lang !== 'undefined') {
-      show = utilities.handleInternationalization(
+      show = internationalization.translate(
         show,
         [
           'name',
