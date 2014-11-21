@@ -5,7 +5,7 @@
 
 var bson = require('bson');
 
-var utilities = {
+var utility = {
 
   validateObjectId: function(id) {
     var bool = false;
@@ -25,4 +25,4 @@ var utilities = {
   }
 };
 
-module.exports = utilities;
+module.exports = utility;

@@ -16,15 +16,15 @@ var session = require('koa-generic-session');
 var stripe = require('stripe')(packageJson.config.environment[environment].api.stripe.key);
 var thunkify = require('thunkify');
 
-var database = require(__dirname + '/../_utilities/database');
+// var database = require(__dirname + '/../_utilities/database');
 var date = require(__dirname + '/../_utilities/date');
 var email = require(__dirname + '/../_utilities/email');
 var internationalization = require(__dirname + '/../_utilities/internationalization');
-var schemas = require(__dirname + '/../_utilities/schemas');
-var utilities = require(__dirname + '/../_utilities/utilities');
-var validator = require(__dirname + '/../_utilities/validator');
+// var schema = require(__dirname + '/../_utilities/schema');
+var utility = require(__dirname + '/../_utilities/utility');
+// var validator = require(__dirname + '/../_utilities/validator');
 
-var db = new database(packageJson.config.environment[environment].server.database);
+// var db = new database(packageJson.config.environment[environment].server.database);
 var dj = new DJ();
 // var kaiseki = new Kaiseki(packageJson.config.api.parse.appid, packageJson.config.api.parse.key);
 
@@ -88,6 +88,109 @@ messages.unauthorised = 'Authorisation required.';
 messages.unprocessableEntity = 'The request was well-formed but was unable to be followed due to semantic errors.';
 messages.unknownError = 'An unknown error occurred.';
 
+function* userHasPrivilege(uid) {
+  if(typeof uid === 'undefined') {
+    uid = null;
+  } else {
+    uid = uid.toString();
+  }
+
+  uid = cryptography.encryptUid(uid); // to be sent encrypted
+
+  // console.log('currentUser._id', currentUser._id.toString());
+
+  // console.log('objectid.isValid(uid.toString())', objectid.isValid(uid.toString()));
+  // console.log('(uid.toString() === currentUser._id.toString())', (uid.toString() === currentUser._id.toString()));
+
+  // console.log('uid', uid);
+  // console.log('currentUser.uid', currentUser.uid);
+
+  if(bypassAuthentication === true) {
+    return true;
+  } else if((uid && currentUser && (uid === currentUser.uid)) || (currentUser && currentUser.hasOwnProperty('type') && (currentUser.type === 'admin'))) {
+  // if((uid && objectid.isValid(uid.toString()) && (uid.toString() === currentUser.uid)) || (currentUser && currentUser.hasOwnProperty('type') && (currentUser.type === 'admin'))) {
+    return true;
+  } else {
+    status = 403;
+    return false;
+  }
+}
+
+function* isAuthenticated(next) {
+  if(this.request.header.uid) {
+    if (currentUser) {
+      status = 200;
+      yield next;
+    } else {
+      errorMessage = messages.noUserForUid;
+      status = 401;
+    }
+  } else {
+    if(!this.request.header.uid) {
+      errorMessage = messages.noUid;
+    } else {
+      errorMessage = messages.invalidUid;
+    }
+
+    status = 401;
+  }
+  
+   body.status = status; // use HTTP status code
+   body.error = errorMessage;
+   body.result = result;
+ 
+   this.body = body;
+   this.status = status;
+   this.type = 'application/json';
+
+  yield next;
+}
+
+function* setResponse(next) {
+  console.log('status', status);
+  console.log('next', next);
+
+  body.status = status; // use HTTP status code
+
+  if(!errorMessage) {
+    switch(status) {
+      case 400:
+        errorMessage = messages.badRequest;
+        break;
+      case 401:
+        errorMessage = messages.unauthorised;
+        break;
+      case 403:
+        errorMessage = messages.forbidden;
+        break;
+      case 404:
+        errorMessage = messages.resourceNotFound;
+        break;
+      case 415:
+        errorMessage = messages.specifyContentType;
+        break;
+      case 422:
+        errorMessage = messages.unprocessableEntity;
+        break;
+      case null:
+        status = 500;
+        errorMessage = messages.unknownError;
+        break;
+      default:
+        break;
+    }
+  }
+
+  body.error = errorMessage;
+  body.result = result;
+
+  this.body = body;
+  this.status = status;
+  this.type = 'application/json';
+
+  yield next;
+}
+
 var app = koa();
 
 app.version = '1.0.0';
@@ -97,7 +200,7 @@ qs(app);
 // app.use(bodyParser());
 // app.use(session());
 
-app.use(function *(next) {
+app.use(function* (next) {
   body = {};
   document = {};
   errorMessage = null;
@@ -181,11 +284,6 @@ app.use(function *(next) {
   //
   // }
 
-  yield next;
-
-});
-
-app.use(function *(next) {
   try {
     yield next;
   } catch (error) {
@@ -210,64 +308,6 @@ app.use(function *(next) {
 
 if(bypassAuthentication !== true) {
   app.use(auth(httpBasicAuthCredentials));
-}
-
-function userHasPrivilege(uid) {
-  if(typeof uid === 'undefined') {
-    uid = null;
-  } else {
-    uid = uid.toString();
-  }
-
-  uid = cryptography.encryptUid(uid); // to be sent encrypted
-
-  // console.log('currentUser._id', currentUser._id.toString());
-
-  // console.log('objectid.isValid(uid.toString())', objectid.isValid(uid.toString()));
-  // console.log('(uid.toString() === currentUser._id.toString())', (uid.toString() === currentUser._id.toString()));
-
-  // console.log('uid', uid);
-  // console.log('currentUser.uid', currentUser.uid);
-
-  if(bypassAuthentication === true) {
-    return true;
-  } else if((uid && currentUser && (uid === currentUser.uid)) || (currentUser && currentUser.hasOwnProperty('type') && (currentUser.type === 'admin'))) {
-  // if((uid && objectid.isValid(uid.toString()) && (uid.toString() === currentUser.uid)) || (currentUser && currentUser.hasOwnProperty('type') && (currentUser.type === 'admin'))) {
-    return true;
-  } else {
-    status = 403;
-    return false;
-  }
-}
-
-function *isAuthenticated(next) {
-  if(this.request.header.uid) {
-    if (currentUser) {
-      status = 200;
-      yield next;
-    } else {
-      errorMessage = messages.noUserForUid;
-      status = 401;
-    }
-  } else {
-    if(!this.request.header.uid) {
-      errorMessage = messages.noUid;
-    } else {
-      errorMessage = messages.invalidUid;
-    }
-
-    status = 401;
-  }
-
-  body.status = status; // use HTTP status code
-  body.error = errorMessage;
-  body.result = result;
-
-  this.body = body;
-  this.status = status;
-  this.type = 'application/json';
-
-  yield next;
 }
 
 app.use(router(app));
@@ -318,7 +358,7 @@ app.get('/events', function* (next) {
   });
 
   _(events).forEach(function (doc) {
-    co(function *() {
+    co(function* () {
       doc.bookings = yield db.collection('bookings').count({
         eventid: doc._id.toString()
       });
@@ -647,7 +687,7 @@ app.post('/users', function* (next) {
     }
   }
 
-  if(validator.validate(document, schemas.user, false, true)) {
+  if(validator.validate(document, schema.user, false, true)) {
     if (typeof document.strategies !== 'undefined') {
       if((typeof document.strategies.local !== 'undefined') && (typeof document.strategies.local.email !== 'undefined')) {
         orParameters.push({
@@ -914,7 +954,7 @@ app.post('/bookings', function* (next) {
       if(booking.tickets >= 8) {
         email.send({
           subject: 'Booking target reached', // Subject line
-          email: utilities.emailSender.address
+          email: email.sender.address
         }, 'admin-booking');
       }
 
@@ -975,7 +1015,7 @@ app.put('/bookings/:id', function* (next) {
     //
     //     email.send({
     //       subject: 'Booking target reached', // Subject line
-    //       email: utilities.emailSender.address
+    //       email: email.sender.address
     //     }, 'admin-booking');
     //
     //     notification = {
@@ -1092,9 +1132,9 @@ app.get('/payments/:id', isAuthenticated, function* (next) {
 
 app.post('/payments', function* (next) {
   console.log('document', document);
-  console.log('Valid: ' + validator.validate(document, schemas.payment, false, true)); // true
+  console.log('Valid: ' + validator.validate(document, schema.payment, false, true)); // true
 
-  if(validator.validate(document, schemas.payment, false, true)) {
+  if(validator.validate(document, schema.payment, false, true)) {
     document.time = new Date();
 
     if(!document.hasOwnProperty('bookingid') || !document.hasOwnProperty('processor') || !document.hasOwnProperty('currency') || !document.hasOwnProperty('amount')) {
@@ -1352,44 +1392,6 @@ app.get(/^([^.]+)$/, function* (next) {
   yield next;
 }); //matches everything without an extension
 
-app.use(function *(next) {
-  console.log('status', status);
-  body.status = status; // use HTTP status code
-  if(!errorMessage) {
-    switch(status) {
-      case 400:
-        errorMessage = messages.badRequest;
-      break;
-      case 401:
-        errorMessage = messages.unauthorised;
-      break;
-      case 403:
-        errorMessage = messages.forbidden;
-      break;
-      case 404:
-        errorMessage = messages.resourceNotFound;
-      break;
-      case 415:
-        errorMessage = messages.specifyContentType;
-      break;
-      case 422:
-        errorMessage = messages.unprocessableEntity;
-      break;
-      case null:
-        status = 500;
-        errorMessage = messages.unknownError;
-      break;
-    }
-  }
-
-  body.error = errorMessage;
-  body.result = result;
-
-  this.body = body;
-  this.status = status;
-  this.type = 'application/json';
-
-  yield next;
-});
+app.use(setResponse);
 
 module.exports = app;

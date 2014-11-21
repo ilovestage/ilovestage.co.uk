@@ -1,8 +1,8 @@
 'use strict';
 
-var schemas = {};
+var schema = {};
 
-schemas.user = {
+schema.user = {
   'title': 'User Schema',
   'type': 'object',
   'properties': {
@@ -139,41 +139,4 @@ schemas.user = {
   ]
 };
 
-schemas.payment = {
-  'title': 'Payment Schema',
-  'type': 'object',
-  'properties': {
-    'bookingid': {
-      'type': 'string',
-      'format': 'object-id'
-    },
-    'processor': {
-      'type': 'string',
-      'enum': [
-        'stripe',
-        'applepay'
-      ]
-    },
-    'amount': {
-      'type': 'integer',
-      'minimum': 1,
-      'maximum': 5000
-    },
-    'currency': {
-      'type': 'string',
-      'format': 'currency-code'
-    },
-    'description': {
-      'type': 'string',
-      'maxLength': 100
-    }
-  },
-  'required': [
-    'bookingid',
-    'processor',
-    'amount',
-    'currency'
-  ]
-};
-
-module.exports = schemas;
+module.exports = schema;

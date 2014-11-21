@@ -4,9 +4,7 @@ var countryData = require('country-data');
 var tv4 = require('tv4');
 var formats = require('tv4-formats');
 
-// console.log('currenceeeeeees1', countryData.currencies.all);
-
-var utilities = require(__dirname + '/utilities');
+var utility = require(__dirname + '/utility');
 
 var validator = tv4.freshApi();
 
@@ -18,7 +16,7 @@ validator.addFormat(formats);
 // validator.getSchema('http://schema.rdfs.org/all.json');
 
 validator.addFormat('object-id', function (data, schema) {
-  if(utilities.validateObjectId(data)) {
+  if(utility.validateObjectId(data)) {
     return null;
   }
   return 'Must be a valid objectId';
