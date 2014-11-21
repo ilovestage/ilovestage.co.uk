@@ -23,9 +23,9 @@ validator.addFormat('object-id', function (data, schema) {
 });
 
 validator.addFormat('currency-code', function (data, schema) {
-  console.log(countryData.lookup.countries({
-    currencies: data
-  }));
+//   console.log(countryData.lookup.countries({
+//     currencies: data
+//   }));
   if(countryData.lookup.countries({
     currencies: data
   }).length > 0) {

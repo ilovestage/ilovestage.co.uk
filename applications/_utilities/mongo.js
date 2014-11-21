@@ -6,7 +6,7 @@
 var mongo = {
 
   connectionString: function(configuration) {
-  	
+
   	if(typeof configuration === 'undefined') {
   		return false;
   	}
@@ -28,6 +28,8 @@ var mongo = {
     connectionString += configuration.port;
     connectionString += '/';
     connectionString += configuration.name;
+    
+    return connectionString;
   }
 
 };

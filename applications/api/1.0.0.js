@@ -8,6 +8,7 @@ var auth = require('koa-basic-auth');
 var bodyParser = require('koa-bodyparser');
 var co = require('co');
 var DJ = require('dot-object');
+var js2xmlparser = require('js2xmlparser');
 // var Kaiseki = require('kaiseki');
 var koa = require('koa');
 var qs = require('koa-qs');
@@ -16,6 +17,7 @@ var session = require('koa-generic-session');
 var stripe = require('stripe')(packageJson.config.environment[environment].api.stripe.key);
 var thunkify = require('thunkify');
 
+var cryptography = require(__dirname + '/../_utilities/cryptography');
 // var database = require(__dirname + '/../_utilities/database');
 var date = require(__dirname + '/../_utilities/date');
 var email = require(__dirname + '/../_utilities/email');
@@ -28,6 +30,13 @@ var utility = require(__dirname + '/../_utilities/utility');
 var dj = new DJ();
 // var kaiseki = new Kaiseki(packageJson.config.api.parse.appid, packageJson.config.api.parse.key);
 
+
+// var Booking = require(__dirname + '/../_models/booking');
+// var Event = require(__dirname + '/../_models/event');
+var Payment = require(__dirname + '/../_models/payment');
+// var Show = require(__dirname + '/../_models/show');
+var User = require(__dirname + '/../_models/user');
+
 var createCardThunk = thunkify(stripe.customers.create);
 var createCardBoundThunk = createCardThunk.bind(stripe.customers);
 
@@ -36,49 +45,14 @@ var createChargeBoundThunk = createChargeThunk.bind(stripe.charges);
 
 var httpBasicAuthCredentials = packageJson.config.http.auth;
 
-var body;
-var document;
-var errorMessage;
-var hash;
-var limit;
-var notification;
-var orParameters;
-var result;
-var searchFields;
-var sortParameters;
-var status;
-
-var booking;
-var bookings;
-var event;
-var events;
-var payment;
-var payments;
-var show;
-var shows;
-var user;
-var users;
-
-var mailFields;
-var returnFields;
-var updateFields;
-
-var card;
-var charge;
-var chargeInfo;
-var password;
-
-var currentUser;
-
 var messages = {};
-
-var bypassAuthentication;
 
 messages.badRequest = 'The request cannot be fulfilled due to bad syntax.';
 messages.forbidden = 'Operation forbidden.  Supplied uid not authenticated to access this resource or perform this operation.';
 messages.invalidUid = 'Invalid uid format.  Please provide a uid as a 24 character hexadecimal string.';
 messages.noUid = 'Please provide a uid as a 24 character hexadecimal string.';
 messages.noUserForUid = 'No user found for uid provided in header data.';
+messages.requestEntityTooLarge = 'The request is larger than the server is willing or able to process.';
 messages.requiresAdminPrivilege = 'Operation requires administrator-level privileges.';
 messages.requiresAgentPrivilege = 'Operation requires agent-level privileges.';
 messages.resourceNotFound = 'Resource not found.';
@@ -89,104 +63,121 @@ messages.unprocessableEntity = 'The request was well-formed but was unable to be
 messages.unknownError = 'An unknown error occurred.';
 
 function* userHasPrivilege(uid) {
+  console.log('if 0a');
   if(typeof uid === 'undefined') {
     uid = null;
   } else {
     uid = uid.toString();
+    uid = cryptography.encryptUid(uid); // to be sent encrypted
   }
+  console.log('if 0b');
 
-  uid = cryptography.encryptUid(uid); // to be sent encrypted
-
-  // console.log('currentUser._id', currentUser._id.toString());
+  // console.log('this.locals.currentUser._id', this.locals.currentUser._id.toString());
 
   // console.log('objectid.isValid(uid.toString())', objectid.isValid(uid.toString()));
-  // console.log('(uid.toString() === currentUser._id.toString())', (uid.toString() === currentUser._id.toString()));
+  // console.log('(uid.toString() === this.locals.currentUser._id.toString())', (uid.toString() === this.locals.currentUser._id.toString()));
 
   // console.log('uid', uid);
-  // console.log('currentUser.uid', currentUser.uid);
+  // console.log('this.locals.currentUser.uid', this.locals.currentUser.uid);
 
-  if(bypassAuthentication === true) {
-    return true;
-  } else if((uid && currentUser && (uid === currentUser.uid)) || (currentUser && currentUser.hasOwnProperty('type') && (currentUser.type === 'admin'))) {
-  // if((uid && objectid.isValid(uid.toString()) && (uid.toString() === currentUser.uid)) || (currentUser && currentUser.hasOwnProperty('type') && (currentUser.type === 'admin'))) {
-    return true;
+  if(this.locals.bypassAuthentication === true) {
+    console.log('if 1');
+    return yield true;
+  } else if(uid && this.locals.currentUser && (uid === this.locals.currentUser.uid)) {
+    console.log('if 2');
+    return yield true;
+  } else if(this.locals.currentUser && this.locals.currentUser.hasOwnProperty('type') && (this.locals.currentUser.type === 'admin')) {
+    console.log('if 3');
+    return yield true;
   } else {
-    status = 403;
-    return false;
+    console.log('if 4');
+    this.locals.status = 403;
+    // yield setResponse(next);
+    // return;
+    return yield false;
   }
+
+  console.log('here 2');
 }
 
 function* isAuthenticated(next) {
   if(this.request.header.uid) {
-    if (currentUser) {
-      status = 200;
+    if (this.locals.currentUser) {
+      this.locals.status = 200;
       yield next;
     } else {
-      errorMessage = messages.noUserForUid;
-      status = 401;
+      this.locals.message = messages.noUserForUid;
+      this.locals.status = 401;
     }
   } else {
     if(!this.request.header.uid) {
-      errorMessage = messages.noUid;
+      this.locals.message = messages.noUid;
     } else {
-      errorMessage = messages.invalidUid;
+      this.locals.message = messages.invalidUid;
     }
 
-    status = 401;
+    this.locals.status = 401;
   }
-  
-   body.status = status; // use HTTP status code
-   body.error = errorMessage;
-   body.result = result;
- 
-   this.body = body;
-   this.status = status;
-   this.type = 'application/json';
+
+  this.locals.body.status = this.locals.status; // use HTTP status code
+  this.locals.body.error = this.locals.message;
+  this.locals.body.result = this.locals.result;
+
+  // this.body = this.locals.body;
+  // this.status = this.locals.status;
+  // this.type = 'application/json';
 
   yield next;
 }
 
 function* setResponse(next) {
-  console.log('status', status);
-  console.log('next', next);
+  this.locals.body.status = this.locals.status; // use HTTP status code
 
-  body.status = status; // use HTTP status code
-
-  if(!errorMessage) {
-    switch(status) {
+  if(!this.locals.message) {
+    switch(this.locals.status) {
       case 400:
-        errorMessage = messages.badRequest;
+        this.locals.message = messages.badRequest;
         break;
       case 401:
-        errorMessage = messages.unauthorised;
+        this.locals.message = messages.unauthorised;
         break;
       case 403:
-        errorMessage = messages.forbidden;
+        this.locals.message = messages.forbidden;
         break;
       case 404:
-        errorMessage = messages.resourceNotFound;
+        this.locals.message = messages.resourceNotFound;
+        break;
+      case 413:
+        this.locals.message = messages.requestEntityTooLarge;
         break;
       case 415:
-        errorMessage = messages.specifyContentType;
+        this.locals.message = messages.specifyContentType;
         break;
       case 422:
-        errorMessage = messages.unprocessableEntity;
+        this.locals.message = messages.unprocessableEntity;
         break;
       case null:
-        status = 500;
-        errorMessage = messages.unknownError;
+        this.locals.status = 500;
+        this.locals.message = messages.unknownError;
         break;
       default:
+        this.locals.message = 'default response';
         break;
     }
   }
 
-  body.error = errorMessage;
-  body.result = result;
+  this.locals.body.error = this.locals.message;
+  this.locals.body.result = this.locals.result;
 
-  this.body = body;
-  this.status = status;
-  this.type = 'application/json';
+  if(this.locals.contentType === 'xml') {
+    this.body = js2xmlparser('response', this.locals.body);
+    this.type = 'application/xml';
+  } else {
+    this.body = this.locals.body;
+    this.type = 'application/json';
+  }
+
+  this.status = this.locals.status;
 
   yield next;
 }
@@ -197,107 +188,123 @@ app.version = '1.0.0';
 
 qs(app);
 
-// app.use(bodyParser());
+app.use(bodyParser());
 // app.use(session());
 
 app.use(function* (next) {
-  body = {};
-  document = {};
-  errorMessage = null;
-  hash = null;
-  limit = 50;
-  notification = {};
-  orParameters = [];
-  result = null;
-  searchFields = {};
-  sortParameters = {};
-  status = null;
+  var returnFields;
+  var searchFields;
 
-  booking = null;
-  bookings = null;
-  event = null;
-  events = null;
-  payment = null;
-  payments = null;
-  show = null;
-  shows = null;
-  user = null;
-  users = null;
+  this.locals = this.locals || {}
 
-  bypassAuthentication = false;
+  this.locals.body = {};
+  // this.locals.document = {};
+  this.locals.message = null;
+//   this.locals.hash = null;
+//   this.locals.limit = 50;
+//   this.locals.notification = {};
+//   this.locals.orParameters = [];
+//   this.locals.this.locals.result = null;
+//   this.locals.searchFields = {};
+//   this.locals.sortParameters = {};
+  // this.locals.status = 200;
 
-  mailFields = {};
-  returnFields = {};
-  updateFields = {};
+//   this.locals.booking = null;
+//   this.locals.bookings = null;
+//   this.locals.event = null;
+//   this.locals.events = null;
+//   this.locals.payment = null;
+//   this.locals.payments = null;
+//   this.locals.show = null;
+//   this.locals.shows = null;
+//   this.locals.user = null;
+//   this.locals.users = null;
 
-  card = null;
-  charge = null;
-  chargeInfo = null;
-  password = null;
+  this.locals.bypassAuthentication = false;
 
-  searchFields = date.handleDateQuery(this.query).searchFields;
-  status = date.handleDateQuery(this.query).status;
+//   this.locals.mailFields = {};
+//   this.locals.returnFields = {};
+//   this.locals.updateFields = {};
 
-  document = this.request.body;
+//   this.locals.card = null;
+//   this.locals.charge = null;
+//   this.locals.chargeInfo = null;
+//   this.locals.password = null;
 
-  if(document) {
-    dj.object(document);
-    delete document.format;
+  // this.locals.searchFields = date.handleDateQuery(this.query).searchFields;
+  // this.locals.status = date.handleDateQuery(this.query).status;
+
+  this.locals.document = this.request.body;
+
+  if(this.locals.document) {
+    dj.object(this.locals.document);
+    delete this.locals.document.format;
   }
 
-  body.originalUrl = this.request.originalUrl;
+//   this.locals.body.originalUrl = this.request.originalUrl;
 
   // if((typeof this.request.header['content-type'] === 'undefined') && (this.query.format !== 'json') && (this.query.responseType !== 'json')) {
-  //   errorMessage = messages.specifyContentType;
+  //   message = messages.specifyContentType;
   //   status = 415;
   //
-  //   body.status = status; // use HTTP status code
-  //   body.error = errorMessage;
-  //   body.result = result;
+  //   this.locals.body.status = this.locals.status; // use HTTP status code
+  //   this.locals.body.error = this.locals.message;
+  //   this.locals.body.result = this.locals.result;
   //
-  //   this.body = body;
-  //   this.status = status;
+  //   this.body = this.locals.body;
+  //   this.status = this.locals.status;
   //   this.type = 'application/json';
   //
   //   return false;
   // }
 
-  // if(this.query.bypass === 'true') {
-  //   bypassAuthentication = true;
-  //
-  //   currentUser = 'bypassed';
-  // } else {
-  //   if(this.request.header.uid) {
-  //     returnFields = {
-  //       _id: 1,
-  //       uid: 1,
-  //       type: 1
-  //     };
-  //
-  //     currentUser = yield db.collection('users').findOne({
-  //       uid: this.request.header.uid.toString()
-  //     }, {
-  //       fields: returnFields
-  //     });
-  //
-  //   }
-  //
-  // }
+ if(this.query.bypass === 'true') {
+   this.locals.bypassAuthentication = true;
+   this.locals.currentUser = 'bypassed';
+ } else {
+   if(this.request.header.uid) {
+     returnFields = {
+       _id: 1,
+       uid: 1,
+       type: 1
+     };
+
+     searchFields = {
+       uid: this.request.header.uid.toString()
+     };
+
+     this.locals.currentUser = yield User.findOne(searchFields, returnFields);
+     console.log('currentUser', this.locals.currentUser);
+   }
+
+ }
+
+ if((this.request.header['content-type'] === 'application/xml') || (this.query.format === 'xml')) {
+   this.locals.contentType = 'xml';
+ } else {
+   this.locals.contentType = 'json';
+ }
 
   try {
     yield next;
   } catch (error) {
     if (401 === error.status) {
-      errorMessage = messages.unauthorised;
-      status = error.status;
+      this.locals.message = messages.unauthorised;
+      this.locals.status = error.status;
 
-      body.status = status; // use HTTP status code
-      body.error = errorMessage;
-      body.result = result;
+      this.locals.body.status = this.locals.status; // use HTTP status code
+      this.locals.body.error = this.locals.message;
+      this.locals.body.result = this.locals.result;
 
-      this.body = body;
-      this.status = status;
-      this.type = 'application/json';
+      if(this.locals.contentType === 'xml') {
+        this.body = js2xmlparser('response', this.locals.body);
+        this.type = 'application/xml';
+      } else {
+        this.body = this.locals.body;
+        this.type = 'application/json';
+      }
+
+      this.status = this.locals.status;
 
       this.set('WWW-Authenticate', 'Basic');
     } else {
@@ -306,14 +313,14 @@ app.use(function* (next) {
   }
 });
 
-if(bypassAuthentication !== true) {
+// if(this.locals.bypassAuthentication !== true) {
   app.use(auth(httpBasicAuthCredentials));
-}
+// }
 
 app.use(router(app));
 
 app.get('/', function* (next) {
-  result = packageJson.name + ' API version ' + app.version;
+  this.locals.result = packageJson.name + ' API version ' + app.version;
   status = 200;
 
   yield next;
@@ -321,6 +328,10 @@ app.get('/', function* (next) {
 
 // Routes: Events
 app.get('/events', function* (next) {
+  var limit = 50;
+  var returnFields;
+  var searchFields = {};
+
   if (this.query.limit && (typeof parseInt(this.query.limit) === 'number')) {
     limit = parseInt(this.query.limit);
 
@@ -334,14 +345,14 @@ app.get('/events', function* (next) {
       '_id': 1
     };
 
-    show = yield db.collection('shows').findOne({
+    searchFields = {
       name: this.query.showname
-    }, {
-      fields: returnFields
-    });
+    };
+
+    show = yield Show.findOne(searchFields, returnFields);
 
     if (!show) {
-      status = 404;
+      this.locals.status = 404;
     } else {
       searchFields.showid = show._id.toString();
     }
@@ -353,20 +364,20 @@ app.get('/events', function* (next) {
     searchFields.eventid = this.query.eventid;
   }
 
-  events = yield db.collection('events').find(searchFields, {
+  events = yield Event.find(searchFields, {
     limit: limit
   });
 
-  _(events).forEach(function (doc) {
+  _(events).forEach(function (document) {
     co(function* () {
-      doc.bookings = yield db.collection('bookings').count({
-        eventid: doc._id.toString()
+      document.bookings = yield Booking.count({
+        eventid: document._id.toString()
       });
 
-      db.collection('bookings').col.aggregate([
+      Booking.col.aggregate([
         {
           $match: {
-            eventid: doc._id.toString()
+            eventid: document._id.toString()
           }
         },
         {
@@ -380,49 +391,51 @@ app.get('/events', function* (next) {
       ],
       function (err, result) {
         if(result && result[0] && result[0].total) {
-          doc.ticketsBooked = result[0].total;
+          document.ticketsBooked = result[0].total;
         } else {
-          doc.ticketsBooked = 0;
+          document.ticketsBooked = 0;
         }
       });
     })(next);
   });
 
   if (!events) {
-    status = 404;
+    this.locals.status = 404;
   } else {
-    result = events;
-    status = 200;
+    this.locals.result = events;
+    this.locals.status = 200;
   }
 
   yield next;
 });
 
 app.del('/events/:id', isAuthenticated, function* (next) {
-  event = yield db.collection('events').remove({
+  event = yield Event.remove({
     _id: this.params.id
   });
 
   if (!event) {
-    errorMessage = messages.resourceNotFound;
-    status = 404;
+    this.locals.message = messages.resourceNotFound;
+    this.locals.status = 404;
   } else {
-    result = event;
-    status = 204;
+    this.locals.result = event;
+    this.locals.status = 204;
   }
 
   yield next;
 });
 
 app.get('/events/:id', function* (next) {
-  event = yield db.collection('events').findOne({
+  var returnFields;
+
+  event = yield Event.findOne({
     _id: this.params.id
   });
 
   if (!event) {
-    status = 404;
+    this.locals.status = 404;
   } else {
-    event.bookings = yield db.collection('bookings').count({
+    event.bookings = yield Booking.count({
       eventid: this.params.id
     });
 
@@ -436,41 +449,43 @@ app.get('/events/:id', function* (next) {
         'images': 1
       };
 
-      show = yield db.collection('shows').findOne({
+      searchFields = {
         _id: event.showid
-      }, {
-        fields: returnFields
-      });
+      };
+
+      show = yield Show.findOne(searchFields, returnFields);
 
       event.show = show;
     }
 
-    result = event;
-    status = 200;
+    this.locals.result = event;
+    this.locals.status = 200;
   }
 
   yield next;
 });
 
 app.post('/events', isAuthenticated, function* (next) {
-  document.starttime = new Date(document.starttime);
-  document.endtime = new Date(document.endtime);
+  var event;
 
-  if(!document.status) {
-    document.status = 'pending';
+  this.locals.document.starttime = new Date(this.locals.document.starttime);
+  this.locals.document.endtime = new Date(this.locals.document.endtime);
+
+  if(!this.locals.document.status) {
+    this.locals.document.status = 'pending';
   }
 
   if(userHasPrivilege('admin')) {
-    events = yield db.collection('events').insert(document);
+    event = yield Event.create(this.locals.document);
 
-    if (!events) {
-      status = 404;
+    if (!event) {
+      this.locals.status = 404;
     } else {
-      result = events;
-      status = 201;
+      this.locals.result = event;
+      this.locals.status = 201;
     }
   } else {
-    status = 403;
+    this.locals.status = 403;
   }
 
   yield next;
@@ -478,26 +493,26 @@ app.post('/events', isAuthenticated, function* (next) {
 
 app.put('/events/:id', isAuthenticated, function* (next) {
   if (this.query.replace === 'true') {
-    updateFields = document;
+    updateFields = this.locals.document;
   } else {
     updateFields = {
-      $set: document
+      $set: this.locals.document
     };
   }
 
   if(userHasPrivilege('admin')) {
-    event = yield db.collection('events').findAndModify({
+    event = yield Event.update({
       _id: this.params.id
     }, updateFields);
 
     if (!event) {
-      status = 404;
+      this.locals.status = 404;
     } else {
-      result = event;
-      status = 200;
+      this.locals.result = event;
+      this.locals.status = 200;
     }
   } else {
-    status = 403;
+    this.locals.status = 403;
   }
 
   yield next;
@@ -505,26 +520,34 @@ app.put('/events/:id', isAuthenticated, function* (next) {
 
 // Routes: Users
 app.del('/users/:id', isAuthenticated, function* (next) {
-  user = yield db.collection('users').remove({
+  var user;
+
+  user = yield User.remove({
     _id: this.params.id
   });
 
   if (!user) {
-    status = 404;
+    this.locals.status = 404;
   } else {
     if(userHasPrivilege(user._id)) {
-      result = user;
+      this.locals.result = user;
     } else {
-      status = 403;
+      this.locals.status = 403;
     }
 
-    status = 204;
+    this.locals.status = 204;
   }
 
   yield next;
 });
 
 app.get('/users', function* (next) {
+  var limit = 50;
+  var returnFields;
+  var searchFields = {};
+  var user;
+  var users;
+
   returnFields = {
     _id: 1,
     uid: 1, // omit for security reasons
@@ -540,7 +563,7 @@ app.get('/users', function* (next) {
     if(userHasPrivilege('admin')) {
       returnFields = {};
     } else {
-      status = 403;
+      this.locals.status = 403;
     }
   }
 
@@ -557,94 +580,96 @@ app.get('/users', function* (next) {
 
     returnFields['strategies.' + this.query.provider + '.token'] = 1;
 
-    user = yield db.collection('users').findOne(searchFields, {
-      fields: returnFields
-    });
+    user = yield User.findOne(searchFields, returnFields);
 
     if (!user) {
-      errorMessage = 'A user with those credentials does not exist.';
-      status = 404;
+      this.locals.message = 'A user with those credentials does not exist.';
+      this.locals.status = 404;
     } else {
       if ((typeof user.strategies !== 'undefined') && (typeof user.strategies[this.query.provider] !== 'undefined') && (typeof user.strategies[this.query.provider].uid !== 'undefined')) {
         if (this.query.token === user.strategies[this.query.provider].token) {
-          status = 200;
+          this.locals.status = 200;
         } else {
           user = {};
 
-          errorMessage = 'A user with those credentials exists but the supplied token was incorrect.';
-          status = 401;
+          this.locals.message = 'A user with those credentials exists but the supplied token was incorrect.';
+          this.locals.status = 401;
         }
       } else {
         user = {};
 
-        errorMessage = 'A user with those credentials exists but the user has no token set.';
-        status = 401;
+        this.locals.message = 'A user with those credentials exists but the user has no token set.';
+        this.locals.status = 401;
       }
 
       if ((typeof user !== 'undefined') && (typeof user.strategies !== 'undefined') && (typeof user.strategies[this.query.provider] !== 'undefined') && (typeof user.strategies[this.query.provider].token !== 'undefined')) {
         delete user.strategies[this.query.provider].token;
       }
 
-      result = user;
+      this.locals.result = user;
     }
   } else if ((typeof this.query.email !== 'undefined') && (typeof this.query.password !== 'undefined')) {
     searchFields['strategies.local.email'] = this.query.email;
 
     returnFields['strategies.local.password'] = 1;
 
-    user = yield db.collection('users').findOne(searchFields, {
-      fields: returnFields
-    });
+    user = yield User.findOne(searchFields, returnFields);
 
     if (!user) {
-      errorMessage = 'A user with those credentials does not exist.';
-      status = 404;
+      this.locals.message = 'A user with those credentials does not exist.';
+      this.locals.status = 404;
     } else {
       if ((typeof user.strategies !== 'undefined') && (typeof user.strategies.local !== 'undefined') && (typeof user.strategies.local.password !== 'undefined')) {
         password = cryptography.encryptPassword(this.query.password);
 
         if (password === user.strategies.local.password) {
-          status = 200;
+          this.locals.status = 200;
         } else {
           user = {};
 
-          errorMessage = 'A user with those credentials exists but the supplied password was incorrect.';
-          status = 401;
+          this.locals.message = 'A user with those credentials exists but the supplied password was incorrect.';
+          this.locals.status = 401;
         }
       } else {
         user = {};
 
-        errorMessage = 'A user with those credentials exists but the user has no password set.';
-        status = 401;
+        this.locals.message = 'A user with those credentials exists but the user has no password set.';
+        this.locals.status = 401;
       }
 
       if ((typeof user !== 'undefined') && (typeof user.strategies !== 'undefined') && (typeof user.strategies.local !== 'undefined') && (typeof user.strategies.local.password !== 'undefined')) {
         delete user.strategies.local.password;
       }
 
-      result = user;
+      this.locals.result = user;
     }
   } else {
-    if(userHasPrivilege('admin')) {
-      users = yield db.collection('users').find(searchFields, {
-        fields: returnFields,
+    if(userHasPrivilege *('admin')) {
+      console.log('no');
+      users = yield User.find(searchFields, returnFields, {
         limit: limit
       });
 
       if (!users) {
-        errorMessage = messages.resourceNotFound;
-        status = 404;
+        this.locals.message = messages.resourceNotFound;
+        this.locals.status = 404;
       } else {
-        result = users;
-        status = 200;
+        this.locals.result = users;
+        this.locals.status = 200;
       }
     }
+    // else {
+    //   this.locals.status = 500;
+    // }
   }
 
   yield next;
 });
 
 app.get('/users/:id', isAuthenticated, function* (next) {
+  var returnFields;
+  var searchFields = {};
+
   searchFields._id = this.params.id;
 
   returnFields = {
@@ -658,22 +683,20 @@ app.get('/users/:id', isAuthenticated, function* (next) {
     if(userHasPrivilege('admin')) {
       returnFields = {};
     } else {
-      status = 403;
+      this.locals.status = 403;
     }
   }
 
-  user = yield db.collection('users').findOne(searchFields, {
-    fields: returnFields
-  });
+  user = yield User.findOne(searchFields, returnFields);
 
   if (!user) {
-    status = 404;
+    this.locals.status = 404;
   } else {
     if(userHasPrivilege(user._id)) {
-      result = user;
-      status = 200;
+      this.locals.result = user;
+      this.locals.status = 200;
     } else {
-      status = 403;
+      this.locals.status = 403;
     }
   }
 
@@ -681,35 +704,39 @@ app.get('/users/:id', isAuthenticated, function* (next) {
 });
 
 app.post('/users', function* (next) {
+  var orParameters = [];
+  var searchFields = {};
+  var user;
+
   if(!userHasPrivilege('admin')) {
-    if(document.type) {
-      document.type = 'standard';
+    if(this.locals.document.type) {
+      this.locals.document.type = 'standard';
     }
   }
 
-  if(validator.validate(document, schema.user, false, true)) {
-    if (typeof document.strategies !== 'undefined') {
-      if((typeof document.strategies.local !== 'undefined') && (typeof document.strategies.local.email !== 'undefined')) {
+  if(User.validate(this.locals.document)) {
+    if (typeof this.locals.document.strategies !== 'undefined') {
+      if((typeof this.locals.document.strategies.local !== 'undefined') && (typeof this.locals.document.strategies.local.email !== 'undefined')) {
         orParameters.push({
-          'strategies.local.email': document.strategies.local.email
+          'strategies.local.email': this.locals.document.strategies.local.email
         });
       }
 
-      if((typeof document.strategies.oauth2 !== 'undefined') && (typeof document.strategies.oauth2.uid !== 'undefined')) {
+      if((typeof this.locals.document.strategies.oauth2 !== 'undefined') && (typeof this.locals.document.strategies.oauth2.uid !== 'undefined')) {
         orParameters.push({
-          'strategies.oauth2.uid': document.strategies.oauth2.uid
+          'strategies.oauth2.uid': this.locals.document.strategies.oauth2.uid
         });
       }
 
-      if((typeof document.strategies.facebook !== 'undefined') && (typeof document.strategies.facebook.uid !== 'undefined')) {
+      if((typeof this.locals.document.strategies.facebook !== 'undefined') && (typeof this.locals.document.strategies.facebook.uid !== 'undefined')) {
         orParameters.push({
-          'strategies.facebook.uid': document.strategies.facebook.uid
+          'strategies.facebook.uid': this.locals.document.strategies.facebook.uid
         });
       }
 
-      if((typeof document.strategies.twitter !== 'undefined') && (typeof document.strategies.twitter.uid !== 'undefined')) {
+      if((typeof this.locals.document.strategies.twitter !== 'undefined') && (typeof this.locals.document.strategies.twitter.uid !== 'undefined')) {
         orParameters.push({
-          'strategies.twitter.uid': document.strategies.twitter.uid
+          'strategies.twitter.uid': this.locals.document.strategies.twitter.uid
         });
       }
     }
@@ -718,23 +745,23 @@ app.post('/users', function* (next) {
       searchFields.$or = orParameters;
     }
 
-    user = yield db.collection('users').findOne(searchFields);
+    user = yield User.findOne(searchFields);
 
     if (user) {
       user = {};
 
-      errorMessage = 'A user with those credentials already exists.';
-      status = 409;
+      this.locals.message = 'A user with those credentials already exists.';
+      this.locals.status = 409;
     } else {
-      dj.object(document);
-      delete document.format;
+      dj.object(this.locals.document);
+      delete this.locals.document.format;
 
-      document.strategies.local.password = cryptography.encryptPassword(document.strategies.local.password);
+      this.locals.document.strategies.local.password = cryptography.encryptPassword(this.locals.document.strategies.local.password);
 
-      user = yield db.collection('users').insert(document);
+      user = yield User.create(this.locals.document);
 
       if (!user) {
-        status = 404;
+        this.locals.status = 404;
       } else {
         card = yield createCardBoundThunk({
           metadata: {
@@ -750,7 +777,7 @@ app.post('/users', function* (next) {
           }
         };
 
-        user = yield db.collection('users').findAndModify({
+        user = yield User.update({
           query: {
             _id: user._id.toString()
           },
@@ -776,13 +803,13 @@ app.post('/users', function* (next) {
           delete user.strategies.local.password;
         }
 
-        result = user;
-        status = 201;
+        this.locals.result = user;
+        this.locals.status = 201;
       }
     }
   } else {
-    errorMessage = validator.error.message;
-    status = 400;
+    this.locals.message = User.error.message;
+    this.locals.status = 400;
   }
 
   yield next;
@@ -790,32 +817,32 @@ app.post('/users', function* (next) {
 
 app.put('/users/:id', isAuthenticated, function* (next) {
   if(!userHasPrivilege('admin')) {
-    if(document.type) {
-      delete document.type;
+    if(this.locals.document.type) {
+      delete this.locals.document.type;
     }
   }
 
   if (this.query.replace === 'true') {
-    updateFields = document;
+    updateFields = this.locals.document;
   } else {
     updateFields = {
-      $set: document
+      $set: this.locals.document
     };
   }
 
   if(userHasPrivilege(this.params.id)) {
-    user = yield db.collection('users').findAndModify({
+    user = yield User.update({
       _id: this.params.id
     }, updateFields);
 
     if (!user) {
-      status = 404;
+      this.locals.status = 404;
     } else {
-      result = user;
-      status = 200;
+      this.locals.result = user;
+      this.locals.status = 200;
     }
   } else {
-    status = 403;
+    this.locals.status = 403;
   }
 
   yield next;
@@ -823,22 +850,22 @@ app.put('/users/:id', isAuthenticated, function* (next) {
 
 // Routes: Bookings
 app.del('/bookings/:id', isAuthenticated, function* (next) {
-  booking = yield db.collection('bookings').findOne({
+  booking = yield Booking.findOne({
     _id: this.params.id
   });
 
   if (!booking) {
-    status = 404;
+    this.locals.status = 404;
   } else {
     if(userHasPrivilege(booking.userid)) {
-      booking = yield db.collection('bookings').remove({
+      booking = yield Booking.remove({
         _id: this.params.id
       });
 
-      result = booking;
-      status = 204;
+      this.locals.result = booking;
+      this.locals.status = 204;
     } else {
-      status = 403;
+      this.locals.status = 403;
     }
   }
 
@@ -847,6 +874,9 @@ app.del('/bookings/:id', isAuthenticated, function* (next) {
 
 // app.get('/bookings', auth(httpBasicAuthCredentials), function* (next) {
 app.get('/bookings', function* (next) {
+  var limit = 50;
+  var searchFields = {};
+
   if (typeof this.query.userid !== 'undefined') {
     searchFields.userid = this.query.userid;
   }
@@ -873,27 +903,30 @@ app.get('/bookings', function* (next) {
     }
   }
 
-  bookings = yield db.collection('bookings').find(searchFields, {
+  bookings = yield Booking.find(searchFields, {
     sort: sortParameters,
     limit: limit
   });
 
   if(bookings) {
     if((this.query.userid && userHasPrivilege(this.query.userid)) || userHasPrivilege('admin')) {
-      result = bookings;
-      status = 200;
+      this.locals.result = bookings;
+      this.locals.status = 200;
     } else {
-      status = 403;
+      this.locals.status = 403;
     }
   } else {
-    status = 404;
+    this.locals.status = 404;
   }
 
   yield next;
 });
 
 app.get('/bookings/:id', isAuthenticated, function* (next) {
-  booking = yield db.collection('bookings').findOne({
+  var returnFields;
+  var searchFields;
+
+  booking = yield Booking.findOne({
     _id: this.params.id
   });
 
@@ -909,26 +942,32 @@ app.get('/bookings/:id', isAuthenticated, function* (next) {
           'discount_price': 1
         };
 
-        event = yield db.collection('events').findById(booking.eventid, {
-          fields: returnFields
-        });
+        searchFields = {
+          _id: booking.eventid
+        };
+
+        event = yield Event.findOne(searchFields, returnFields);
 
         booking.event = event;
       }
 
-      result = booking;
-      status = 200;
+      this.locals.result = booking;
+      this.locals.status = 200;
     } else {
-      status = 403;
+      this.locals.status = 403;
     }
   } else {
-    status = 404;
+    this.locals.status = 404;
   }
 
   yield next;
 });
 
 app.post('/bookings', function* (next) {
+  var booking;
+  var returnFields;
+  var searchFields;
+
   returnFields = {
     _id: 1,
     firstname: 1,
@@ -936,20 +975,22 @@ app.post('/bookings', function* (next) {
     'strategies.local.email': 1
   };
 
-  if(userHasPrivilege(document.userid)) {
-    user = yield db.collection('users').findById(document.userid, {
-      fields: returnFields
-    });
+  if(userHasPrivilege(this.locals.document.userid)) {
+    searchFields = {
+      _id: this.locals.document.userid
+    };
+
+    user = yield User.findOne(searchFields, returnFields);
 
     if(!user) {
-      errorMessage = 'User referenced by booking could not be found.';
-      status = 409;
+      this.locals.message = 'User referenced by booking could not be found.';
+      this.locals.status = 409;
     }
 
-    booking = yield db.collection('bookings').insert(this.request.body);
+    booking = yield Booking.create(this.request.body);
 
     if (!booking) {
-      status = 404;
+      this.locals.status = 404;
     } else {
       if(booking.tickets >= 8) {
         email.send({
@@ -967,31 +1008,35 @@ app.post('/bookings', function* (next) {
         }
       }, 'user-booking');
 
-      result = booking;
-      status = 201;
+      this.locals.result = booking;
+      this.locals.status = 201;
     }
   } else {
-    status = 403;
+    this.locals.status = 403;
   }
 
   yield next;
 });
 
 app.put('/bookings/:id', function* (next) {
+  var booking;
+  var updateFields;
+  var returnFields;
+
   if (this.query.replace === 'true') {
-    updateFields = document;
+    updateFields = this.locals.document;
   } else {
     updateFields = {
-      $set: document
+      $set: this.locals.document
     };
   }
 
-  if(userHasPrivilege(document.userid)) {
-    booking = yield db.collection('bookings').findAndModify({
+  if(userHasPrivilege(this.locals.document.userid)) {
+    booking = yield Booking.update({
       _id: this.params.id
     }, updateFields);
 
-    // if(booking && document.tickets >= 8) {
+    // if(booking && this.locals.document.tickets >= 8) {
     //   returnFields = {
     //     _id: 1,
     //     firstname: 1,
@@ -999,9 +1044,7 @@ app.put('/bookings/:id', function* (next) {
     //     'strategies.local.email': 1
     //   };
     //
-    //   user = yield db.collection('users').findById(booking.userid, {
-    //     fields: returnFields
-    //   });
+    //   user = yield User.findById(booking.userid, returnFields);
     //
     //   if(user && user.length > 0) {
     //     email.send({
@@ -1025,7 +1068,7 @@ app.put('/bookings/:id', function* (next) {
     //       }
     //     };
     //
-    //     kaiseki.sendPushNotification(notification, function(error, result, contents, success) {
+    //     kaiseki.sendPushNotification(notification, function(error, this.locals.result, contents, success) {
     //       if (success) {
     //         console.log('Push notification successfully sent:', contents);
     //       } else {
@@ -1036,13 +1079,13 @@ app.put('/bookings/:id', function* (next) {
     // }
 
     if (!booking) {
-      status = 404;
+      this.locals.status = 404;
     } else {
-      result = booking;
-      status = 200;
+      this.locals.result = booking;
+      this.locals.status = 200;
     }
   } else {
-    status = 403;
+    this.locals.status = 403;
   }
 
   yield next;
@@ -1051,78 +1094,85 @@ app.put('/bookings/:id', function* (next) {
 // Routes: Payments
 app.del('/payments/:id', function* (next) {
   if(userHasPrivilege('admin')) {
-    payment = yield db.collection('payments').remove({
+    payment = yield Payment.remove({
       _id: this.params.id
     });
 
     if (payment) {
-      status = 404;
+      this.locals.status = 404;
     } else {
-      result = payment;
-      status = 204;
+      this.locals.result = payment;
+      this.locals.status = 204;
     }
   } else {
-    status = 403;
+    this.locals.status = 403;
   }
 
   yield next;
 });
 
 app.get('/payments', isAuthenticated, function* (next) {
+  var limit = 50;
+  var payment;
+  var searchFields = {};
+
   if (typeof this.query.processor !== 'undefined') {
     searchFields.processor = this.query.processor;
   } else if (typeof this.query.token !== 'undefined') {
     searchFields.token = this.query.token;
   } else if (typeof this.query !== 'undefined') {
-    status = 400;
+    this.locals.status = 400;
   }
 
   if (this.query.limit && (typeof parseInt(this.query.limit) === 'number')) {
     limit = parseInt(this.query.limit);
 
     if (limit > 50) {
-      limit = 50;
+      // limit = 50;
+      this.locals.status = 413;
+      yield* setResponse();
+      return;
     }
   }
 
   if(userHasPrivilege('admin')) {
-    payments = (searchFields !== null) ? yield db.collection('payments').find(searchFields, {
+    payment = yield Payment.find(searchFields, {
       limit: limit
-    }) : null;
+    });
 
-    if (!payments) {
-      status = 404;
+    if (!payment) {
+      this.locals.status = 404;
     } else {
-      result = payments;
-      status = 200;
+      this.locals.result = payment;
+      this.locals.status = 200;
     }
   } else {
-    status = 403;
+    this.locals.status = 403;
   }
 
   yield next;
 });
 
 app.get('/payments/:id', isAuthenticated, function* (next) {
-  payment = yield db.collection('payments').findOne({
+  payment = yield Payment.findOne({
     _id: this.params.id
   });
 
   if (!payment) {
-    status = 404;
+    this.locals.status = 404;
   } else {
-    booking = yield db.collection('booking').findOne({
+    booking = yield Booking.findOne({
       _id: payment.bookingid
     });
 
     if (!booking) {
-      status = 422;
+      this.locals.status = 422;
     } else {
       if(userHasPrivilege(booking.userid)) {
-        result = payment;
-        status = 200;
+        this.locals.result = payment;
+        this.locals.status = 200;
       } else {
-        status = 403;
+        this.locals.status = 403;
       }
     }
   }
@@ -1131,60 +1181,71 @@ app.get('/payments/:id', isAuthenticated, function* (next) {
 });
 
 app.post('/payments', function* (next) {
-  console.log('document', document);
-  console.log('Valid: ' + validator.validate(document, schema.payment, false, true)); // true
+  var payment;
+  var searchFields;
 
-  if(validator.validate(document, schema.payment, false, true)) {
-    document.time = new Date();
+  // console.log('this.locals.document', this.locals.document);
+  // console.log('Valid: ' + validator.validate(this.locals.document, schema.payment, false, true)); // true
 
-    if(!document.hasOwnProperty('bookingid') || !document.hasOwnProperty('processor') || !document.hasOwnProperty('currency') || !document.hasOwnProperty('amount')) {
-      status = 400;
+  if(Payment.validate(this.locals.document)) {
+    this.locals.document.time = new Date();
+
+    if(!this.locals.document.hasOwnProperty('bookingid') || !this.locals.document.hasOwnProperty('processor') || !this.locals.document.hasOwnProperty('currency') || !this.locals.document.hasOwnProperty('amount')) {
+      this.locals.status = 400;
     } else {
-      booking = yield db.collection('bookings').findById(document.bookingid, {});
+      searchFields = {
+        _id: this.locals.document.bookingid
+      };
+
+      booking = yield Booking.findOne(searchFields, {});
 
       if (!booking) {
-        status = 404;
+        this.locals.status = 404;
       } else {
-        status = 201;
+        this.locals.status = 201;
 
-        user = yield db.collection('users').findById(booking.userid, {});
+        searchFields = {
+          _id: booking.userid
+        };
+
+        user = yield User.findOne(searchFields, {});
 
         if (!user) {
-          status = 404;
+          this.locals.status = 404;
         } else {
           if(userHasPrivilege(user._id)) {
             chargeInfo = {
-              amount: document.amount,
-              currency: document.currency,
+              amount: this.locals.document.amount,
+              currency: this.locals.document.currency,
               customer: user.stripeid,
               card: user.stripetoken,
               metadata: {
-                bookingid: document.bookingid
+                bookingid: this.locals.document.bookingid
               },
               capture: 'true',
-              description: document.description
+              description: this.locals.document.description
             };
 
             charge = yield createChargeBoundThunk(chargeInfo);
 
-            payment = yield db.collection('payments').insert(charge);
+            payment = yield Payment.create(charge);
 
             if (!payment) {
-              status = 404;
+              this.locals.status = 404;
             } else {
-              result = payment;
-              status = 201;
+              this.locals.result = payment;
+              this.locals.status = 201;
             }
           } else {
-            status = 403;
+            this.locals.status = 403;
           }
 
         }
       }
     }
   } else {
-    errorMessage = validator.error.message;
-    status = 400;
+    this.locals.message = Payment.error.message;
+    this.locals.status = 400;
   }
 
   yield next;
@@ -1193,24 +1254,27 @@ app.post('/payments', function* (next) {
 // Routes: Shows
 app.del('/shows/:id', isAuthenticated, function* (next) {
   if(userHasPrivilege('admin')) {
-    show = yield db.collection('shows').remove({
+    show = yield Show.remove({
       _id: this.params.id
     });
 
     if (!show) {
-      status = 404;
+      this.locals.status = 404;
     } else {
-      result = show;
-      status = 204;
+      this.locals.result = show;
+      this.locals.status = 204;
     }
   } else {
-    status = 403;
+    this.locals.status = 403;
   }
 
   yield next;
 });
 
 app.get('/shows', function* (next) {
+  var limit = 50;
+  var searchFields = {};
+
   if (typeof this.query.name !== 'undefined') {
     if (typeof this.query.lang !== 'undefined') {
       searchFields.name[this.query.lang] = this.query.name;
@@ -1218,7 +1282,7 @@ app.get('/shows', function* (next) {
   } else if (typeof this.query.theatre !== 'undefined') {
     searchFields.theatre = this.query.theatre;
   } else if (typeof this.query !== 'undefined') {
-    status = 400;
+    this.locals.status = 400;
   }
 
   if (this.query.limit && (typeof parseInt(this.query.limit) === 'number')) {
@@ -1229,12 +1293,12 @@ app.get('/shows', function* (next) {
     }
   }
 
-  shows = (searchFields !== null) ? yield db.collection('shows').find(searchFields, {
+  shows = yield Show.find(searchFields, {
     limit: limit
-  }) : null;
+  });
 
   if (!shows) {
-    status = 404;
+    this.locals.status = 404;
   } else {
     if (typeof this.query.lang !== 'undefined') {
       shows = internationalization.translate(
@@ -1247,18 +1311,24 @@ app.get('/shows', function* (next) {
       );
     }
 
-    result = shows;
-    status = 200;
+    this.locals.result = shows;
+    this.locals.status = 200;
   }
 
   yield next;
 });
 
 app.get('/shows/:id', function* (next) {
-  show = yield db.collection('shows').findById(this.params.id);
+  var searchFields;
+
+  searchFields = {
+    _id: this.params.id
+  };
+
+  show = yield Show.findOne(searchFields);
 
   if (!show) {
-    status = 404;
+    this.locals.status = 404;
   } else {
     if (typeof this.query.lang !== 'undefined') {
       show = internationalization.translate(
@@ -1271,25 +1341,27 @@ app.get('/shows/:id', function* (next) {
       );
     }
 
-    result = show;
-    status = 200;
+    this.locals.result = show;
+    this.locals.status = 200;
   }
 
   yield next;
 });
 
 app.post('/shows', isAuthenticated, function* (next) {
+  var show;
+
   if(userHasPrivilege('admin')) {
-    show = yield db.collection('shows').insert(document);
+    show = yield Show.create(this.locals.document);
 
     if (!show) {
-      status = 404;
+      this.locals.status = 404;
     } else {
-      result = show;
-      status = 201;
+      this.locals.result = show;
+      this.locals.status = 201;
     }
   } else {
-    status = 403;
+    this.locals.status = 403;
   }
 
   yield next;
@@ -1297,26 +1369,26 @@ app.post('/shows', isAuthenticated, function* (next) {
 
 app.put('/shows/:id', isAuthenticated, function* (next) {
   if (this.query.replace === 'true') {
-    updateFields = document;
+    updateFields = this.locals.document;
   } else {
     updateFields = {
-      $set: document
+      $set: this.locals.document
     };
   }
 
   if(userHasPrivilege('admin')) {
-    show = yield db.collection('shows').findAndModify({
+    show = yield Show.update({
       _id: this.params.id
     }, updateFields);
 
     if (!show) {
-      status = 404;
+      this.locals.status = 404;
     } else {
-      result = show;
-      status = 200;
+      this.locals.result = show;
+      this.locals.status = 200;
     }
   } else {
-    status = 403;
+    this.locals.status = 403;
   }
 
   yield next;
@@ -1326,29 +1398,29 @@ app.post('/shows/:id/reviews', function* (next) {
   // KJP: Add comment, not update
   // if (this.query.replace === 'true') {
   //   fields = {
-  //     reviews: document
+  //     reviews: this.locals.document
   //   };
   // } else {
   //   fields = {
   //     $push: {
-  //       reviews: document
+  //       reviews: this.locals.document
   //     }
   //   };
   // }
 
   if(userHasPrivilege('admin')) {
-    show = yield db.collection('shows').findAndModify({
+    show = yield Show.update({
       _id: this.params.id
     }, updateFields);
 
     if (!show) {
-      status = 404;
+      this.locals.status = 404;
     } else {
-      result = show;
-      status = 201;
+      this.locals.result = show;
+      this.locals.status = 201;
     }
   } else {
-    status = 403;
+    this.locals.status = 403;
   }
 
   yield next;
@@ -1357,29 +1429,29 @@ app.post('/shows/:id/reviews', function* (next) {
 app.put('/shows/:id/reviews', function* (next) {
   if (this.query.replace === 'true') {
     updateFields = {
-      reviews: document
+      reviews: this.locals.document
     };
   } else {
     updateFields = {
       $set: {
-        reviews: document
+        reviews: this.locals.document
       }
     };
   }
 
   if(userHasPrivilege('admin')) {
-    show = yield db.collection('shows').findAndModify({
+    show = yield Show.update({
       _id: this.params.id
     }, updateFields);
 
     if (!show) {
-      status = 404;
+      this.locals.status = 404;
     } else {
-      result = show;
-      status = 200;
+      this.locals.result = show;
+      this.locals.status = 200;
     }
   } else {
-    status = 403;
+    this.locals.status = 403;
   }
 
   yield next;
