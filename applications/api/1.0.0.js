@@ -7,11 +7,18 @@ var _ = require('lodash');
 var auth = require('koa-basic-auth');
 var bodyParser = require('koa-bodyparser');
 var co = require('co');
+var conditional = require('koa-conditional-get');
 var DJ = require('dot-object');
+var etag = require('koa-etag');
+var fresh = require('koa-fresh');
+var gzip = require('koa-gzip');
+var health = require('koa-ping');
+var helmet = require('koa-helmet');
 var js2xmlparser = require('js2xmlparser');
 // var Kaiseki = require('kaiseki');
 var koa = require('koa');
 var qs = require('koa-qs');
+var responseTime = require('koa-response-time');
 var router = require('koa-router');
 var session = require('koa-generic-session');
 var stripe = require('stripe')(packageJson.config.environment[environment].api.stripe.key);
@@ -161,7 +168,7 @@ function* setResponse(next) {
         this.locals.message = messages.unknownError;
         break;
       default:
-        this.locals.message = 'default response';
+        // this.locals.message = 'default response';
         break;
     }
   }
@@ -186,10 +193,14 @@ var app = koa();
 
 app.version = '1.0.0';
 
+app.use(responseTime());
+
 qs(app);
 
 app.use(bodyParser());
 // app.use(session());
+
+app.use(health());
 
 app.use(function* (next) {
   var returnFields;
@@ -317,11 +328,13 @@ app.use(function* (next) {
   app.use(auth(httpBasicAuthCredentials));
 // }
 
+app.use(helmet.defaults());
+
 app.use(router(app));
 
 app.get('/', function* (next) {
   this.locals.result = packageJson.name + ' API version ' + app.version;
-  status = 200;
+  this.locals.status = 200;
 
   yield next;
 });
@@ -644,7 +657,7 @@ app.get('/users', function* (next) {
       this.locals.result = user;
     }
   } else {
-    if(userHasPrivilege *('admin')) {
+    if(userHasPrivilege('admin')) {
       console.log('no');
       users = yield User.find(searchFields, returnFields, {
         limit: limit
@@ -1465,5 +1478,10 @@ app.get(/^([^.]+)$/, function* (next) {
 }); //matches everything without an extension
 
 app.use(setResponse);
+
+app.use(conditional());
+app.use(gzip());
+app.use(fresh());
+app.use(etag());
 
 module.exports = app;
