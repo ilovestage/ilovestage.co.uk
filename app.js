@@ -1,12 +1,22 @@
 'use strict';
 
 function appListen(port) {
-  console.log('Detected process is running on port ' + port + '.');
-  app.listen(port);
+  if(environment === 'production') {
+    http.createServer(app.callback()).listen(port.http);
+    https.createServer(optionsSSL, app.callback()).listen(port.https);
+    console.log('Detected process is running on port ' + port.http + ' and ' + port.https +'.');
+  } else {
+    console.log('Detected process is running on port ' + port.http + '.');
+    app.listen(port.http);
+  }
 }
 
 var argv = require('yargs').argv;
 var debug = require('debug');
+var forceSSL = require('koa-force-ssl');
+var fs = require('fs');
+var http = require('http');
+var https = require('https');
 var koa = require('koa');
 var logger = require('koa-logger');
 var mount = require('koa-mount');
@@ -14,7 +24,19 @@ var router = require('koa-router');
 
 var packageJson = require(__dirname + '/package.json');
 var environment = process.env.NODE_ENV ? process.env.NODE_ENV : 'development';
-var port = process.env.PORT ? process.env.PORT : packageJson.config.applications[argv.application].app.port;
+
+var port = {};
+port.http = process.env.PORT ? process.env.PORT : packageJson.config.applications[argv.application].http.port;
+port.https = process.env.PORT ? process.env.PORT : packageJson.config.applications[argv.application].https.port;
+
+var optionsSSL;
+
+if(environment === 'production') {
+  optionsSSL = {
+    key: fs.readFileSync('server.key'),
+    cert: fs.readFileSync('server.crt')
+  }
+}
 
 var app = koa();
 
@@ -22,6 +44,10 @@ var application = null;
 
 // wrap subsequent middleware in a logger
 // app.use(logger()); // very verbose
+
+if(typeof process.env.DEBUG !== 'undefined') {
+  console.log('process.env.DEBUG', process.env.DEBUG);
+}
 
 debug('booting');
 

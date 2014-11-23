@@ -6,17 +6,16 @@ var gulp = require('gulp');
 
 var packageJson = require(__dirname + '/../package.json');
 var environment = process.env.NODE_ENV ? process.env.NODE_ENV : 'development';
-var port = process.env.PORT ? process.env.PORT : packageJson.config.applications[argv.application].app.port;
 
-var port = packageJson.config.applications[argv.application].app.port;
-
-var portBrowserSync = packageJson.config.applications[argv.application].browsersync.port;
+var port = {};
+port.http = process.env.PORT ? process.env.PORT : packageJson.config.applications[argv.application].http.port;
+port.browserSync = packageJson.config.applications[argv.application].browsersync.port;
 
 var config = require(__dirname + '/_utilities/config').browserSync;
 
-config.proxy = 'http://localhost:' + port;
+config.proxy = 'http://localhost:' + port.http;
 
-config.port = portBrowserSync;
+config.port = port.browserSync;
 
 gulp.task(
   'browser-sync',

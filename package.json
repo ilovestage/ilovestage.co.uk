@@ -179,8 +179,11 @@
     },
     "applications": {
       "admin": {
-        "app": {
+        "http": {
           "port": 5200
+        },
+        "https": {
+          "port": 5210
         },
         "browsersync": {
           "port": 5220
@@ -192,12 +195,15 @@
           "key": "UA-55818646-4"
         },
         "livereload": {
-          "port": 5210
+          "port": 5240
         }
       },
       "api": {
-        "app": {
+        "http": {
           "port": 5100
+        },
+        "https": {
+          "port": 5110
         },
         "browsersync": {
           "port": 5120
@@ -207,11 +213,17 @@
         },
         "googleanalytics": {
           "key": "UA-55818646-2"
+        },
+        "livereload": {
+          "port": 5140
         }
       },
       "cron": {
-        "app": {
+        "http": {
           "port": 5400
+        },
+        "https": {
+          "port": 5410
         },
         "browsersync": {
           "port": 5420
@@ -221,11 +233,17 @@
         },
         "googleanalytics": {
           "key": "UA-55818646-3"
+        },
+        "livereload": {
+          "port": 5440
         }
       },
       "importer": {
-        "app": {
+        "http": {
           "port": 5500
+        },
+        "https": {
+          "port": 5510
         },
         "browsersync": {
           "port": 5520
@@ -235,11 +253,17 @@
         },
         "googleanalytics": {
           "key": "UA-55818646-5"
+        },
+        "livereload": {
+          "port": 5540
         }
       },
       "socket": {
-        "app": {
+        "http": {
           "port": 5300
+        },
+        "https": {
+          "port": 5310
         },
         "browsersync": {
           "port": 5320
@@ -249,11 +273,17 @@
         },
         "googleanalytics": {
           "key": ""
+        },
+        "livereload": {
+          "port": 5340
         }
       },
       "www": {
-        "app": {
+        "http": {
           "port": 5000
+        },
+        "https": {
+          "port": 5010
         },
         "browsersync": {
           "port": 5020
@@ -265,7 +295,7 @@
           "key": "UA-55818646-1"
         },
         "livereload": {
-          "port": 5010
+          "port": 5040
         }
       }
     },
