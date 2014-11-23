@@ -69,106 +69,72 @@ messages.unauthorised = 'Authorisation required.';
 messages.unprocessableEntity = 'The request was well-formed but was unable to be followed due to semantic errors.';
 messages.unknownError = 'An unknown error occurred.';
 
-function* userHasPrivilege(uid) {
-  console.log('if 0a');
-  if(typeof uid === 'undefined') {
-    uid = null;
-  } else {
-    uid = uid.toString();
-    uid = cryptography.encryptUid(uid); // to be sent encrypted
-  }
-  console.log('if 0b');
-
-  // console.log('this.locals.currentUser._id', this.locals.currentUser._id.toString());
-
-  // console.log('objectid.isValid(uid.toString())', objectid.isValid(uid.toString()));
-  // console.log('(uid.toString() === this.locals.currentUser._id.toString())', (uid.toString() === this.locals.currentUser._id.toString()));
-
-  // console.log('uid', uid);
-  // console.log('this.locals.currentUser.uid', this.locals.currentUser.uid);
-
-  if(this.locals.bypassAuthentication === true) {
-    console.log('if 1');
-    return yield true;
-  } else if(uid && this.locals.currentUser && (uid === this.locals.currentUser.uid)) {
-    console.log('if 2');
-    return yield true;
-  } else if(this.locals.currentUser && this.locals.currentUser.hasOwnProperty('type') && (this.locals.currentUser.type === 'admin')) {
-    console.log('if 3');
-    return yield true;
-  } else {
-    console.log('if 4');
-    this.locals.status = 403;
-    // yield setResponse(next);
-    // return;
-    return yield false;
-  }
-
-  console.log('here 2');
-}
-
 function* isAuthenticated(next) {
-  if(this.request.header.uid) {
-    if (this.locals.currentUser) {
-      this.locals.status = 200;
+  var self = this;
+
+  if(self.request.header.uid) {
+    if (self.locals.currentUser) {
+      self.locals.status = 200;
       yield next;
     } else {
-      this.locals.message = messages.noUserForUid;
-      this.locals.status = 401;
+      self.locals.message = messages.noUserForUid;
+      self.locals.status = 401;
     }
   } else {
-    if(!this.request.header.uid) {
-      this.locals.message = messages.noUid;
+    if(!self.request.header.uid) {
+      self.locals.message = messages.noUid;
     } else {
-      this.locals.message = messages.invalidUid;
+      self.locals.message = messages.invalidUid;
     }
 
-    this.locals.status = 401;
+    self.locals.status = 401;
   }
 
-  this.locals.body.status = this.locals.status; // use HTTP status code
-  this.locals.body.error = this.locals.message;
-  this.locals.body.result = this.locals.result;
+  self.locals.body.status = self.locals.status; // use HTTP status code
+  self.locals.body.error = self.locals.message;
+  self.locals.body.result = self.locals.result;
 
-  // this.body = this.locals.body;
-  // this.status = this.locals.status;
-  // this.type = 'application/json';
+  // self.body = self.locals.body;
+  // self.status = self.locals.status;
+  // self.type = 'application/vnd.api+json';
 
   yield next;
 }
 
 function* setResponse(next) {
-  this.locals.body.status = this.locals.status; // use HTTP status code
+  var self = this;
 
-  if(!this.locals.message) {
-    switch(this.locals.status) {
+  self.locals.body.status = self.locals.status; // use HTTP status code
+
+  if(!self.locals.message) {
+    switch(self.locals.status) {
       case 400:
-        this.locals.message = messages.badRequest;
+        self.locals.message = messages.badRequest;
         break;
       case 401:
-        this.locals.message = messages.unauthorised;
+        self.locals.message = messages.unauthorised;
         break;
       case 403:
-        this.locals.message = messages.forbidden;
+        self.locals.message = messages.forbidden;
         break;
       case 404:
-        this.locals.message = messages.resourceNotFound;
+        self.locals.message = messages.resourceNotFound;
         break;
       case 413:
-        this.locals.message = messages.requestEntityTooLarge;
+        self.locals.message = messages.requestEntityTooLarge;
         break;
       case 415:
-        this.locals.message = messages.specifyContentType;
+        self.locals.message = messages.specifyContentType;
         break;
       case 422:
-        this.locals.message = messages.unprocessableEntity;
+        self.locals.message = messages.unprocessableEntity;
         break;
       case null:
-        this.locals.status = 500;
-        this.locals.message = messages.unknownError;
+        self.locals.status = 500;
+        self.locals.message = messages.unknownError;
         break;
       default:
-        // this.locals.message = 'default response';
+        // self.locals.message = 'default response';
         break;
     }
   }
@@ -187,6 +153,44 @@ function* setResponse(next) {
   self.status = self.locals.status;
 
   yield next;
+}
+
+function userHasPrivilege(uid) {
+  var self = this;
+
+  if(typeof uid === 'undefined') {
+    uid = null;
+  } else {
+    uid = uid.toString();
+    uid = cryptography.encryptUid(uid); // to be sent encrypted
+  }
+
+  // console.log('this.locals.currentUser._id', this.locals.currentUser._id.toString());
+
+  // console.log('objectid.isValid(uid.toString())', objectid.isValid(uid.toString()));
+  // console.log('(uid.toString() === this.locals.currentUser._id.toString())', (uid.toString() === this.locals.currentUser._id.toString()));
+
+  // console.log('uid', uid);
+  // console.log('this.locals.currentUser.uid', this.locals.currentUser.uid);
+
+  if(self.locals.bypassAuthentication === true) {
+    console.log('if 1');
+    return true;
+  } else if(uid && self.locals.currentUser && (uid === self.locals.currentUser.uid)) {
+    console.log('if 2');
+    return true;
+  } else if(self.locals.currentUser && self.locals.currentUser.hasOwnProperty('type') && (self.locals.currentUser.type === 'admin')) {
+    console.log('if 3');
+    return true;
+  } else {
+    console.log('if 4');
+    self.locals.status = 403;
+    // return setResponse();
+    // return setResponse.apply(self);
+    return false;
+  }
+
+  console.log('here 2');
 }
 
 var app = koa();
@@ -488,7 +492,7 @@ app.post('/events', isAuthenticated, function* (next) {
     this.locals.document.status = 'pending';
   }
 
-  if(userHasPrivilege('admin')) {
+  if(userHasPrivilege.apply(this, ['admin']) === true) {
     event = yield Event.create(this.locals.document);
 
     if (!event) {
@@ -513,7 +517,7 @@ app.put('/events/:id', isAuthenticated, function* (next) {
     };
   }
 
-  if(userHasPrivilege('admin')) {
+  if(userHasPrivilege.apply(this, ['admin']) === true) {
     event = yield Event.update({
       _id: this.params.id
     }, updateFields);
@@ -542,7 +546,7 @@ app.del('/users/:id', isAuthenticated, function* (next) {
   if (!user) {
     this.locals.status = 404;
   } else {
-    if(userHasPrivilege(user._id)) {
+    if(userHasPrivilege.apply(this, [user._id]) === true) {
       this.locals.result = user;
     } else {
       this.locals.status = 403;
@@ -573,7 +577,7 @@ app.get('/users', function* (next) {
   };
 
   if (this.query.view === 'detailed') {
-    if(userHasPrivilege('admin')) {
+    if(userHasPrivilege.apply(this, ['admin']) === true) {
       returnFields = {};
     } else {
       this.locals.status = 403;
@@ -657,8 +661,9 @@ app.get('/users', function* (next) {
       this.locals.result = user;
     }
   } else {
-    if(userHasPrivilege('admin')) {
-      console.log('no');
+    console.log('admin?', userHasPrivilege.apply(this, ['admin']));
+
+    if(userHasPrivilege.apply(this, ['admin']) === true) {
       users = yield User.find(searchFields, returnFields, {
         limit: limit
       });
@@ -693,7 +698,7 @@ app.get('/users/:id', isAuthenticated, function* (next) {
   };
 
   if (this.query.view === 'detailed') {
-    if(userHasPrivilege('admin')) {
+    if(userHasPrivilege.apply(this, ['admin']) === true) {
       returnFields = {};
     } else {
       this.locals.status = 403;
@@ -705,7 +710,7 @@ app.get('/users/:id', isAuthenticated, function* (next) {
   if (!user) {
     this.locals.status = 404;
   } else {
-    if(userHasPrivilege(user._id)) {
+    if(userHasPrivilege.apply(this, [user._id]) === true) {
       this.locals.result = user;
       this.locals.status = 200;
     } else {
@@ -721,7 +726,7 @@ app.post('/users', function* (next) {
   var searchFields = {};
   var user;
 
-  if(!userHasPrivilege('admin')) {
+  if(userHasPrivilege.apply(this, ['admin']) !== true) {
     if(this.locals.document.type) {
       this.locals.document.type = 'standard';
     }
@@ -829,7 +834,7 @@ app.post('/users', function* (next) {
 });
 
 app.put('/users/:id', isAuthenticated, function* (next) {
-  if(!userHasPrivilege('admin')) {
+  if(userHasPrivilege.apply(this, ['admin']) !== true) {
     if(this.locals.document.type) {
       delete this.locals.document.type;
     }
@@ -843,7 +848,7 @@ app.put('/users/:id', isAuthenticated, function* (next) {
     };
   }
 
-  if(userHasPrivilege(this.params.id)) {
+  if(userHasPrivilege.apply(this, [this.params.id]) === true) {
     user = yield User.update({
       _id: this.params.id
     }, updateFields);
@@ -870,7 +875,7 @@ app.del('/bookings/:id', isAuthenticated, function* (next) {
   if (!booking) {
     this.locals.status = 404;
   } else {
-    if(userHasPrivilege(booking.userid)) {
+    if(userHasPrivilege.apply(this, [booking.userid]) === true) {
       booking = yield Booking.remove({
         _id: this.params.id
       });
@@ -922,7 +927,7 @@ app.get('/bookings', function* (next) {
   });
 
   if(bookings) {
-    if((this.query.userid && userHasPrivilege(this.query.userid)) || userHasPrivilege('admin')) {
+    if((this.query.userid && (userHasPrivilege.apply(this, [this.query.userid]))) || (userHasPrivilege.apply(this, ['admin']))) {
       this.locals.result = bookings;
       this.locals.status = 200;
     } else {
@@ -944,7 +949,7 @@ app.get('/bookings/:id', isAuthenticated, function* (next) {
   });
 
   if(booking) {
-    if(userHasPrivilege(booking.userid)) {
+    if(userHasPrivilege.apply(this, [booking.userid]) === true) {
       if (this.query.view === 'detailed') {
         returnFields = {
           '_id': 1,
@@ -988,7 +993,7 @@ app.post('/bookings', function* (next) {
     'strategies.local.email': 1
   };
 
-  if(userHasPrivilege(this.locals.document.userid)) {
+  if(userHasPrivilege.apply(this, [this.locals.document.userid]) === true) {
     searchFields = {
       _id: this.locals.document.userid
     };
@@ -1044,7 +1049,7 @@ app.put('/bookings/:id', function* (next) {
     };
   }
 
-  if(userHasPrivilege(this.locals.document.userid)) {
+  if(userHasPrivilege.apply(this, [this.locals.document.userid]) === true) {
     booking = yield Booking.update({
       _id: this.params.id
     }, updateFields);
@@ -1106,7 +1111,7 @@ app.put('/bookings/:id', function* (next) {
 
 // Routes: Payments
 app.del('/payments/:id', function* (next) {
-  if(userHasPrivilege('admin')) {
+  if(userHasPrivilege.apply(this, ['admin']) === true) {
     payment = yield Payment.remove({
       _id: this.params.id
     });
@@ -1148,7 +1153,7 @@ app.get('/payments', isAuthenticated, function* (next) {
     }
   }
 
-  if(userHasPrivilege('admin')) {
+  if(userHasPrivilege.apply(this, ['admin']) === true) {
     payment = yield Payment.find(searchFields, {
       limit: limit
     });
@@ -1181,7 +1186,7 @@ app.get('/payments/:id', isAuthenticated, function* (next) {
     if (!booking) {
       this.locals.status = 422;
     } else {
-      if(userHasPrivilege(booking.userid)) {
+      if(userHasPrivilege.apply(this, [booking.userid]) === true) {
         this.locals.result = payment;
         this.locals.status = 200;
       } else {
@@ -1226,7 +1231,7 @@ app.post('/payments', function* (next) {
         if (!user) {
           this.locals.status = 404;
         } else {
-          if(userHasPrivilege(user._id)) {
+          if(userHasPrivilege.apply(this, [user._id]) === true) {
             chargeInfo = {
               amount: this.locals.document.amount,
               currency: this.locals.document.currency,
@@ -1266,7 +1271,7 @@ app.post('/payments', function* (next) {
 
 // Routes: Shows
 app.del('/shows/:id', isAuthenticated, function* (next) {
-  if(userHasPrivilege('admin')) {
+  if(userHasPrivilege.apply(this, ['admin']) === true) {
     show = yield Show.remove({
       _id: this.params.id
     });
@@ -1364,7 +1369,7 @@ app.get('/shows/:id', function* (next) {
 app.post('/shows', isAuthenticated, function* (next) {
   var show;
 
-  if(userHasPrivilege('admin')) {
+  if(userHasPrivilege.apply(this, ['admin']) === true) {
     show = yield Show.create(this.locals.document);
 
     if (!show) {
@@ -1389,7 +1394,7 @@ app.put('/shows/:id', isAuthenticated, function* (next) {
     };
   }
 
-  if(userHasPrivilege('admin')) {
+  if(userHasPrivilege.apply(this, ['admin']) === true) {
     show = yield Show.update({
       _id: this.params.id
     }, updateFields);
@@ -1421,7 +1426,7 @@ app.post('/shows/:id/reviews', function* (next) {
   //   };
   // }
 
-  if(userHasPrivilege('admin')) {
+  if(userHasPrivilege.apply(this, ['admin']) === true) {
     show = yield Show.update({
       _id: this.params.id
     }, updateFields);
@@ -1452,7 +1457,7 @@ app.put('/shows/:id/reviews', function* (next) {
     };
   }
 
-  if(userHasPrivilege('admin')) {
+  if(userHasPrivilege.apply(this, ['admin']) === true) {
     show = yield Show.update({
       _id: this.params.id
     }, updateFields);
