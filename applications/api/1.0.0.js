@@ -173,18 +173,18 @@ function* setResponse(next) {
     }
   }
 
-  this.locals.body.error = this.locals.message;
-  this.locals.body.result = this.locals.result;
+  self.locals.body.error = self.locals.message;
+  self.locals.body.result = self.locals.result;
 
-  if(this.locals.contentType === 'xml') {
-    this.body = js2xmlparser('response', this.locals.body);
-    this.type = 'application/xml';
+  if(self.locals.contentType === 'xml') {
+    self.body = js2xmlparser('response', self.locals.body);
+    self.type = 'application/vnd.api+xml';
   } else {
-    this.body = this.locals.body;
-    this.type = 'application/json';
+    self.body = self.locals.body;
+    self.type = 'application/vnd.api+json';
   }
 
-  this.status = this.locals.status;
+  self.status = self.locals.status;
 
   yield next;
 }
@@ -264,7 +264,7 @@ app.use(function* (next) {
   //
   //   this.body = this.locals.body;
   //   this.status = this.locals.status;
-  //   this.type = 'application/json';
+  //   this.type = 'application/vnd.api+json';
   //
   //   return false;
   // }
@@ -290,7 +290,7 @@ app.use(function* (next) {
 
  }
 
- if((this.request.header['content-type'] === 'application/xml') || (this.query.format === 'xml')) {
+ if((this.request.header['content-type'] === 'application/vnd.api+xml') || (this.query.format === 'xml')) {
    this.locals.contentType = 'xml';
  } else {
    this.locals.contentType = 'json';
@@ -309,10 +309,10 @@ app.use(function* (next) {
 
       if(this.locals.contentType === 'xml') {
         this.body = js2xmlparser('response', this.locals.body);
-        this.type = 'application/xml';
+        this.type = 'application/vnd.api+xml';
       } else {
         this.body = this.locals.body;
-        this.type = 'application/json';
+        this.type = 'application/vnd.api+json';
       }
 
       this.status = this.locals.status;
