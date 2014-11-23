@@ -47,6 +47,8 @@ app.use(router(app));
 
 app.poweredBy = false;
 
+app.name = argv.application;
+
 console.log('Requiring ' + argv.application + ' application.');
 
 application = require(__dirname + '/applications/' + argv.application);
