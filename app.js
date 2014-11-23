@@ -38,6 +38,10 @@ app.use(function *(next) {
   yield next;
 });
 
+if(environment === 'production') {
+  app.use(forceSSL());
+}
+
 // use koa-router
 app.use(router(app));
 
