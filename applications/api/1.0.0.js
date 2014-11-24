@@ -384,6 +384,7 @@ app.get('/events/:id', function* (next) {
   var event;
   var returnFields;
   var searchFields;
+  var show;
 
   event = yield Event.findOne({
     _id: this.params.id
@@ -796,6 +797,7 @@ app.put('/users/:id', isAuthenticated, function* (next) {
 
 // Routes: Bookings
 app.del('/bookings/:id', isAuthenticated, function* (next) {
+  var booking;
   var searchFields = {};
 
   searchFields._id = utility.toObjectId(this.params.id);
@@ -913,6 +915,7 @@ app.post('/bookings', function* (next) {
   var booking;
   var returnFields;
   var searchFields;
+  var user;
 
   returnFields = {
     _id: 1,
@@ -965,7 +968,7 @@ app.post('/bookings', function* (next) {
 app.put('/bookings/:id', function* (next) {
   var booking;
   var updateFields = {};
-  var returnFields = {};
+  // var returnFields = {};
   var searchFields = {};
 
   searchFields._id = utility.toObjectId(this.params.id);
@@ -1096,8 +1099,9 @@ app.get('/payments', isAuthenticated, function* (next) {
 });
 
 app.get('/payments/:id', isAuthenticated, function* (next) {
+  var booking;
   var payment;
-  var searchFields = {};
+  // var searchFields = {};
 
   payment = yield Payment.findOne({
     _id: this.params.id
@@ -1338,12 +1342,13 @@ app.put('/shows/:id', isAuthenticated, function* (next) {
 });
 
 app.post('/shows/:id/reviews', function* (next) {
+  var updateFields = {};
   var show;
   var searchFields = {};
 
   searchFields._id = utility.toObjectId(this.params.id);
 
-  // KJP: Add comment, not update
+  // KJP: Add comment, don't update
   // if (this.query.replace === 'true') {
   //   fields = {
   //     reviews: this.locals.document
@@ -1405,7 +1410,7 @@ app.put('/shows/:id/reviews', function* (next) {
 
 // Routes: Catch-all
 app.get(/^([^.]+)$/, function* (next) {
-  status = 404;
+  this.locals.status = 404;
 
   yield next;
 }); //matches everything without an extension
