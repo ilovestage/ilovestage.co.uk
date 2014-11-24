@@ -194,8 +194,11 @@
         "googleanalytics": {
           "key": "UA-55818646-4"
         },
-        "livereload": {
+        "inspector": {
           "port": 5240
+        },
+        "livereload": {
+          "port": 5250
         }
       },
       "api": {
@@ -214,8 +217,11 @@
         "googleanalytics": {
           "key": "UA-55818646-2"
         },
-        "livereload": {
+        "inspector": {
           "port": 5140
+        },
+        "livereload": {
+          "port": 5150
         }
       },
       "cron": {
@@ -234,8 +240,11 @@
         "googleanalytics": {
           "key": "UA-55818646-3"
         },
-        "livereload": {
+        "inspector": {
           "port": 5440
+        },
+        "livereload": {
+          "port": 5450
         }
       },
       "importer": {
@@ -254,8 +263,11 @@
         "googleanalytics": {
           "key": "UA-55818646-5"
         },
-        "livereload": {
+        "inspector": {
           "port": 5540
+        },
+        "livereload": {
+          "port": 5550
         }
       },
       "socket": {
@@ -274,8 +286,11 @@
         "googleanalytics": {
           "key": ""
         },
-        "livereload": {
+        "inspector": {
           "port": 5340
+        },
+        "livereload": {
+          "port": 5350
         }
       },
       "www": {
@@ -294,8 +309,11 @@
         "googleanalytics": {
           "key": "UA-55818646-1"
         },
+        "inspector": {
+          "port": 5140
+        },
         "livereload": {
-          "port": 5040
+          "port": 5150
         }
       }
     },
