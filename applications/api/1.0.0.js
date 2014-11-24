@@ -27,8 +27,7 @@ var cryptography = require(__dirname + '/../_utilities/cryptography');
 // var date = require(__dirname + '/../_utilities/date');
 var email = require(__dirname + '/../_utilities/email');
 var internationalization = require(__dirname + '/../_utilities/internationalization');
-// var mongo = require(__dirname + '/../_utilities/mongo');
-var utility = require(__dirname + '/../_utilities/utility');
+var mongo = require(__dirname + '/../_utilities/mongo');
 
 var dj = new DJ();
 
@@ -206,7 +205,7 @@ app.use(function* (next) {
   this.locals.bypassAuthentication = false;
 
   this.locals.document = this.request.body;
-  console.log('this.locals.document 1', this.locals.document);
+
   if(this.locals.document) {
     dj.object(this.locals.document);
     delete this.locals.document.format;
@@ -223,7 +222,7 @@ app.use(function* (next) {
        type: 1
      };
 
-     searchFields.uid = utility.toObjectId(this.request.header.uid);
+     searchFields.uid = mongo.toObjectId(this.request.header.uid);
 
      this.locals.currentUser = yield User.findOne(searchFields, returnFields);
     //  console.log('currentUser', this.locals.currentUser, 'uid', this.request.header.uid);
@@ -262,11 +261,11 @@ app.use(function* (next) {
       throw error;
     }
   }
-});
 
-// if(this.locals.bypassAuthentication !== true) {
-  app.use(auth(httpBasicAuthCredentials));
-// }
+  if((environment !== 'development') && (this.locals.bypassAuthentication !== true)) {
+    app.use(auth(httpBasicAuthCredentials));
+  }
+});
 
 app.use(helmet.defaults());
 
@@ -407,7 +406,7 @@ app.get('/events/:id', function* (next) {
         'images': 1
       };
 
-      searchFields._id = utility.toObjectId(event.showid);
+      searchFields._id = mongo.toObjectId(event.showid);
 
       show = yield Show.findOne(searchFields, returnFields);
 
@@ -450,7 +449,7 @@ app.put('/events/:id', isAuthenticated, function* (next) {
   var searchFields = {};
   var updateFields = {};
 
-  searchFields._id = utility.toObjectId(this.params.id);
+  searchFields._id = mongo.toObjectId(this.params.id);
 
   if (this.query.replace === 'true') {
     updateFields = this.locals.document;
@@ -479,7 +478,7 @@ app.del('/users/:id', isAuthenticated, function* (next) {
   var searchFields = {};
   var user;
 
-  searchFields._id = utility.toObjectId(this.params.id);
+  searchFields._id = mongo.toObjectId(this.params.id);
 
   user = yield User.remove(searchFields);
 
@@ -622,7 +621,7 @@ app.get('/users/:id', isAuthenticated, function* (next) {
   var searchFields = {};
   var user;
 
-  searchFields._id = utility.toObjectId(this.params.id);
+  searchFields._id = mongo.toObjectId(this.params.id);
 
   returnFields = {
     _id: 1,
@@ -726,7 +725,7 @@ app.post('/users', function* (next) {
           stripeid: card.id
         };
 
-        searchFields._id = utility.toObjectId(user._id);
+        searchFields._id = mongo.toObjectId(user._id);
 
         user = yield User.update(searchFields, updateFields, {
           new: true
@@ -771,7 +770,7 @@ app.put('/users/:id', isAuthenticated, function* (next) {
     }
   }
 
-  searchFields._id = utility.toObjectId(this.params.id);
+  searchFields._id = mongo.toObjectId(this.params.id);
 
   if (this.query.replace === 'true') {
     updateFields = this.locals.document;
@@ -800,7 +799,7 @@ app.del('/bookings/:id', isAuthenticated, function* (next) {
   var booking;
   var searchFields = {};
 
-  searchFields._id = utility.toObjectId(this.params.id);
+  searchFields._id = mongo.toObjectId(this.params.id);
 
   booking = yield Booking.findOne(searchFields);
 
@@ -876,7 +875,7 @@ app.get('/bookings/:id', isAuthenticated, function* (next) {
   var returnFields = {};
   var searchFields = {};
 
-  searchFields._id = utility.toObjectId(this.params.id);
+  searchFields._id = mongo.toObjectId(this.params.id);
 
   booking = yield Booking.findOne(searchFields);
 
@@ -971,7 +970,7 @@ app.put('/bookings/:id', function* (next) {
   // var returnFields = {};
   var searchFields = {};
 
-  searchFields._id = utility.toObjectId(this.params.id);
+  searchFields._id = mongo.toObjectId(this.params.id);
 
   if (this.query.replace === 'true') {
     updateFields = this.locals.document;
@@ -1042,7 +1041,7 @@ app.del('/payments/:id', function* (next) {
   var payment;
   var searchFields = {};
 
-  searchFields._id = utility.toObjectId(this.params.id);
+  searchFields._id = mongo.toObjectId(this.params.id);
 
   if(userHasPrivilege.apply(this, ['admin']) === true) {
     payment = yield Payment.remove(searchFields);
@@ -1144,7 +1143,7 @@ app.post('/payments', function* (next) {
     if(!this.locals.document.hasOwnProperty('bookingid') || !this.locals.document.hasOwnProperty('processor') || !this.locals.document.hasOwnProperty('currency') || !this.locals.document.hasOwnProperty('amount')) {
       this.locals.status = 400;
     } else {
-      searchFields._id = utility.toObjectId(this.locals.document.bookingid);
+      searchFields._id = mongo.toObjectId(this.locals.document.bookingid);
 
       booking = yield Booking.findOne(searchFields, {});
 
@@ -1203,7 +1202,7 @@ app.del('/shows/:id', isAuthenticated, function* (next) {
   var searchFields = {};
   var show = {};
 
-  searchFields._id = utility.toObjectId(this.params.id);
+  searchFields._id = mongo.toObjectId(this.params.id);
 
   if(userHasPrivilege.apply(this, ['admin']) === true) {
     show = yield Show.remove(searchFields);
@@ -1221,6 +1220,7 @@ app.del('/shows/:id', isAuthenticated, function* (next) {
 
 app.get('/shows', function* (next) {
   var limit = 50;
+  var returnFields = {};
   var searchFields = {};
   var shows;
 
@@ -1242,7 +1242,7 @@ app.get('/shows', function* (next) {
     }
   }
 
-  shows = yield Show.find(searchFields, {
+  shows = yield Show.find(searchFields, returnFields, {
     limit: limit
   });
 
@@ -1271,7 +1271,7 @@ app.get('/shows/:id', function* (next) {
   var searchFields = {};
   var show;
 
-  searchFields._id = utility.toObjectId(this.params.id);
+  searchFields._id = mongo.toObjectId(this.params.id);
 
   show = yield Show.findOne(searchFields);
 
@@ -1346,7 +1346,7 @@ app.post('/shows/:id/reviews', function* (next) {
   var show;
   var searchFields = {};
 
-  searchFields._id = utility.toObjectId(this.params.id);
+  searchFields._id = mongo.toObjectId(this.params.id);
 
   // KJP: Add comment, don't update
   // if (this.query.replace === 'true') {
@@ -1380,7 +1380,7 @@ app.put('/shows/:id/reviews', function* (next) {
   var show;
   var searchFields = {};
 
-  searchFields._id = utility.toObjectId(this.params.id);
+  searchFields._id = mongo.toObjectId(this.params.id);
 
   if (this.query.replace === 'true') {
     updateFields = {
