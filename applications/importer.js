@@ -1,32 +1,33 @@
 'use strict';
 
 var packageJson = require(__dirname + '/../package.json');
-var config = packageJson.config.environment[process.env.NODE_ENV || 'development'];
+var environment = process.env.NODE_ENV ? process.env.NODE_ENV : 'development';
+
+var mongo = require(__dirname + '/_utilities/mongo');
+var connectionString = mongo.connectionString(packageJson.config.environment[environment].server.database);
 
 var _ = require('lodash');
 var argv = require('yargs').argv;
-var co = require('co');
+var db = require('monk')(connectionString);
+var deleteKey = require('key-del');
 var csv = require('csv');
 var fs = require('fs');
-var Glob = require("glob").Glob;
+var glob = require('glob');
 var koa = require('koa');
-// var moment = require('moment');
 var path = require('path');
-// var should = require('should');
-// var stripe = require('stripe')(config.api.stripe.key);
-// var thunkify = require('thunkify');
 var ua = require('universal-analytics');
 
-var database = require(__dirname + '/_utilities/database');
-var utilities = require(__dirname + '/_utilities/utilities');
-
-var db = new database(config.server.database);
+var shows = db.get('shows');
 
 var app = koa();
 
 var visitor = ua(packageJson.config.applications.importer.googleanalytics.key);
 
-var currentDate = new Date();
+var dataFilesPath;
+
+var parseOptions = {
+  columns: true
+};
 
 app.use(function* (next) {
   var job = argv.job.split('-');
@@ -37,72 +38,128 @@ app.use(function* (next) {
   yield next;
 });
 
-var parser = csv.parse(
-  {
-    delimiter: '\n'
-  },
-  function(err, data) {
-    console.log('data', data);
-  }
-);
-
-var inputFile = path.normalize(__dirname + '/../data/import/shows/shows.xls - Theatres.csv');
-console.log(require(inputFile));
-
 switch(argv.job) {
   case 'shows-all':
-    // var pattern = path.resolve(__dirname, '../data/import/shows/*.csv');
-    // console.log('pattern', pattern);
-    //
-    // var files = new Glob(
-    //   pattern,
-    //   {
-    //     sync: true
-    //   }
-    // );
-    //
-    // console.log('files', files);
+    var showsFilePath;
+    var showsFileString;
 
-    // _(files).forEach(function(doc) {
-    //   console.log('doc', doc);
-    // });
+    dataFilesPath = path.normalize(__dirname + '/../data/import/shows');
 
-    db.collectionSync('shows').remove({});
+    showsFilePath = path.normalize(dataFilesPath + '/Shows - Shows.csv');
+    showsFileString = fs.readFileSync(showsFilePath);
 
-    var transformer = csv.transform(function(data) {
-      data.push(data.shift());
-      return data;
-    });
+    shows.remove({});
 
-    transformer.on('readable', function() {
-      var row;
-      while(row = transformer.read()) {
-        console.log('row', row);
-        // row = {"heeey": "you"};
+    csv.parse(showsFileString, parseOptions, function(error, showRows) {
+      // console.log('showRows', showRows);
 
-        var shows = db.collectionSync('shows').insert(row);
-        // console.log('shows', shows);
+      function addTranslations() {
+        var pattern = 'Shows - lang?*?.csv';
+
+        var languageFiles = glob.sync(pattern, {
+          cwd: dataFilesPath,
+          nodir: true
+        });
+
+        // console.log('languageFiles', languageFiles);
+
+        var languageFilesIterator;
+
+        for (languageFilesIterator = 0; languageFilesIterator < languageFiles.length; languageFilesIterator++) {
+          var languageFilePath = dataFilesPath + '/' + languageFiles[languageFilesIterator];
+          console.log('Processing', languageFilePath);
+
+          translateShow(languageFilePath);
+        }
+
       }
+
+      function translateShow(languageFilePath) {
+        var languageCode = languageFilePath.match(/[^[\]]+(?=])/g);
+        // console.log('languageCode', languageCode);
+
+        var languageFileString = fs.readFileSync(languageFilePath);
+
+        csv.parse(languageFileString, parseOptions, function(error, languageRows) {
+          // console.log('languageRows[languageIterator]', languageRows);
+
+          var languageRowsIterator;
+
+          for (languageRowsIterator = 0; languageRowsIterator < languageRows.length; languageRowsIterator++) {
+            // console.log('languageRows[languageRowsIterator]', languageRows[languageRowsIterator]);
+            // console.log('languageCode', languageCode);
+
+            var translation = {};
+
+            translation[languageCode] = languageRows[languageRowsIterator];
+            console.log('translation', translation);
+
+            var updateFields = deleteKey(translation, ['id']);
+            console.log('updateFields', updateFields);
+
+            shows.findAndModify({
+              query: {
+                id: languageRows[languageRowsIterator].id
+              },
+              update: {
+                $set: updateFields
+              }
+            });
+
+            // var show = shows.find({
+            //   query: {
+            //     id: languageRows[languageRowsIterator].id
+            //   }
+            // });
+
+            // console.log('show1', show);
+
+            // if(languageRows[languageRowsIterator].id === showRows[showIterator].id) {
+            //   console.log('match');
+            // }
+          }
+
+        });
+      }
+
+      var showIterator;
+
+      for (showIterator = 0; showIterator < showRows.length; showIterator++) {
+        // console.log('showRows[showIterator]', showRows[showIterator].id);
+
+        var promise = shows.insert(showRows[showIterator]);
+
+        // console.log('promise.type', promise.type);
+        //
+        // promise.error(function(err) {
+        //   console.log('promise.error', err);
+        // });
+        //
+        // promise.on('error', function(err) {
+        //   console.log('promise.error', err);
+        // });
+        //
+        // promise.on('success', function(doc) {
+        //   console.log('promise.success', doc);
+        // });
+        //
+        // promise.on('complete', function(err, doc) {
+        //   console.log('complete', err, doc);
+        // });
+        //
+        // promise.success(function(doc) {
+        //   console.log('success', doc);
+        // });
+
+        // console.log('showIterator', showIterator, 'showRows.length', (showRows.length - 1));
+
+        if(showIterator === (showRows.length - 1)) {
+          addTranslations();
+        }
+
+      }
+
     });
-
-    transformer.on('error', function(err) {
-      console.log('error');
-      console.log(err.message);
-    });
-
-    transformer.on('finish', function(){
-      // output.should.eql([ [ '2', '3', '4', '1' ], [ 'b', 'c', 'd', 'a' ] ]);
-      console.log('Importer application finished.');
-    });
-
-    // transformer.write(['1','2','3','4']);
-    // transformer.write(['a','b','c','d']);
-
-    // iterate over CSV rows, send each to the transformer, convert the structure in the readable transformer state and then save in the  readable transformer state.
-    console.log('inputFile', inputFile);
-    fs.createReadStream(inputFile).pipe(parser);
-
-    transformer.end();
 
   break;
 }
