@@ -75,6 +75,8 @@ app.poweredBy = false;
 
 app.name = argv.application;
 
+debug('booting %s', app.name);
+
 console.log('Requiring ' + argv.application + ' application.');
 
 application = require(__dirname + '/applications/' + argv.application);
