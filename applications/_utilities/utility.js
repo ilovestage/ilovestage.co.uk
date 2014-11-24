@@ -22,7 +22,20 @@ var utility = {
     }
 
     return bool;
+  },
+
+  toObjectId: function (hex) {
+    if (hex instanceof bson.BSONPure.ObjectID) {
+      return hex;
+    }
+
+    if (!hex || hex.length !== 24) {
+      return hex;
+    }
+
+    return bson.BSONPure.ObjectID.createFromHexString(hex);
   }
+
 };
 
 module.exports = utility;
