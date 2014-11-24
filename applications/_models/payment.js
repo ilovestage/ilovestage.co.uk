@@ -49,8 +49,8 @@ Payment.schema = {
   ]
 };
 
-Payment.validate = function *(document) {
-	return validator.validate(documentument, Payment.schema, false, true);
+Payment.validate = function(document) {
+	return validator.validate(document, Payment.schema, false, true);
 };
 
 module.exports = Payment;

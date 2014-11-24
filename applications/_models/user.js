@@ -149,8 +149,8 @@ User.schema = {
   ]
 };
 
-User.validate = function *(document) {
-	return validator.validate(documentument, User.schema, false, true);
+User.validate = function(document) {
+	return validator.validate(document, User.schema, false, true);
 };
 
 module.exports = User;

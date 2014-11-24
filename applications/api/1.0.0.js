@@ -16,28 +16,26 @@ var health = require('koa-ping');
 var helmet = require('koa-helmet');
 var js2xmlparser = require('js2xmlparser');
 var koa = require('koa');
-// var mongodb = require('mongodb');
 var qs = require('koa-qs');
 var responseTime = require('koa-response-time');
 var router = require('koa-router');
-var session = require('koa-generic-session');
+// var session = require('koa-generic-session');
 var stripe = require('stripe')(packageJson.config.environment[environment].api.stripe.key);
 var thunkify = require('thunkify');
-var util = require('util');
 
 var cryptography = require(__dirname + '/../_utilities/cryptography');
-var date = require(__dirname + '/../_utilities/date');
+// var date = require(__dirname + '/../_utilities/date');
 var email = require(__dirname + '/../_utilities/email');
 var internationalization = require(__dirname + '/../_utilities/internationalization');
-var mongo = require(__dirname + '/../_utilities/mongo');
+// var mongo = require(__dirname + '/../_utilities/mongo');
 var utility = require(__dirname + '/../_utilities/utility');
 
 var dj = new DJ();
 
-// var Booking = require(__dirname + '/../_models/booking');
-// var Event = require(__dirname + '/../_models/event');
+var Booking = require(__dirname + '/../_models/booking');
+var Event = require(__dirname + '/../_models/event');
 var Payment = require(__dirname + '/../_models/payment');
-// var Show = require(__dirname + '/../_models/show');
+var Show = require(__dirname + '/../_models/show');
 var User = require(__dirname + '/../_models/user');
 
 var createCardThunk = thunkify(stripe.customers.create);
