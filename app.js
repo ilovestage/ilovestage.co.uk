@@ -35,7 +35,7 @@ if(environment === 'production') {
   optionsSSL = {
     key: fs.readFileSync('server.key'),
     cert: fs.readFileSync('server.crt')
-  }
+  };
 }
 
 var app = koa();
