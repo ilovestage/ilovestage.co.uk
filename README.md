@@ -37,5 +37,8 @@ npm start app.js --application api
 
 redis-cli -h localhost -p 6379
 
+node-inspector --web-port 5140 --debug-port 5130
+node-inspector --web-port 5540 --debug-port 5530
+
 http://charliegleason.com/articles/harp-gulp-and-browsersync
 http://harpjs.com/
