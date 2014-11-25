@@ -166,8 +166,9 @@
   },
   "config": {
     "salts": {
-      "uid": "Curtainca11",
-      "password": "andthestageloveme123"
+      "id": "Curtainca11",
+      "password": "andthestageloveme123",
+      "passwordreset": "c@b@r373n73r7@1nm3n7"
     },
     "http": {
       "auth": {
@@ -362,7 +363,7 @@
           },
           "sender": {
             "name": "I Love Stage UK",
-            "email": "ilovestageapp@gmail.com"
+            "address": "ilovestageapp@gmail.com"
           }
         }
       },

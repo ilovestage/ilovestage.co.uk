@@ -7,9 +7,9 @@ var crypto = require('crypto');
 
 var cryptography = {
 
-  encryptUid: function(uid) {
-    var hash = crypto.createHmac('sha512', packageJson.config.salts.uid);
-    hash.update(uid.toString());
+  encryptId: function(id) {
+    var hash = crypto.createHmac('sha512', packageJson.config.salts.id);
+    hash.update(id.toString());
     return hash.digest('hex');
   },
 
@@ -17,7 +17,13 @@ var cryptography = {
     var hash = crypto.createHmac('sha512', packageJson.config.salts.password);
     hash.update(password.toString());
     return hash.digest('hex');
-  }
+  },
+
+  encryptPasswordResetToken: function(id) {
+    var hash = crypto.createHmac('sha512', packageJson.config.salts.passwordreset);
+    hash.update(id.toString());
+    return hash.digest('hex');
+  },
 
 };
 

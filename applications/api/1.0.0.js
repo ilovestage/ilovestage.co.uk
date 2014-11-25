@@ -129,7 +129,8 @@ function* setResponse(next) {
     }
   }
 
-  self.locals.body.error = self.locals.message;
+  self.locals.body.error = self.locals.error;
+  self.locals.body.message = self.locals.message;
   self.locals.body.result = self.locals.result;
   self.locals.body.originalUrl = self.request.originalUrl;
 
@@ -157,26 +158,27 @@ function userHasPrivilege(_id) {
   if(typeof _id === 'undefined') {
     uid = null;
   } else {
-    uid = cryptography.encryptUid(_id.toString()); // to be sent encrypted
+    uid = cryptography.encryptId(_id.toString()); // to be sent encrypted
   }
 
-  console.log('_id', _id);
-  console.log('uid', uid);
-  console.log('self.locals.currentUser.uid', self.locals.currentUser.uid);
+  // console.log('_id', _id);
+  // console.log('uid', uid);
+  // console.log('self.locals.currentUser.uid', self.locals.currentUser.uid);
+  // console.log('self.locals.currentUser', self.locals.currentUser);
 
   self.locals.status = 200;
 
   if(self.locals.bypassAuthentication === true) {
-    console.log('case 1');
+    // console.log('case 1');
     return true;
   } else if(uid === self.locals.currentUser.uid) {
-    console.log('case 2');
+    // console.log('case 2');
     return true;
   } else if(self.locals.currentUser.role === 'admin') {
-    console.log('case 3');
+    // console.log('case 3');
     return true;
   } else {
-    console.log('case 4');
+    // console.log('case 4');
     self.locals.status = 403;
     return false;
   }
@@ -217,29 +219,35 @@ app.use(function* (next) {
     }
   }
 
- if(this.query.bypass === 'true') {
-   this.locals.bypassAuthentication = true;
-   this.locals.currentUser = 'bypassed';
+  if(this.query.bypass === 'true') {
+    this.locals.bypassAuthentication = true;
+    this.locals.currentUser = 'bypassed';
 
-   this.locals.status = 200;
- } else {
-  if(this.request.header.uid) {
-    returnFields = {
-      _id: 1,
-      uid: 1,
-      type: 1
-    };
-
-    // searchFields.uid = mongo.toObjectId(this.request.header.uid);
-    searchFields.uid = this.request.header.uid;
-    console.log('searchFields.uid', searchFields.uid);
-    this.locals.currentUser = yield User.findOne(searchFields, returnFields);
-    console.log('currentUser', this.locals.currentUser, 'uid', this.request.header.uid);
     this.locals.status = 200;
   } else {
-    this.locals.status = 401;
+    if(this.request.header.uid) {
+      returnFields = {
+        _id: 1,
+        uid: 1,
+        role: 1
+      };
+
+      // searchFields.uid = mongo.toObjectId(this.request.header.uid);
+      searchFields.uid = this.request.header.uid;
+      // console.log('searchFields.uid', searchFields.uid);
+      this.locals.currentUser = yield User.findOne(searchFields, returnFields);
+      // console.log('currentUser', this.locals.currentUser, 'uid', this.request.header.uid);
+
+      if(typeof this.locals.currentUser !== 'undefined') {
+        this.locals.status = 200;
+      } else {
+        this.locals.status = 403;
+      }
+
+    } else {
+      this.locals.status = 401;
+    }
   }
-}
 
   if((this.request.header['content-type'] === 'application/vnd.api+xml') || (this.query.format === 'xml')) {
     this.locals.contentType = 'xml';
@@ -492,14 +500,14 @@ app.del('/users/:id', isAuthenticated, function* (next) {
 
   searchFields._id = mongo.toObjectId(this.params.id);
 
-  user = yield User.remove(searchFields);
+  if(userHasPrivilege.apply(this, [user._id]) === true) {
+    user = yield User.remove(searchFields);
+  }
 
   if (!user) {
     this.locals.status = 404;
   } else {
-    if(userHasPrivilege.apply(this, [user._id]) === true) {
-      this.locals.result = user;
-    }
+    this.locals.result = user;
 
     this.locals.status = 204;
   }
@@ -512,6 +520,8 @@ app.get('/users', function* (next) {
   var password;
   var returnFields;
   var searchFields = {};
+  var token;
+  var updateFields = {};
   var user;
   var users;
 
@@ -575,6 +585,67 @@ app.get('/users', function* (next) {
       }
 
       this.locals.result = user;
+    }
+  } else if ((typeof this.query.email !== 'undefined') && (this.query.forgot === 'password')) {
+    searchFields['strategies.local.email'] = this.query.email;
+
+    user = yield User.findOne(searchFields, returnFields);
+    // console.log('user', user);
+
+    if (!user) {
+      this.locals.message = 'A user with those credentials does not exist.';
+      this.locals.status = 404;
+    } else {
+      token = cryptography.encryptPasswordResetToken(user._id.toString());
+
+      updateFields = {
+        $set: {
+          passwordresettoken: token
+        }
+      };
+
+      user = yield user.update(updateFields);
+
+      email.send.apply(this, [{
+        subject: 'Reset your password',
+        email: user.strategies.local.email,
+        user: user,
+        token: user.passwordresettoken
+      }, 'user-password-forgot']);
+
+      this.locals.message = 'Reset password email sent';
+
+      // this.locals.result = user;
+    }
+  } else if ((typeof this.query.email !== 'undefined') && (this.query.reset === 'password') && (typeof this.query.token !== 'undefined') && (typeof this.query.password !== 'undefined')) {
+    searchFields['strategies.local.email'] = this.query.email;
+    searchFields['passwordresettoken'] = this.query.token;
+
+    user = yield User.findOne(searchFields, returnFields);
+
+    if (!user) {
+      this.locals.message = 'A user with those credentials does not exist.';
+      this.locals.status = 404;
+    } else {
+      updateFields = {
+        $set: {
+          password: this.query.password
+        },
+        $unset: {
+          passwordresettoken: ''
+        }
+      };
+
+      user = yield user.update(updateFields);
+
+      email.send.apply(this, [{
+        subject: 'Your password has been reset',
+        email: user.strategies.local.email,
+        user: user
+      }, 'user-password-reset']);
+
+      this.locals.message = 'Password reset';
+      this.locals.result = deleteKey(user, ['stripeid', 'passwordresettoken', 'role', 'communications', 'dateofbirth']);
     }
   } else if ((typeof this.query.email !== 'undefined') && (typeof this.query.password !== 'undefined')) {
     searchFields['strategies.local.email'] = this.query.email;
@@ -678,9 +749,7 @@ app.post('/users', function* (next) {
   var validator;
 
   if(userHasPrivilege.apply(this, ['admin']) !== true) {
-    if(this.locals.document.role) {
-      this.locals.document.role = 'standard';
-    }
+    this.locals.document.role = 'standard';
   }
 
   // console.log('User.schema', User.schema);
@@ -746,7 +815,7 @@ app.post('/users', function* (next) {
         });
 
         updateFields.$set = {
-          uid: cryptography.encryptUid(user._id.toString()),
+          uid: cryptography.encryptId(user._id.toString()),
           stripeid: card.id
         };
 
@@ -969,18 +1038,15 @@ app.post('/bookings', function* (next) {
     } else {
       if(booking.tickets >= 8) {
         email.send({
-          subject: 'Booking target reached', // Subject line
+          subject: 'Booking target reached',
           email: email.sender.address
         }, 'admin-booking');
       }
 
       email.send({
-        subject: 'Booking confirmed', // Subject line
+        subject: 'Booking confirmed',
         email: user.strategies.local.email,
-        name: {
-          first: user.firstname,
-          last: user.lastname
-        }
+        user: user
       }, 'user-booking');
 
       this.locals.result = booking;
@@ -1022,16 +1088,13 @@ app.put('/bookings/:id', function* (next) {
     //
     //   if(user && user.length > 0) {
     //     email.send({
-    //       subject: 'Booking confirmed', // Subject line
+    //       subject: 'Booking confirmed',
     //       email: user.strategies.local.email,
-    //       name: {
-    //         first: user.firstname,
-    //         last: user.lastname
-    //       }
+    //       user: user
     //     }, 'user-booking');
     //
     //     email.send({
-    //       subject: 'Booking target reached', // Subject line
+    //       subject: 'Booking target reached',
     //       email: email.sender.address
     //     }, 'admin-booking');
     //

@@ -7,12 +7,15 @@ var emailTemplates = require('email-templates');
 var mcapi = require('mailchimp-api/mailchimp');
 var nodemailer = require('nodemailer');
 var path = require('path');
+// var Q = require('q');
+// var thunkify = require('thunkify');
 
 var templatesDir = path.resolve(__dirname, '../..', 'source/emails');
 
 var mc = new mcapi.Mailchimp(packageJson.config.api.mailchimp.key);
 
 // var emailTemplatesThunk = thunkify(emailTemplates);
+// var emailTemplatesBoundThunk = emailTemplatesThunk.bind(stripe.customers);
 
 var email = {
 
@@ -58,16 +61,22 @@ var email = {
   },
 
   send: function(locals, layout) {
+    var self = this;
+
+    // self.locals.error = 'here 1234';
+
     emailTemplates(templatesDir, function (err, template) {
+
       // Send a single email
       template(layout, locals, function (error, html, text) {
+
         if (error) {
           console.log(error);
         } else {
           var mailOptions = {
             from: email.sender.name + ' <' + email.sender.address + '>', // sender address
             to: {
-              name: locals.name.first,
+              name: locals.user.firstname,
               address: locals.email
             }, // list of receivers
             subject: locals.subject, // Subject line
@@ -76,17 +85,18 @@ var email = {
           };
 
           email.transporter.sendMail(mailOptions, function (error, info) {
-            var response = {};
-
             if (error) {
-              response.status = 400;
-              response.error = error;
+              self.locals.status = 400;
+              self.locals.error = error;
             } else {
-              response.status = 200;
-              response.info = info;
+              self.locals.message = info;
+              self.locals.message = 'Password reset email sent.';
             }
-            // console.log(response);
-            // return response;
+
+            // console.log('self.locals', self.locals);
+            console.log('error', error);
+            console.log('mailOptions', mailOptions);
+
           });
         }
       });
