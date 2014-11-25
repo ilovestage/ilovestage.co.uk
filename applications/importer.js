@@ -6,7 +6,7 @@ var environment = process.env.NODE_ENV ? process.env.NODE_ENV : 'development';
 var mongo = require(__dirname + '/_utilities/mongo');
 var connectionString = mongo.connectionString(packageJson.config.environment[environment].server.database);
 
-var _ = require('lodash');
+// var _ = require('lodash');
 var argv = require('yargs').argv;
 var db = require('monk')(connectionString);
 var deleteKey = require('key-del');
@@ -163,27 +163,27 @@ switch(argv.job) {
           }
         }
 
-        var promise = shows.insert(showRows[showRowIterator]);
+        var show = shows.insert(showRows[showRowIterator]);
 
-        // console.log('promise.type', promise.type);
+        // console.log('show.type', show.type);
         //
-        // promise.error(function(err) {
-        //   console.log('promise.error', err);
+        // show.error(function(err) {
+        //   console.log('show.error', err);
         // });
         //
-        // promise.on('error', function(err) {
-        //   console.log('promise.error', err);
+        // show.on('error', function(err) {
+        //   console.log('show.error', err);
         // });
         //
-        // promise.on('success', function(doc) {
-        //   console.log('promise.success', doc);
+        // show.on('success', function(doc) {
+        //   console.log('show.success', doc);
         // });
         //
-        // promise.on('complete', function(err, doc) {
+        // show.on('complete', function(err, doc) {
         //   console.log('complete', err, doc);
         // });
         //
-        // promise.success(function(doc) {
+        // show.success(function(doc) {
         //   console.log('success', doc);
         // });
 
