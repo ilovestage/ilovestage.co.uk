@@ -142,7 +142,6 @@ User.schema = {
   'required': [
   'firstname',
   'lastname',
-  'role',
   'dateofbirth',
   'strategies',
   'communications'
@@ -150,7 +149,14 @@ User.schema = {
 };
 
 User.validate = function(document) {
-	return validator.validate(document, User.schema, false, true);
+  var valid = validator.validate(document, User.schema, false, true);
+
+  if(valid === true) {
+    return valid;
+  } else {
+    return validator;
+  }
+
 };
 
 module.exports = User;

@@ -4,7 +4,7 @@ var countryData = require('country-data');
 var tv4 = require('tv4');
 var formats = require('tv4-formats');
 
-var utility = require(__dirname + '/utility');
+var mongo = require(__dirname + '/mongo');
 
 var validator = tv4.freshApi();
 
@@ -16,7 +16,7 @@ validator.addFormat(formats);
 // validator.getSchema('http://schema.rdfs.org/all.json');
 
 validator.addFormat('object-id', function (data, schema) {
-  if(utility.validateObjectId(data)) {
+  if(mongo.validateObjectId(data)) {
     return null;
   }
   return 'Must be a valid objectId';

@@ -8,6 +8,7 @@ var auth = require('koa-basic-auth');
 var bodyParser = require('koa-bodyparser');
 var co = require('co');
 var conditional = require('koa-conditional-get');
+var deleteKey = require('key-del');
 var DJ = require('dot-object');
 var etag = require('koa-etag');
 var fresh = require('koa-fresh');
@@ -163,13 +164,15 @@ function userHasPrivilege(_id) {
   console.log('uid', uid);
   console.log('self.locals.currentUser.uid', self.locals.currentUser.uid);
 
+  self.locals.status = 200;
+
   if(self.locals.bypassAuthentication === true) {
     console.log('case 1');
     return true;
   } else if(uid === self.locals.currentUser.uid) {
     console.log('case 2');
     return true;
-  } else if(self.locals.currentUser.type === 'admin') {
+  } else if(self.locals.currentUser.role === 'admin') {
     console.log('case 3');
     return true;
   } else {
@@ -208,32 +211,41 @@ app.use(function* (next) {
 
   if(this.locals.document) {
     dj.object(this.locals.document);
-    delete this.locals.document.format;
+
+    if(this.locals.document.format) {
+      this.locals.document = deleteKey(this.locals.document, ['format']);
+    }
   }
 
  if(this.query.bypass === 'true') {
    this.locals.bypassAuthentication = true;
    this.locals.currentUser = 'bypassed';
+
+   this.locals.status = 200;
  } else {
-   if(this.request.header.uid) {
-     returnFields = {
-       _id: 1,
-       uid: 1,
-       type: 1
-     };
+  if(this.request.header.uid) {
+    returnFields = {
+      _id: 1,
+      uid: 1,
+      type: 1
+    };
 
-     searchFields.uid = mongo.toObjectId(this.request.header.uid);
+    // searchFields.uid = mongo.toObjectId(this.request.header.uid);
+    searchFields.uid = this.request.header.uid;
+    console.log('searchFields.uid', searchFields.uid);
+    this.locals.currentUser = yield User.findOne(searchFields, returnFields);
+    console.log('currentUser', this.locals.currentUser, 'uid', this.request.header.uid);
+    this.locals.status = 200;
+  } else {
+    this.locals.status = 401;
+  }
+}
 
-     this.locals.currentUser = yield User.findOne(searchFields, returnFields);
-    //  console.log('currentUser', this.locals.currentUser, 'uid', this.request.header.uid);
-   }
- }
-
- if((this.request.header['content-type'] === 'application/vnd.api+xml') || (this.query.format === 'xml')) {
-   this.locals.contentType = 'xml';
- } else {
-   this.locals.contentType = 'json';
- }
+  if((this.request.header['content-type'] === 'application/vnd.api+xml') || (this.query.format === 'xml')) {
+    this.locals.contentType = 'xml';
+  } else {
+    this.locals.contentType = 'json';
+  }
 
   try {
     yield next;
@@ -556,7 +568,10 @@ app.get('/users', function* (next) {
       }
 
       if ((typeof user !== 'undefined') && (typeof user.strategies !== 'undefined') && (typeof user.strategies[this.query.provider] !== 'undefined') && (typeof user.strategies[this.query.provider].token !== 'undefined')) {
-        delete user.strategies[this.query.provider].token;
+
+        if(user.strategies[this.query.provider]) {
+          user.strategies[this.query.provider] = deleteKey(user.strategies[this.query.provider], ['token']);
+        }
       }
 
       this.locals.result = user;
@@ -591,7 +606,10 @@ app.get('/users', function* (next) {
       }
 
       if ((typeof user !== 'undefined') && (typeof user.strategies !== 'undefined') && (typeof user.strategies.local !== 'undefined') && (typeof user.strategies.local.password !== 'undefined')) {
-        delete user.strategies.local.password;
+
+        if(user.strategies.local) {
+          user.strategies.local = deleteKey(user.strategies.local, ['password']);
+        }
       }
 
       this.locals.result = user;
@@ -657,14 +675,18 @@ app.post('/users', function* (next) {
   var searchFields = {};
   var updateFields = {};
   var user;
+  var validator;
 
   if(userHasPrivilege.apply(this, ['admin']) !== true) {
-    if(this.locals.document.type) {
-      this.locals.document.type = 'standard';
+    if(this.locals.document.role) {
+      this.locals.document.role = 'standard';
     }
   }
 
-  if(User.validate(this.locals.document)) {
+  // console.log('User.schema', User.schema);
+  validator = User.validate(this.locals.document);
+
+  if(validator === true) {
     if (typeof this.locals.document.strategies !== 'undefined') {
       if((typeof this.locals.document.strategies.local !== 'undefined') && (typeof this.locals.document.strategies.local.email !== 'undefined')) {
         orParameters.push({
@@ -704,7 +726,10 @@ app.post('/users', function* (next) {
       this.locals.status = 409;
     } else {
       dj.object(this.locals.document);
-      delete this.locals.document.format;
+
+      if(this.locals.document) {
+        this.locals.document = deleteKey(this.locals.document, ['format']);
+      }
 
       this.locals.document.strategies.local.password = cryptography.encryptPassword(this.locals.document.strategies.local.password);
 
@@ -744,7 +769,9 @@ app.post('/users', function* (next) {
         }
 
         if (user && user.strategies && user.strategies.local && user.strategies.local.password) {
-          delete user.strategies.local.password;
+          if(user.strategies.local) {
+            user.strategies.local = deleteKey(user.strategies.local, ['password']);
+          }
         }
 
         this.locals.result = user;
@@ -752,7 +779,7 @@ app.post('/users', function* (next) {
       }
     }
   } else {
-    this.locals.message = User.error.message;
+    this.locals.message = validator.error.message;
     this.locals.status = 400;
   }
 
@@ -765,8 +792,8 @@ app.put('/users/:id', isAuthenticated, function* (next) {
   var user;
 
   if(userHasPrivilege.apply(this, ['admin']) !== true) {
-    if(this.locals.document.type) {
-      delete this.locals.document.type;
+    if(this.locals.document.role) {
+      this.locals.document = deleteKey(this.locals.document, ['role']);
     }
   }
 
@@ -1133,11 +1160,14 @@ app.post('/payments', function* (next) {
   var payment;
   var user;
   var searchFields;
+  var validator;
 
   // console.log('this.locals.document', this.locals.document);
   // console.log('Valid: ' + validator.validate(this.locals.document, schema.payment, false, true)); // true
 
-  if(Payment.validate(this.locals.document)) {
+  validator = Payment.validate(this.locals.document);
+
+  if(validator) {
     this.locals.document.time = new Date();
 
     if(!this.locals.document.hasOwnProperty('bookingid') || !this.locals.document.hasOwnProperty('processor') || !this.locals.document.hasOwnProperty('currency') || !this.locals.document.hasOwnProperty('amount')) {
@@ -1190,7 +1220,7 @@ app.post('/payments', function* (next) {
       }
     }
   } else {
-    this.locals.message = Payment.error.message;
+    this.locals.message = validator.error.message;
     this.locals.status = 400;
   }
 
@@ -1219,6 +1249,7 @@ app.del('/shows/:id', isAuthenticated, function* (next) {
 });
 
 app.get('/shows', function* (next) {
+  var lang;
   var limit = 50;
   var returnFields = {};
   var searchFields = {};
@@ -1230,8 +1261,6 @@ app.get('/shows', function* (next) {
     }
   } else if (typeof this.query.theatre !== 'undefined') {
     searchFields.theatre = this.query.theatre;
-  } else if (typeof this.query !== 'undefined') {
-    this.locals.status = 400;
   }
 
   if (this.query.limit && (typeof parseInt(this.query.limit) === 'number')) {
@@ -1250,15 +1279,19 @@ app.get('/shows', function* (next) {
     this.locals.status = 404;
   } else {
     if (typeof this.query.lang !== 'undefined') {
-      shows = internationalization.translate(
-        shows,
-        [
-          'name',
-          'synopsis'
-        ],
-        this.query.lang
-      );
+      lang = this.query.lang;
+    } else {
+      lang = 'en';
     }
+
+    shows = internationalization.translate(
+      shows,
+      [
+      'name',
+      'synopsis'
+      ],
+      lang
+    );
 
     this.locals.result = shows;
     this.locals.status = 200;
