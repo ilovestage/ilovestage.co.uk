@@ -25,10 +25,6 @@ var visitor = ua(packageJson.config.applications.importer.googleanalytics.key);
 
 var dataFilesPath;
 
-var parseOptions = {
-  columns: true
-};
-
 app.use(function* (next) {
   var job = argv.job.split('-');
 
@@ -43,6 +39,10 @@ switch(argv.job) {
     var showsFilePath;
     var showsFileString;
 
+    var showsParseOptions = {
+      columns: true
+    };
+
     dataFilesPath = path.normalize(__dirname + '/../data/import/shows');
 
     showsFilePath = path.normalize(dataFilesPath + '/Shows - Shows.csv');
@@ -50,7 +50,7 @@ switch(argv.job) {
 
     shows.remove({});
 
-    csv.parse(showsFileString, parseOptions, function(error, showRows) {
+    csv.parse(showsFileString, showsParseOptions, function(error, showRows) {
       // console.log('showRows', showRows);
 
       function addTranslations() {
@@ -80,7 +80,11 @@ switch(argv.job) {
 
         var languageFileString = fs.readFileSync(languageFilePath);
 
-        csv.parse(languageFileString, parseOptions, function(error, languageRows) {
+        var languageParseOptions = {
+          columns: true
+        };
+
+        csv.parse(languageFileString, languageParseOptions, function(error, languageRows) {
           // console.log('languageRows[languageIterator]', languageRows);
 
           var languageRowsIterator;
@@ -89,13 +93,30 @@ switch(argv.job) {
             // console.log('languageRows[languageRowsIterator]', languageRows[languageRowsIterator]);
             // console.log('languageCode', languageCode);
 
+            languageRows[languageRowsIterator].reviews = [];
+
+            var reviewers = languageRows[languageRowsIterator].reviewer.split('\n').filter(Boolean);
+            var reviews = languageRows[languageRowsIterator].review.split('\n').filter(Boolean);
+
+            // console.log('reviewers', reviewers);
+            // console.log('reviews', reviews);
+
+            var reviewRowsIterator;
+
+            for (reviewRowsIterator = 0; reviewRowsIterator < reviews.length; reviewRowsIterator++) {
+              languageRows[languageRowsIterator].reviews.push({
+                reviewer: reviewers[reviewRowsIterator],
+                review: reviews[reviewRowsIterator]
+              });
+            }
+
             var translation = {};
-
             translation[languageCode] = languageRows[languageRowsIterator];
-            console.log('translation', translation);
+            // console.log('translation', translation);
 
-            var updateFields = deleteKey(translation, ['id']);
-            console.log('updateFields', updateFields);
+            var updateFields = deleteKey(translation, ['id', 'reviewer', 'review']);
+            // var updateFields = translation;
+            // console.log('updateFields', updateFields);
 
             shows.findAndModify({
               query: {
@@ -114,7 +135,7 @@ switch(argv.job) {
 
             // console.log('show1', show);
 
-            // if(languageRows[languageRowsIterator].id === showRows[showIterator].id) {
+            // if(languageRows[languageRowsIterator].id === showRows[showRowIterator].id) {
             //   console.log('match');
             // }
           }
@@ -122,12 +143,27 @@ switch(argv.job) {
         });
       }
 
-      var showIterator;
+      var showRowIterator;
 
-      for (showIterator = 0; showIterator < showRows.length; showIterator++) {
-        // console.log('showRows[showIterator]', showRows[showIterator].id);
+      for (showRowIterator = 0; showRowIterator < showRows.length; showRowIterator++) {
 
-        var promise = shows.insert(showRows[showIterator]);
+        var performances = showRows[showRowIterator].performances.split('\n').filter(Boolean);
+        // console.log('performances', performances);
+
+        showRows[showRowIterator].performances = {}; //reset to array
+
+        var performanceRowsIterator;
+
+        for (performanceRowsIterator = 0; performanceRowsIterator < performances.length; performanceRowsIterator++) {
+          performances[performanceRowsIterator] = performances[performanceRowsIterator].split(' ');
+          if(typeof performances[performanceRowsIterator][1] !== 'undefined') {
+            showRows[showRowIterator].performances[performances[performanceRowsIterator][0]] = performances[performanceRowsIterator][1].split('/');
+          } else {
+            showRows[showRowIterator].performances[performances[performanceRowsIterator][0]] = null;
+          }
+        }
+
+        var promise = shows.insert(showRows[showRowIterator]);
 
         // console.log('promise.type', promise.type);
         //
@@ -151,10 +187,14 @@ switch(argv.job) {
         //   console.log('success', doc);
         // });
 
-        // console.log('showIterator', showIterator, 'showRows.length', (showRows.length - 1));
+        // console.log('showRowIterator', showRowIterator, 'showRows.length', (showRows.length - 1));
 
-        if(showIterator === (showRows.length - 1)) {
+        if(showRowIterator === (showRows.length - 1)) {
           addTranslations();
+          console.log('Updated shows data successfully imported.');
+          setTimeout(function() {
+            process.exit();
+          }, 2000);
         }
 
       }
