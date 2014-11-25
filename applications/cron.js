@@ -1,21 +1,33 @@
 'use strict';
 
 var packageJson = require(__dirname + '/../package.json');
-var config = packageJson.config.environment[process.env.NODE_ENV || 'development'];
+// var config = packageJson.config.environment[process.env.NODE_ENV || 'development'];
+var environment = process.env.NODE_ENV ? process.env.NODE_ENV : 'development';
+
+var mongo = require(__dirname + '/_utilities/mongo');
+var connectionString = mongo.connectionString(packageJson.config.environment[environment].server.database);
 
 var _ = require('lodash');
 var argv = require('yargs').argv;
 var co = require('co');
+var db = require('monk')(connectionString);
 var koa = require('koa');
 var moment = require('moment');
-var stripe = require('stripe')(config.api.stripe.key);
+var stripe = require('stripe')(packageJson.config.api.stripe.key);
 var thunkify = require('thunkify');
 var ua = require('universal-analytics');
 
-var database = require(__dirname + '/_utilities/database');
-var utilities = require(__dirname + '/_utilities/utilities');
+// var database = require(__dirname + '/_utilities/database');
+var email = require(__dirname + '/_utilities/email');
+// var utilities = require(__dirname + '/_utilities/utilities');
 
-var db = new database(config.server.database);
+// var db = new database(config.server.database);
+
+var bookings = db.get('bookings');
+var events = db.get('events');
+var payments = db.get('payments');
+var shows = db.get('shows');
+var users = db.get('users');
 
 var createChargeThunk = thunkify(stripe.charges.create);
 var createChargeBoundThunk = createChargeThunk.bind(stripe.charges);
@@ -95,7 +107,7 @@ switch(argv.job) {
     };
 
     co(function *() {
-      var booking = yield db.collection('bookings').find(searchFields.bookings, {
+      var booking = yield bookings.find(searchFields.bookings, {
         fields: returnFields.bookings
       });
 
@@ -104,21 +116,21 @@ switch(argv.job) {
       _(booking).forEach(function(doc) {
         co(function *() {
           // console.log('doc', doc);
-          searchFields.db.collection('events')._id = doc.eventid.toString(); //reset variable;
+          searchFields.events._id = doc.eventid.toString(); //reset variable;
 
-          var event = yield db.collection('events').findOne(searchFields.events, {
+          var event = yield events.findOne(searchFields.events, {
             fields: returnFields.events
           });
 
           if (event) {
-            searchFields.db.collection('payments').eventid = doc.eventid.toString(); //reset variable;
-            searchFields.db.collection('users')._id = doc.userid.toString(); //reset variable;
+            searchFields.payments.eventid = doc.eventid.toString(); //reset variable;
+            searchFields.users._id = doc.userid.toString(); //reset variable;
 
-            // var payment = yield db.collection('payments').findOne(searchFields.payments, {
+            // var payment = yield payments.findOne(searchFields.payments, {
             //   fields: returnFields.payments
             // });
 
-            var user = yield db.collection('users').findOne(searchFields.users, {
+            var user = yield users.findOne(searchFields.users, {
               fields: returnFields.users
             });
 
@@ -141,9 +153,9 @@ switch(argv.job) {
 
               console.log('chargeInfo', chargeInfo);
 
-              insertFields.db.collection('payments').bookingid = doc._id.toString();
-              insertFields.db.collection('payments').token = user.stripeid;
-              insertFields.db.collection('payments').time = currentDate;
+              insertFields.payments.bookingid = doc._id.toString();
+              insertFields.payments.token = user.stripeid;
+              insertFields.payments.time = currentDate;
 
               try {
                 var charge = yield createChargeBoundThunk(chargeInfo);
@@ -151,18 +163,18 @@ switch(argv.job) {
                 if (charge) {
                   console.log('charge', charge);
 
-                  insertFields.db.collection('payments').status = 'success';
-                  insertFields.db.collection('payments').response = charge;
+                  insertFields.payments.status = 'success';
+                  insertFields.payments.response = charge;
 
-                  updateFields.db.collection('bookings').$set.status = 'success';
+                  updateFields.bookings.$set.status = 'success';
 
-                  var payment = yield db.collection('payments').insert(insertFields.payments);
+                  var payment = yield payments.insert(insertFields.payments);
                   console.log('payment', payment);
 
-                  var updatedBooking = yield db.collection('bookings').findAndModify(searchFields.bookings, updateFields.bookings);
+                  var updatedBooking = yield bookings.findAndModify(searchFields.bookings, updateFields.bookings);
                   console.log('updatedBooking', updatedBooking);
 
-                  utilities.sendEmail('user-booking', {
+                  email.send('user-booking', {
                     subject: 'Booking target reached', // Subject line
                     email: user.strategies.local.email
                   });
@@ -170,20 +182,20 @@ switch(argv.job) {
               } catch(error) {
                 console.log('error', error); // ENOTFOUND
 
-                insertFields.db.collection('payments').status = 'failure';
-                insertFields.db.collection('payments').error = error;
+                insertFields.payments.status = 'failure';
+                insertFields.payments.error = error;
 
-                updateFields.db.collection('bookings').$set.status = 'failure';
+                updateFields.bookings.$set.status = 'failure';
 
-                var payment = yield db.collection('payments').insert(insertFields.payments);
+                var payment = yield payments.insert(insertFields.payments);
                 console.log('payment', payment);
 
-                var updatedBooking = yield db.collection('bookings').findAndModify(searchFields.bookings, updateFields.bookings);
+                var updatedBooking = yield bookings.findAndModify(searchFields.bookings, updateFields.bookings);
                 console.log('updatedBooking', updatedBooking);
 
-                utilities.sendEmail('admin-booking', {
+                email.send('admin-booking', {
                   subject: 'Booking payment failed', // Subject line
-                  email: utilities.emailSender.address,
+                  email: email.sender.address,
                   message: error.message
                 });
               }
@@ -196,5 +208,18 @@ switch(argv.job) {
         })();
       });
     })();
+  break;
+  case 'events-populate':
+    {
+      "showid": "5436a8215867dd180c843cb1",
+      "availability": 2,
+      "starttime": "Sat Sep 13 2014 19:00:00 GMT+0100 (BST)",
+      "endtime": "Sat Sep 13 2014 21:30:00 GMT+0100 (BST)",
+      "priceband": "Best Available",
+      "facevalue": 45.00,
+      "discount_price": 34.50
+    }
+    
+    var event = events.insert(data);
   break;
 }
