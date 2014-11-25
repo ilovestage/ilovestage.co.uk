@@ -28,14 +28,32 @@ User.schema = {
     },
     'role': {
       'enum': [
-      'admin',
-      'agent',
-      'standard'
+        'admin',
+        'agent',
+        'standard'
       ]
+    },
+    'phone': {
+      'type': 'object',
+      'properties': {
+        'number': {
+          'type': 'integer',
+          'minLength': 3,
+          'maxLength': 16
+        },
+        'countrycallingcode': {
+          'type': 'string',
+          'format': 'country-calling-code'
+        }
+      }
     },
     'dateofbirth': {
       'type': 'string',
       'format': 'date'
+    },
+    'countrycode': {
+      'type': 'string',
+      'format': 'country-code'
     },
     'strategies': {
       'type': 'object',
@@ -54,8 +72,8 @@ User.schema = {
             }
           },
           'required': [
-          'email',
-          'password'
+            'email',
+            'password'
           ]
         },
         'oauth2': {
@@ -72,6 +90,9 @@ User.schema = {
         }
       },
       'anyOf': [
+      {
+        'required': ['local']
+      },
       {
         'required': ['oauth2']
       },
@@ -126,37 +147,34 @@ User.schema = {
         }
       },
       'required': [
-      'uid',
-      'token'
+        'uid',
+        'token'
       ]
     },
     'communicationsTypes': {
       'type': 'string',
       'enum': [
-      'email',
-      'push',
-      'sms'
+        'email',
+        'push',
+        'sms'
       ]
     }
   },
   'required': [
-  'firstname',
-  'lastname',
-  'dateofbirth',
-  'strategies',
-  'communications'
+    'firstname',
+    'lastname',
+    'dateofbirth',
+    'strategies',
+    'communications'
   ]
 };
 
 User.validate = function(document) {
-  var valid = validator.validate(document, User.schema, false, true);
+  document.phone.countrycallingcode = '+' + document.phone.countrycallingcode;
 
-  if(valid === true) {
-    return valid;
-  } else {
-    return validator;
-  }
+  // console.log(validator.validateMultiple(document, User.schema, false, true));
 
+  return validator.validateResult(document, User.schema, false, true);
 };
 
 module.exports = User;

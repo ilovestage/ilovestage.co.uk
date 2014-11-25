@@ -22,14 +22,7 @@ Event.schema = {
 };
 
 Event.validate = function(document) {
-  var valid = validator.validate(document, Event.schema, false, true);
-
-  if(valid === true) {
-    return valid;
-  } else {
-    return validator;
-  }
-
+  return validator.validateResult(document, Event.schema, false, true);
 };
 
 module.exports = Event;

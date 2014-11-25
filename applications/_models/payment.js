@@ -50,14 +50,7 @@ Payment.schema = {
 };
 
 Payment.validate = function(document) {
-  var valid = validator.validate(document, Payment.schema, false, true);
-
-  if(valid === true) {
-    return valid;
-  } else {
-    return validator;
-  }
-
+  return validator.validateResult(document, Payment.schema, false, true);
 };
 
 module.exports = Payment;

@@ -22,14 +22,7 @@ Show.schema = {
 };
 
 Show.validate = function(document) {
-  var valid = validator.validate(document, Show.schema, false, true);
-
-  if(valid === true) {
-    return valid;
-  } else {
-    return validator;
-  }
-
+  return validator.validateResult(document, Show.schema, false, true);
 };
 
 module.exports = Show;

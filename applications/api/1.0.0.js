@@ -848,7 +848,8 @@ app.post('/users', function* (next) {
       }
     }
   } else {
-    this.locals.message = validator.error.message;
+    this.locals.message = deleteKey(validator, ['stack']);
+    this.locals.result = this.locals.document;
     this.locals.status = 400;
   }
 
@@ -1283,7 +1284,8 @@ app.post('/payments', function* (next) {
       }
     }
   } else {
-    this.locals.message = validator.error.message;
+    this.locals.message = deleteKey(validator, ['stack']);
+    this.locals.result = this.locals.document;
     this.locals.status = 400;
   }
 

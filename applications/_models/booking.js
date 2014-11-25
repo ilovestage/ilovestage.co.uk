@@ -22,14 +22,7 @@ Booking.schema = {
 };
 
 Booking.validate = function(document) {
-  var valid = validator.validate(document, Booking.schema, false, true);
-
-  if(valid === true) {
-    return valid;
-  } else {
-    return validator;
-  }
-
+  return validator.validateResult(document, Booking.schema, false, true);
 };
 
 module.exports = Booking;
