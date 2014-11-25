@@ -106,6 +106,38 @@ function *home(next) {
   this.body = html;
 }
 
+function *privacy(next) {
+  var settings = {
+    bodyClass: 'privacy'
+  };
+
+  _.merge(settings, defaults);
+
+  var body = yield render('privacy', settings);
+
+  settings.body = body;
+
+  var html = yield render('layouts/default', settings);
+
+  this.body = html;
+}
+
+function *terms(next) {
+  var settings = {
+    bodyClass: 'terms'
+  };
+
+  _.merge(settings, defaults);
+
+  var body = yield render('terms', settings);
+
+  settings.body = body;
+
+  var html = yield render('layouts/default', settings);
+
+  this.body = html;
+}
+
 app.get('/', home);
 
 app.get(/^([^.]+)$/, error404); //matches everything without an extension
