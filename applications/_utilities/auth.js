@@ -1,20 +1,24 @@
 'use strict';
 
 var packageJson = require(__dirname + '/../../package.json');
-var config = packageJson.config.environment[process.env.NODE_ENV || 'development'];
+var environment = process.env.NODE_ENV ? process.env.NODE_ENV : 'development';
+
+var mongo = require(__dirname + '/mongo');
+var connectionString = mongo.connectionString(packageJson.config.environment[environment].server.database);
 
 var co = require('co');
+var db = require('monk')(connectionString);
 var passport = require('koa-passport');
 var LocalStrategy = require('passport-local').Strategy;
 var FacebookStrategy = require('passport-facebook').Strategy;
 var TwitterStrategy = require('passport-twitter').Strategy;
 var GoogleStrategy = require('passport-google').Strategy;
 
-var database = require(__dirname + '/database');
+// var database = require(__dirname + '/database');
+// var db = new database(config.server.database);
+// var users = db.collection('users');
 
-var db = new database(config.server.database);
-
-var users = db.collection('users');
+var users = db.get('users');
 
 passport.serializeUser(function(user, done) {
   console.log('passport.serializeUser', user._id, done);
