@@ -75,7 +75,7 @@ switch(argv.job) {
       }
 
       function translateShow(languageFilePath) {
-        var languageCode = languageFilePath.match(/[^[\]]+(?=])/g);
+        var languageCode = languageFilePath.match(/[^[\]]+(?=])/g)[0];
         // console.log('languageCode', languageCode);
 
         var languageFileString = fs.readFileSync(languageFilePath);
@@ -110,34 +110,22 @@ switch(argv.job) {
               });
             }
 
-            var translation = {};
-            translation[languageCode] = languageRows[languageRowsIterator];
-            // console.log('translation', translation);
+            var translation = languageRows[languageRowsIterator];
+            translation.lang = languageCode;
+            translation = deleteKey(translation, ['id', 'reviewer', 'review']);
 
-            var updateFields = deleteKey(translation, ['id', 'reviewer', 'review']);
-            // var updateFields = translation;
-            // console.log('updateFields', updateFields);
-
-            shows.findAndModify({
+            var show = shows.findAndModify({
               query: {
-                id: languageRows[languageRowsIterator].id
+                importid: languageRows[languageRowsIterator].id
               },
               update: {
-                $set: updateFields
+                $push: {
+                  translations: translation
+                }
               }
             });
 
-            // var show = shows.find({
-            //   query: {
-            //     id: languageRows[languageRowsIterator].id
-            //   }
-            // });
-
-            // console.log('show1', show);
-
-            // if(languageRows[languageRowsIterator].id === showRows[showRowIterator].id) {
-            //   console.log('match');
-            // }
+            // console.log('show', show);
           }
 
         });
@@ -163,9 +151,14 @@ switch(argv.job) {
           }
         }
 
+        showRows[showRowIterator].importid = showRows[showRowIterator].id;
+        showRows[showRowIterator] = deleteKey(showRows[showRowIterator], ['id']);
+
+        showRows[showRowIterator].translations = [];
+
         var show = shows.insert(showRows[showRowIterator]);
 
-        // console.log('show.type', show.type);
+        // console.log('show', show);
         //
         // show.error(function(err) {
         //   console.log('show.error', err);

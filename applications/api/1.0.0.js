@@ -209,6 +209,12 @@ app.use(function* (next) {
 
   this.locals.bypassAuthentication = false;
 
+  if (typeof this.query.lang !== 'undefined') {
+    this.locals.lang = this.query.lang;
+  } else {
+    this.locals.lang = 'en';
+  }
+
   this.locals.document = this.request.body;
 
   if(this.locals.document) {
@@ -1314,16 +1320,42 @@ app.del('/shows/:id', isAuthenticated, function* (next) {
 });
 
 app.get('/shows', function* (next) {
-  var lang;
   var limit = 50;
   var returnFields = {};
   var searchFields = {};
+  var self = this;
   var shows;
+  var showsModified = [];
+
+  returnFields = {
+    theatre: 1,
+    location: 1,
+    performances: 1,
+    groupdiscountprice: 1,
+    groupfacevalue: 1,
+    singlediscountprice: 1,
+    singlefacevalue: 1,
+    priceband: 1
+  };
+
+  if (this.query.view === 'detailed') {
+    returnFields.translations = 1;
+  } else {
+    returnFields.translations = {
+      $elemMatch : {
+        lang: this.locals.lang
+      }
+    };
+  }
+
+  if (this.query.view === 'detailed') {
+    if(userHasPrivilege.apply(this, ['admin']) === true) {
+      returnFields = {};
+    }
+  }
 
   if (typeof this.query.name !== 'undefined') {
-    if (typeof this.query.lang !== 'undefined') {
-      searchFields.name[this.query.lang] = this.query.name;
-    }
+    searchFields.translations[this.locals.lang].name = this.query.name;
   } else if (typeof this.query.theatre !== 'undefined') {
     searchFields.theatre = this.query.theatre;
   }
@@ -1343,20 +1375,13 @@ app.get('/shows', function* (next) {
   if (!shows) {
     this.locals.status = 404;
   } else {
-    if (typeof this.query.lang !== 'undefined') {
-      lang = this.query.lang;
-    } else {
-      lang = 'en';
-    }
+    if (this.query.view !== 'detailed') {
+      shows.forEach(function(document) {
+        showsModified.push(internationalization.translate(document, self.locals.lang));
+      });
 
-    shows = internationalization.translate(
-      shows,
-      [
-      'name',
-      'synopsis'
-      ],
-      lang
-    );
+      shows = showsModified;
+    }
 
     this.locals.result = shows;
     this.locals.status = 200;
@@ -1366,25 +1391,46 @@ app.get('/shows', function* (next) {
 });
 
 app.get('/shows/:id', function* (next) {
+  var returnFields = {};
   var searchFields = {};
   var show;
 
   searchFields._id = mongo.toObjectId(this.params.id);
 
-  show = yield Show.findOne(searchFields);
+  returnFields = {
+    theatre: 1,
+    location: 1,
+    performances: 1,
+    groupdiscountprice: 1,
+    groupfacevalue: 1,
+    singlediscountprice: 1,
+    singlefacevalue: 1,
+    priceband: 1
+  };
+
+  if (this.query.view === 'detailed') {
+    returnFields.translations = 1;
+  } else {
+    returnFields.translations = {
+      $elemMatch : {
+        lang: this.locals.lang
+      }
+    };
+  }
+
+  if (this.query.view === 'detailed') {
+    if(userHasPrivilege.apply(this, ['admin']) === true) {
+      returnFields = {};
+    }
+  }
+
+  show = yield Show.findOne(searchFields, returnFields);
 
   if (!show) {
     this.locals.status = 404;
   } else {
-    if (typeof this.query.lang !== 'undefined') {
-      show = internationalization.translate(
-        show,
-        [
-          'name',
-          'synopsis'
-        ],
-        this.query.lang
-      );
+    if (this.query.view !== 'detailed') {
+      show = internationalization.translate(show, this.locals.lang);
     }
 
     this.locals.result = show;
