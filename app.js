@@ -3,7 +3,7 @@
 function appListen(port) {
   if(environment === 'production') {
     http.createServer(app.callback()).listen(port.http);
-    https.createServer(optionsSSL, app.callback()).listen(port.https);
+    // https.createServer(optionsSSL, app.callback()).listen(port.https);
     console.log('Detected process is running on port ' + port.http + ' and ' + port.https +'.');
   } else {
     console.log('Detected process is running on port ' + port.http + '.');
@@ -31,12 +31,12 @@ port.https = process.env.PORT ? process.env.PORT : packageJson.config.applicatio
 
 var optionsSSL;
 
-if(environment === 'production') {
-  optionsSSL = {
-    key: fs.readFileSync('server.key'),
-    cert: fs.readFileSync('server.crt')
-  };
-}
+// if(environment === 'production') {
+//   optionsSSL = {
+//     key: fs.readFileSync('server.key'),
+//     cert: fs.readFileSync('server.crt')
+//   };
+// }
 
 var app = koa();
 
