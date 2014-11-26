@@ -754,8 +754,8 @@ app.post('/users', function* (next) {
 
   // console.log('User.schema', User.schema);
   validator = User.validate(this.locals.document);
-
-  if(validator === true) {
+  console.log('validator', validator.valid);
+  if(validator.valid === true) {
     if (typeof this.locals.document.strategies !== 'undefined') {
       if((typeof this.locals.document.strategies.local !== 'undefined') && (typeof this.locals.document.strategies.local.email !== 'undefined')) {
         orParameters.push({
@@ -787,7 +787,7 @@ app.post('/users', function* (next) {
     }
 
     user = yield User.findOne(searchFields);
-
+    console.log('user', user);
     if (user) {
       user = {};
 
@@ -1231,7 +1231,7 @@ app.post('/payments', function* (next) {
 
   validator = Payment.validate(this.locals.document);
 
-  if(validator) {
+  if(validator.valid === true) {
     this.locals.document.time = new Date();
 
     if(!this.locals.document.hasOwnProperty('bookingid') || !this.locals.document.hasOwnProperty('processor') || !this.locals.document.hasOwnProperty('currency') || !this.locals.document.hasOwnProperty('amount')) {
