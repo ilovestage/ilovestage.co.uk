@@ -4,7 +4,7 @@ function appListen(port) {
   if(environment === 'production') {
     http.createServer(app.callback()).listen(port.http);
     // https.createServer(optionsSSL, app.callback()).listen(port.https);
-    console.log('Detected process is running on port ' + port.http + ' and ' + port.https +'.');
+    // console.log('Detected process is running on port ' + port.http + ' and ' + port.https +'.');
   } else {
     console.log('Detected process is running on port ' + port.http + '.');
     app.listen(port.http);
@@ -64,9 +64,9 @@ app.use(function *(next) {
   yield next;
 });
 
-if(environment === 'production') {
-  app.use(forceSSL());
-}
+// if(environment === 'production') {
+//   app.use(forceSSL());
+// }
 
 // use koa-router
 app.use(router(app));
