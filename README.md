@@ -1,6 +1,8 @@
 ilovestage.com
 =============
 
+ssh -i ~/.ssh/karl.pem ubuntu@54.72.195.84
+
 Connect to database:
 mongo ds063889.mongolab.com:63889/ilovestage -u ilovestage -p curtaincall1
 

@@ -1,0 +1,9 @@
+[
+	{
+		"key": "version",
+		"value": "version",
+		"type": "text",
+		"name": "version",
+		"enabled": true
+	}
+]
