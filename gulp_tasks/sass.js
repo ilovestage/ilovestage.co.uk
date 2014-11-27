@@ -25,9 +25,9 @@ gulp.task('sass', function() {
         bundleExec: true,
         compass: true,
         includePaths: [
-          directory.bower_components,
-          directory.node_modules,
-          directory.utilities
+          directory.bowerCcomponents,
+          directory.nodeModules,
+          directory.utilities + '/styles'
         ]
       },
       {
