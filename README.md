@@ -34,6 +34,9 @@ sudo reboot now
 Run shows importer:
 node --harmony app.js --application importer --job shows-all
 
+Run finalise bookings cron job
+node --harmony app.js --application cron --job bookings-finalise
+
 node --harmony app.js --application api
 npm start app.js --application api
 
