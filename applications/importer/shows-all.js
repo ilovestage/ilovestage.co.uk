@@ -118,23 +118,31 @@ csv.parse(showsFileString, showsParseOptions, function(error, showRows) {
     var performances = showRows[showRowIterator].performances.split('\n').filter(Boolean);
     // console.log('performances', performances);
 
-    showRows[showRowIterator].performances = {}; //reset to array
+    showRows[showRowIterator].translations = [];
+    // console.log('showRows[showRowIterator].performances', showRows[showRowIterator].performances);
+    showRows[showRowIterator].performances = []; //reset to array
 
     var performanceRowsIterator;
 
     for (performanceRowsIterator = 0; performanceRowsIterator < performances.length; performanceRowsIterator++) {
-      performances[performanceRowsIterator] = performances[performanceRowsIterator].split(' ');
-      if(typeof performances[performanceRowsIterator][1] !== 'undefined') {
-        showRows[showRowIterator].performances[performances[performanceRowsIterator][0]] = performances[performanceRowsIterator][1].split('/');
+      var input = performances[performanceRowsIterator].split(' ');
+      var day = {
+        day: input[0]
+      };
+
+      if(typeof input[1] !== 'undefined') {
+        day.times = input[1].split('/');
       } else {
-        showRows[showRowIterator].performances[performances[performanceRowsIterator][0]] = null;
+        day.times = null;
       }
+
+      showRows[showRowIterator].performances.push(day);
     }
 
     showRows[showRowIterator].importid = showRows[showRowIterator].id;
     showRows[showRowIterator] = deleteKey(showRows[showRowIterator], ['id']);
 
-    showRows[showRowIterator].translations = [];
+    console.log(showRows[showRowIterator]);
 
     var show = Shows.insert(showRows[showRowIterator]);
 
@@ -171,5 +179,7 @@ csv.parse(showsFileString, showsParseOptions, function(error, showRows) {
     }
 
   }
+
+  // process.exit();
 
 });
