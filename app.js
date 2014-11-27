@@ -40,7 +40,9 @@ var optionsSSL;
 
 var app = koa();
 
-var application = null;
+console.log('Requiring ' + argv.application + ' application.');
+
+var application = require(__dirname + '/applications/' + argv.application);
 
 // wrap subsequent middleware in a logger
 // app.use(logger()); // very verbose
@@ -76,10 +78,6 @@ app.poweredBy = false;
 app.name = argv.application;
 
 debug('booting %s', app.name);
-
-console.log('Requiring ' + argv.application + ' application.');
-
-application = require(__dirname + '/applications/' + argv.application);
 
 switch(argv.application) {
   case 'admin':
