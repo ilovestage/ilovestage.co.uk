@@ -91,6 +91,7 @@
     "mailchimp-api": "^2.0.7",
     "modernizr": "^3.0.0-pre",
     "moment": "^2.8.3",
+    "moment-recur": "^1.0.0",
     "mongel": "^0.4.5",
     "monk": "^0.9.1",
     "ng-table": "^0.3.2",

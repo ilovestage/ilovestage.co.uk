@@ -6,23 +6,18 @@ var environment = process.env.NODE_ENV ? process.env.NODE_ENV : 'development';
 var mongo = require(__dirname + '/../_utilities/mongo');
 var connectionString = mongo.connectionString(packageJson.config.environment[environment].server.database);
 
-// var _ = require('lodash');
+var _ = require('lodash');
 var co = require('co');
 var db = require('monk')(connectionString);
 var moment = require('moment');
-var stripe = require('stripe')(packageJson.config.environment[environment].api.stripe.key);
-var thunkify = require('thunkify');
 
-var email = require(__dirname + '/../_utilities/email');
+require('moment-recur');
 
-var Bookings = db.get('bookings');
+// var Bookings = db.get('bookings');
 var Events = db.get('events');
-var Payments = db.get('payments');
-// var Shows = db.get('shows');
-var Users = db.get('users');
-
-var createChargeThunk = thunkify(stripe.charges.create);
-var createChargeBoundThunk = createChargeThunk.bind(stripe.charges);
+// var Payments = db.get('payments');
+var Shows = db.get('shows');
+// var Users = db.get('users');
 
 // var result = null;
 var searchFields = {};
@@ -30,201 +25,101 @@ var returnFields = {};
 var updateFields = {};
 var insertFields = {};
 
-var ticketBookingThreshold = 10;
+var publicHolidays = [
+  moment({
+    year: null, //current year
+    month: 11,
+    day: 25
+  })
+];
 
-var currentDate = new Date();
-var rangeStart = moment(currentDate).add(7, 'days').toDate();
+var dateToday = moment();
+var dateNextYear = moment().add(1, 'y');
+// console.log('dateToday', dateToday);
+// console.log('dateNextYear', dateNextYear);
 
-searchFields.bookings = {
-  status: 'pending',
-  tickets: {
-    $gte: ticketBookingThreshold
-  }
-};
+// console.log('publicHolidays', publicHolidays);
 
-searchFields.events = {
-  starttime: {
-    $gte: currentDate,
-    $lt: rangeStart
-  }
-};
+function processPerformance(show, day, time) {
+  // console.log('show, day, time', show.translations[0].name, day, time);
+  var dayOfWeek = 'Monday';
+  var details;
+  var nextDates;
+  var recurrence;
 
-searchFields.payments = {};
+  recurrence = moment()
+  .recur() // Create a recurrence using today as the start date.
+  .endDate(dateNextYear) // Set
+  .every(dayOfWeek)
+  .daysOfWeek() // set these days
+  .except(publicHolidays); //don't set for these dates
+  // console.log('recurrence', recurrence);
 
-searchFields.users = {};
+  // nextDates = recurrence.next(52); // return dates for next 52 weeks
+  nextDates = recurrence.next(4); // return dates for next 4 weeks
+  // console.log('nextDates', nextDates);
 
-returnFields.bookings = {
-  '_id': 1,
-  'eventid': 1,
-  'userid': 1
-};
-
-returnFields.events = {
-  '_id': 1,
-  'starttime': 1,
-  'discount_price': 1
-};
-
-returnFields.payments = {};
-
-returnFields.users = {};
-
-updateFields.bookings = {
-  $set: {}
-};
-
-updateFields.events = {};
-
-updateFields.payments = {};
-
-updateFields.users = {};
-
-insertFields.payments = {
-  processor: 'stripe'
-};
-
-function processBooking(booking) {
-  co(function *() {
-    // console.log('booking', booking);
-    searchFields.Events._id = booking.eventid.toString(); //reset variable;
-
-    var event = yield Events.findOne(searchFields.events, {
-      fields: returnFields.events
+  nextDates.forEach(function(date) {
+    var starttime = moment(date._d).utc().add({
+      hours: time[0],
+      minutes: time[1]
     });
 
-    if (event) {
-      searchFields.Payments.eventid = booking.eventid.toString(); //reset variable;
-      searchFields.Users._id = booking.userid.toString(); //reset variable;
+    var endtime = moment(date._d).add({
+      hours: (parseInt(time[0]) + 3),
+      minutes: time[1]
+    });
 
-      // var payment = yield Payments.findOne(searchFields.payments, {
-      //   fields: returnFields.payments
-      // });
+    // console.log('time', (parseInt(time[0]) + 3));
 
-      var user = yield Users.findOne(searchFields.users, {
-        fields: returnFields.users
+    details = {
+      'showid': show._id,
+      // 'availability': 2,
+      'starttime': starttime.toDate(),
+      'endtime': endtime.toDate(),
+      'priceband': show.priceband,
+      'groupdiscountprice': show.groupdiscountprice,
+      'groupfacevalue': show.groupfacevalue,
+      'singlediscountprice': show.singlediscountprice,
+      'singlefacevalue': show.singlefacevalue
+    };
+
+    // console.log('details', details);
+
+    var event = Events.insert(details);
+  });
+
+}
+
+function processShow(show) {
+  // console.log('show.performances', show.performances);
+  show.performances.forEach(function(day) {
+    // console.log('day', day);
+    if(Array.isArray(day.times)) {
+      day.times.forEach(function(time) {
+        // console.log('time', time);
+        // console.log('show, day, time', show, day.day, time);
+        processPerformance(show, day.day, time.split(':'));
       });
-
-      console.log('booking', booking);
-      console.log('event', event);
-      console.log('user', user);
-
-      if (user) {
-        var chargeInfo = {
-          amount: (event.discountprice * 100),
-          currency: 'gbp',
-          customer: user.stripeid,
-          // card: user.stripetoken,
-          metadata: {
-            bookingid: booking._id.toString()
-          },
-          capture: 'true'
-          // description: booking.description
-        };
-
-        console.log('chargeInfo', chargeInfo);
-
-        insertFields.Payments.bookingid = booking._id.toString();
-        insertFields.Payments.token = user.stripeid;
-        insertFields.Payments.time = currentDate;
-
-        try {
-          var charge = yield createChargeBoundThunk(chargeInfo);
-
-          if (charge) {
-            console.log('charge', charge);
-
-            insertFields.Payments.status = 'success';
-            insertFields.Payments.response = charge;
-
-            updateFields.Bookings.$set.status = 'success';
-
-            var payment = yield Payments.insert(insertFields.payments);
-            console.log('payment', payment);
-
-            var updatedBooking = yield Bookings.findAndModify(searchFields.bookings, updateFields.bookings);
-            console.log('updatedBooking', updatedBooking);
-
-            email.send('user-booking', {
-              subject: 'Booking target reached', // Subject line
-              email: user.strategies.local.email
-            });
-          }
-        } catch(error) {
-          console.log('error', error); // ENOTFOUND
-
-          insertFields.Payments.status = 'failure';
-          insertFields.Payments.error = error;
-
-          updateFields.Bookings.$set.status = 'failure';
-
-          var payment = yield Payments.insert(insertFields.payments);
-          console.log('payment', payment);
-
-          var updatedBooking = yield Bookings.findAndModify(searchFields.bookings, updateFields.bookings);
-          console.log('updatedBooking', updatedBooking);
-
-          email.send('admin-booking', {
-            subject: 'Booking payment failed', // Subject line
-            email: email.sender.address,
-            message: error.message
-          });
-        }
-
-      }
     }
-
-    // console.log('booking', booking);
-    return false;
-  })();
+  });
 }
 
 co(function* () {
-  var bookings = yield Bookings.find(searchFields.bookings, {
-    fields: returnFields.bookings
+  var shows = yield Shows.find(searchFields, {
+    fields: returnFields
   });
 
-  return bookings;
-}).then(function (bookings) {
-  console.log('Bookings to process: ' + bookings.length);
+  return shows;
+}).then(function (shows) {
+  console.log('Shows to process: ' + shows.length);
 
-  var bookingIterator;
-
-  for (bookingIterator = 0; bookingIterator < bookings.length; bookingIterator++) {
-    processBooking(bookings[bookingIterator]);
-  }
+  _(shows).forEach(function(show) {
+    // console.log(show);
+    processShow(show);
+  });
 
   process.exit();
 }, function (err) {
   console.error(err.stack);
 });
-
-// var template = {
-//   'showid': '5436a8215867dd180c843cb1',
-//   'availability': 2,
-//   'starttime': 'Sat Sep 13 2014 19:00:00 GMT+0100 (BST)',
-//   'endtime': 'Sat Sep 13 2014 21:30:00 GMT+0100 (BST)',
-//   'priceband': 'Best Available',
-//   'facevalue': 45.00,
-//   'discountprice': 34.50
-// };
-
-// var event = events.insert(data);
-
-/*
-Process:
-Convert performancetimes to array format
-
-Save today's date to startDate variable
-// Save date for next Sunday after today
-Save dates of all public holidays to publicHolidays array
-Return all shows from database then
-For each show (mongo foreach) do
-  For each performance date do
-    recurrence = startDate
-    .recur("01/01/2014", "01/07/2014") //start date, end date
-    .every(["Monday", "wed"]).daysOfWeek() // set these days
-    .except(publicHolidays); //don't set for these dates
-
-    nextDates = recurrence.next(52); // return dates for next 52 weeks
-
-*/

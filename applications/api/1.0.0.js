@@ -342,17 +342,17 @@ app.get('/events', function* (next) {
     searchFields.eventid = this.query.eventid;
   }
 
-  events = yield Event.find(searchFields, {
+  events = yield Event.find(searchFields, returnFields, {
     limit: limit
   });
 
-  _(events).forEach(function (document) {
+  _(events).forEach(function (document) { //TODO: use mongo foreach?
     co(function* () {
       document.bookings = yield Booking.count({
         eventid: document._id.toString()
       });
 
-      Booking.col.aggregate([
+      Booking.collection.aggregate([
         {
           $match: {
             eventid: document._id.toString()
@@ -374,7 +374,14 @@ app.get('/events', function* (next) {
           document.ticketsBooked = 0;
         }
       });
-    })(next);
+
+      return document;
+    }).then(function (document) {
+      console.log(document);
+      return document;
+    }, function (err) {
+      console.error(err.stack);
+    });
   });
 
   if (!events) {
