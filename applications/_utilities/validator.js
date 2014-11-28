@@ -34,7 +34,19 @@ validator.addFormat('currency-code', function (data, schema) {
   return 'Must be a valid currency code';
 });
 
-validator.addFormat('country-code', function (data, schema) {
+validator.addFormat('country-code-alpha2', function (data, schema) {
+  //   console.log(countryData.lookup.countries({
+  //     currencies: data
+  //   }));
+  if(countryData.lookup.countries({
+    alpha2: data
+  }).length > 0) {
+    return null;
+  }
+  return 'Must be a valid ISO 3166-1 alpha-2 country code';
+});
+
+validator.addFormat('country-code-alpha3', function (data, schema) {
   //   console.log(countryData.lookup.countries({
   //     currencies: data
   //   }));
@@ -43,7 +55,7 @@ validator.addFormat('country-code', function (data, schema) {
   }).length > 0) {
     return null;
   }
-  return 'Must be a valid country code';
+  return 'Must be a valid ISO 3166-1 alpha-3 country code';
 });
 
 validator.addFormat('country-calling-code', function (data, schema) {
