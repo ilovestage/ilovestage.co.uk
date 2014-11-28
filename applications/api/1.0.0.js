@@ -15,8 +15,8 @@ var fresh = require('koa-fresh');
 var gzip = require('koa-gzip');
 var health = require('koa-ping');
 var helmet = require('koa-helmet');
-var js2xmlparser = require('js2xmlparser');
 var koa = require('koa');
+var mount = require('koa-mount');
 var qs = require('koa-qs');
 var responseTime = require('koa-response-time');
 var router = require('koa-router');
@@ -29,6 +29,10 @@ var cryptography = require(__dirname + '/../_utilities/cryptography');
 var email = require(__dirname + '/../_utilities/email');
 var internationalization = require(__dirname + '/../_utilities/internationalization');
 var mongo = require(__dirname + '/../_utilities/mongo');
+
+var authenticationCheck = require(__dirname + '/../_middleware/authenticationCheck');
+var authorizationCheck = require(__dirname + '/../_middleware/authorizationCheck');
+var setResponse = require(__dirname + '/../_middleware/setResponse');
 
 var dj = new DJ();
 
@@ -46,145 +50,6 @@ var createChargeBoundThunk = createChargeThunk.bind(stripe.charges);
 
 var httpBasicAuthCredentials = packageJson.config.http.auth;
 
-var messages = {};
-
-messages.badRequest = 'The request cannot be fulfilled due to bad syntax.';
-messages.forbidden = 'Operation forbidden.  Supplied uid not authenticated to access this resource or perform this operation.';
-messages.invalidUid = 'Invalid uid format.  Please provide a uid as a 24 character hexadecimal string.';
-messages.noUid = 'Please provide a uid as a 24 character hexadecimal string.';
-messages.noUserForUid = 'No user found for uid provided in header data.';
-messages.requestEntityTooLarge = 'The request is larger than the server is willing or able to process.';
-messages.requiresAdminPrivilege = 'Operation requires administrator-level privileges.';
-messages.requiresAgentPrivilege = 'Operation requires agent-level privileges.';
-messages.resourceNotFound = 'Resource not found.';
-// messages.resourceNotAuthorised = 'Operation requires authorisation.';
-messages.specifyContentType = 'Unsupported media type';
-messages.unauthorised = 'Authorisation required.';
-messages.unprocessableEntity = 'The request was well-formed but was unable to be followed due to semantic errors.';
-messages.unknownError = 'An unknown error occurred.';
-
-function* isAuthenticated(next) {
-  var self = this;
-
-  if(self.request.header.uid) {
-    if (self.locals.currentUser) {
-      self.locals.status = 200;
-      // yield next;
-    } else {
-      self.locals.message = messages.noUserForUid;
-      self.locals.status = 401;
-    }
-  } else {
-    if(!self.request.header.uid) {
-      self.locals.message = messages.noUid;
-    } else {
-      self.locals.message = messages.invalidUid;
-    }
-
-    self.locals.status = 401;
-  }
-
-  self.locals.body.status = self.locals.status; // use HTTP status code
-  self.locals.body.error = self.locals.message;
-  self.locals.body.result = self.locals.result;
-
-  yield next;
-}
-
-function* setResponse(next) {
-  var self = this;
-
-  self.locals.body.status = self.locals.status; // use HTTP status code
-
-  if(!self.locals.message) {
-    switch(self.locals.status) {
-      case 400:
-        self.locals.message = messages.badRequest;
-        break;
-      case 401:
-        self.locals.message = messages.unauthorised;
-        break;
-      case 403:
-        self.locals.message = messages.forbidden;
-        break;
-      case 404:
-        self.locals.message = messages.resourceNotFound;
-        break;
-      case 413:
-        self.locals.message = messages.requestEntityTooLarge;
-        break;
-      case 415:
-        self.locals.message = messages.specifyContentType;
-        break;
-      case 422:
-        self.locals.message = messages.unprocessableEntity;
-        break;
-      case null:
-        self.locals.status = 500;
-        self.locals.message = messages.unknownError;
-        break;
-      default:
-        // self.locals.message = 'default response';
-        break;
-    }
-  }
-
-  self.locals.body.error = self.locals.error;
-  self.locals.body.message = self.locals.message;
-  self.locals.body.result = self.locals.result;
-  self.locals.body.originalUrl = self.request.originalUrl;
-
-  if(self.locals.contentType === 'xml') {
-    self.body = js2xmlparser('response', self.locals.body);
-    self.type = 'application/vnd.api+xml';
-  } else {
-    self.body = self.locals.body;
-    self.type = 'application/vnd.api+json';
-  }
-
-  self.status = self.locals.status;
-
-  yield next;
-}
-
-function userHasPrivilege(_id) {
-  var self = this;
-  var uid;
-
-  if(!_id || !self.locals.currentUser) {
-    return false;
-  }
-
-  if(typeof _id === 'undefined') {
-    uid = null;
-  } else {
-    uid = cryptography.encryptId(_id.toString()); // to be sent encrypted
-  }
-
-  // console.log('_id', _id);
-  // console.log('uid', uid);
-  // console.log('self.locals.currentUser.uid', self.locals.currentUser.uid);
-  // console.log('self.locals.currentUser', self.locals.currentUser);
-
-  self.locals.status = 200;
-
-  if(self.locals.bypassAuthentication === true) {
-    // console.log('case 1');
-    return true;
-  } else if(uid === self.locals.currentUser.uid) {
-    // console.log('case 2');
-    return true;
-  } else if(self.locals.currentUser.role === 'admin') {
-    // console.log('case 3');
-    return true;
-  } else {
-    // console.log('case 4');
-    self.locals.status = 403;
-    return false;
-  }
-
-}
-
 var app = koa();
 
 app.version = '1.0.0';
@@ -199,10 +64,24 @@ app.use(bodyParser());
 app.use(health());
 
 app.use(function* (next) {
-  var returnFields = {};
-  var searchFields = {};
-
   this.locals = this.locals || {};
+
+  this.locals.messages = this.locals.messages || {};
+
+  this.locals.messages.badRequest = 'The request cannot be fulfilled due to bad syntax.';
+  this.locals.messages.forbidden = 'Operation forbidden.  Supplied uid not authenticated to access this resource or perform this operation.';
+  this.locals.messages.invalidUid = 'Invalid uid format.  Please provide a uid as a 24 character hexadecimal string.';
+  this.locals.messages.noUid = 'Please provide a uid as a 24 character hexadecimal string.';
+  this.locals.messages.noUserForUid = 'No user found for uid provided in header data.';
+  this.locals.messages.requestEntityTooLarge = 'The request is larger than the server is willing or able to process.';
+  this.locals.messages.requiresAdminPrivilege = 'Operation requires administrator-level privileges.';
+  this.locals.messages.requiresAgentPrivilege = 'Operation requires agent-level privileges.';
+  this.locals.messages.resourceNotFound = 'Resource not found.';
+  // this.locals.messages.resourceNotAuthorised = 'Operation requires authorisation.';
+  this.locals.messages.specifyContentType = 'Unsupported media type';
+  this.locals.messages.unauthorised = 'Authorisation required.';
+  this.locals.messages.unprocessableEntity = 'The request was well-formed but was unable to be followed due to semantic errors.';
+  this.locals.messages.unknownError = 'An unknown error occurred.';
 
   this.locals.body = {};
   this.locals.message = null;
@@ -224,6 +103,10 @@ app.use(function* (next) {
       this.locals.document = deleteKey(this.locals.document, ['format']);
     }
   }
+
+  var returnFields = {};
+  var searchFields = {};
+
 
   if(this.query.bypass === 'true') {
     this.locals.bypassAuthentication = true;
@@ -265,7 +148,7 @@ app.use(function* (next) {
     yield next;
   } catch (error) {
     if (401 === error.status) {
-      this.locals.message = messages.unauthorised;
+      this.locals.message = this.locals.messages.unauthorised;
       this.locals.status = error.status;
 
       this.locals.body.status = this.locals.status; // use HTTP status code
@@ -294,6 +177,8 @@ app.use(function* (next) {
 });
 
 app.use(helmet.defaults());
+
+app.use(authenticationCheck());
 
 app.use(router(app));
 
@@ -394,7 +279,7 @@ app.get('/events', function* (next) {
   yield next;
 });
 
-app.del('/events/:id', isAuthenticated, function* (next) {
+app.del('/events/:id', authenticationCheck, function* (next) {
   var event;
 
   event = yield Event.remove({
@@ -402,7 +287,7 @@ app.del('/events/:id', isAuthenticated, function* (next) {
   });
 
   if (!event) {
-    this.locals.message = messages.resourceNotFound;
+    this.locals.message = this.locals.messages.resourceNotFound;
     this.locals.status = 404;
   } else {
     this.locals.result = event;
@@ -453,7 +338,7 @@ app.get('/events/:id', function* (next) {
   yield next;
 });
 
-app.post('/events', isAuthenticated, function* (next) {
+app.post('/events', authenticationCheck, function* (next) {
   var event;
 
   this.locals.document.starttime = new Date(this.locals.document.starttime);
@@ -463,7 +348,7 @@ app.post('/events', isAuthenticated, function* (next) {
     this.locals.document.status = 'pending';
   }
 
-  if(userHasPrivilege.apply(this, ['admin']) === true) {
+  if(authorizationCheck.apply(this, ['admin']) === true) {
     event = yield Event.createOne(this.locals.document);
 
     if (!event) {
@@ -477,7 +362,7 @@ app.post('/events', isAuthenticated, function* (next) {
   yield next;
 });
 
-app.put('/events/:id', isAuthenticated, function* (next) {
+app.put('/events/:id', authenticationCheck, function* (next) {
   var event;
   var searchFields = {};
   var updateFields = {};
@@ -492,7 +377,7 @@ app.put('/events/:id', isAuthenticated, function* (next) {
     };
   }
 
-  if(userHasPrivilege.apply(this, ['admin']) === true) {
+  if(authorizationCheck.apply(this, ['admin']) === true) {
     event = yield Event.update(searchFields, updateFields);
 
     if (!event) {
@@ -507,13 +392,13 @@ app.put('/events/:id', isAuthenticated, function* (next) {
 });
 
 // Routes: Users
-app.del('/users/:id', isAuthenticated, function* (next) {
+app.del('/users/:id', authenticationCheck, function* (next) {
   var searchFields = {};
   var user;
 
   searchFields._id = mongo.toObjectId(this.params.id);
 
-  if(userHasPrivilege.apply(this, [user._id]) === true) {
+  if(authorizationCheck.apply(this, [user._id]) === true) {
     user = yield User.remove(searchFields);
   }
 
@@ -550,7 +435,7 @@ app.get('/users', function* (next) {
   };
 
   if (this.query.view === 'detailed') {
-    if(userHasPrivilege.apply(this, ['admin']) === true) {
+    if(authorizationCheck.apply(this, ['admin']) === true) {
       returnFields = {};
     }
   }
@@ -699,13 +584,13 @@ app.get('/users', function* (next) {
       this.locals.result = user;
     }
   } else {
-    if(userHasPrivilege.apply(this, ['admin']) === true) {
+    if(authorizationCheck.apply(this, ['admin']) === true) {
       users = yield User.find(searchFields, returnFields, {
         limit: limit
       });
 
       if (!users) {
-        this.locals.message = messages.resourceNotFound;
+        this.locals.message = this.locals.messages.resourceNotFound;
         this.locals.status = 404;
       } else {
         this.locals.result = users;
@@ -718,7 +603,7 @@ app.get('/users', function* (next) {
   yield next;
 });
 
-app.get('/users/:id', isAuthenticated, function* (next) {
+app.get('/users/:id', authenticationCheck, function* (next) {
   var returnFields;
   var searchFields = {};
   var user;
@@ -733,7 +618,7 @@ app.get('/users/:id', isAuthenticated, function* (next) {
   };
 
   if (this.query.view === 'detailed') {
-    if(userHasPrivilege.apply(this, ['admin']) === true) {
+    if(authorizationCheck.apply(this, ['admin']) === true) {
       returnFields = {};
     }
   }
@@ -743,7 +628,7 @@ app.get('/users/:id', isAuthenticated, function* (next) {
   if (!user) {
     this.locals.status = 404;
   } else {
-    if(userHasPrivilege.apply(this, [user._id]) === true) {
+    if(authorizationCheck.apply(this, [user._id]) === true) {
       this.locals.result = user;
       this.locals.status = 200;
     }
@@ -761,13 +646,16 @@ app.post('/users', function* (next) {
   var user;
   var validator;
 
-  if(userHasPrivilege.apply(this, ['admin']) !== true) {
+  if(authorizationCheck.apply(this, ['admin']) !== true) {
     this.locals.document.role = 'standard';
   }
 
   // console.log('User.schema', User.schema);
+
   validator = User.validate(this.locals.document);
-  console.log('validator', validator.valid);
+
+  // console.log('validator', validator.valid);
+
   if(validator.valid === true) {
     if (typeof this.locals.document.strategies !== 'undefined') {
       if((typeof this.locals.document.strategies.local !== 'undefined') && (typeof this.locals.document.strategies.local.email !== 'undefined')) {
@@ -800,7 +688,9 @@ app.post('/users', function* (next) {
     }
 
     user = yield User.findOne(searchFields);
-    console.log('user', user);
+
+    // console.log('user', user);
+
     if (user) {
       user = {};
 
@@ -869,12 +759,12 @@ app.post('/users', function* (next) {
   yield next;
 });
 
-app.put('/users/:id', isAuthenticated, function* (next) {
+app.put('/users/:id', authenticationCheck, function* (next) {
   var searchFields = {};
   var updateFields = {};
   var user;
 
-  if(userHasPrivilege.apply(this, ['admin']) !== true) {
+  if(authorizationCheck.apply(this, ['admin']) !== true) {
     if(this.locals.document.role) {
       this.locals.document = deleteKey(this.locals.document, ['role']);
     }
@@ -890,7 +780,7 @@ app.put('/users/:id', isAuthenticated, function* (next) {
     };
   }
 
-  if(userHasPrivilege.apply(this, [this.params.id]) === true) {
+  if(authorizationCheck.apply(this, [this.params.id]) === true) {
     user = yield User.update(searchFields, updateFields);
 
     if (!user) {
@@ -905,7 +795,7 @@ app.put('/users/:id', isAuthenticated, function* (next) {
 });
 
 // Routes: Bookings
-app.del('/bookings/:id', isAuthenticated, function* (next) {
+app.del('/bookings/:id', authenticationCheck, function* (next) {
   var booking;
   var searchFields = {};
 
@@ -916,7 +806,7 @@ app.del('/bookings/:id', isAuthenticated, function* (next) {
   if (!booking) {
     this.locals.status = 404;
   } else {
-    if(userHasPrivilege.apply(this, [booking.userid]) === true) {
+    if(authorizationCheck.apply(this, [booking.userid]) === true) {
       booking = yield Booking.remove({
         _id: this.params.id
       });
@@ -968,7 +858,7 @@ app.get('/bookings', function* (next) {
   });
 
   if(bookings) {
-    if((this.query.userid && (userHasPrivilege.apply(this, [this.query.userid]))) || (userHasPrivilege.apply(this, ['admin']))) {
+    if((this.query.userid && (authorizationCheck.apply(this, [this.query.userid]))) || (authorizationCheck.apply(this, ['admin']))) {
       this.locals.result = bookings;
       this.locals.status = 200;
     }
@@ -979,7 +869,7 @@ app.get('/bookings', function* (next) {
   yield next;
 });
 
-app.get('/bookings/:id', isAuthenticated, function* (next) {
+app.get('/bookings/:id', authenticationCheck, function* (next) {
   var booking;
   var event;
   var returnFields = {};
@@ -990,7 +880,7 @@ app.get('/bookings/:id', isAuthenticated, function* (next) {
   booking = yield Booking.findOne(searchFields);
 
   if(booking) {
-    if(userHasPrivilege.apply(this, [booking.userid]) === true) {
+    if(authorizationCheck.apply(this, [booking.userid]) === true) {
       if (this.query.view === 'detailed') {
         returnFields = {
           '_id': 1,
@@ -1033,7 +923,7 @@ app.post('/bookings', function* (next) {
     'strategies.local.email': 1
   };
 
-  if(userHasPrivilege.apply(this, [this.locals.document.userid]) === true) {
+  if(authorizationCheck.apply(this, [this.locals.document.userid]) === true) {
     searchFields = {
       _id: this.locals.document.userid
     };
@@ -1087,7 +977,7 @@ app.put('/bookings/:id', function* (next) {
     };
   }
 
-  if(userHasPrivilege.apply(this, [this.locals.document.userid]) === true) {
+  if(authorizationCheck.apply(this, [this.locals.document.userid]) === true) {
     booking = yield Booking.update(searchFields, updateFields);
 
     // if(booking && this.locals.document.tickets >= 8) {
@@ -1147,7 +1037,7 @@ app.del('/payments/:id', function* (next) {
 
   searchFields._id = mongo.toObjectId(this.params.id);
 
-  if(userHasPrivilege.apply(this, ['admin']) === true) {
+  if(authorizationCheck.apply(this, ['admin']) === true) {
     payment = yield Payment.remove(searchFields);
 
     if (payment) {
@@ -1161,7 +1051,7 @@ app.del('/payments/:id', function* (next) {
   yield next;
 });
 
-app.get('/payments', isAuthenticated, function* (next) {
+app.get('/payments', authenticationCheck, function* (next) {
   var limit = 50;
   var payment;
   var searchFields = {};
@@ -1185,7 +1075,7 @@ app.get('/payments', isAuthenticated, function* (next) {
     }
   }
 
-  if(userHasPrivilege.apply(this, ['admin']) === true) {
+  if(authorizationCheck.apply(this, ['admin']) === true) {
     payment = yield Payment.find(searchFields, {
       limit: limit
     });
@@ -1201,7 +1091,7 @@ app.get('/payments', isAuthenticated, function* (next) {
   yield next;
 });
 
-app.get('/payments/:id', isAuthenticated, function* (next) {
+app.get('/payments/:id', authenticationCheck, function* (next) {
   var booking;
   var payment;
   // var searchFields = {};
@@ -1220,7 +1110,7 @@ app.get('/payments/:id', isAuthenticated, function* (next) {
     if (!booking) {
       this.locals.status = 422;
     } else {
-      if(userHasPrivilege.apply(this, [booking.userid]) === true) {
+      if(authorizationCheck.apply(this, [booking.userid]) === true) {
         this.locals.result = payment;
         this.locals.status = 200;
       }
@@ -1268,7 +1158,7 @@ app.post('/payments', function* (next) {
         if (!user) {
           this.locals.status = 404;
         } else {
-          if(userHasPrivilege.apply(this, [user._id]) === true) {
+          if(authorizationCheck.apply(this, [user._id]) === true) {
             chargeInfo = {
               amount: this.locals.document.amount,
               currency: this.locals.document.currency,
@@ -1306,13 +1196,13 @@ app.post('/payments', function* (next) {
 });
 
 // Routes: Shows
-app.del('/shows/:id', isAuthenticated, function* (next) {
+app.del('/shows/:id', authenticationCheck, function* (next) {
   var searchFields = {};
   var show = {};
 
   searchFields._id = mongo.toObjectId(this.params.id);
 
-  if(userHasPrivilege.apply(this, ['admin']) === true) {
+  if(authorizationCheck.apply(this, ['admin']) === true) {
     show = yield Show.remove(searchFields);
 
     if (!show) {
@@ -1337,6 +1227,8 @@ app.get('/shows', function* (next) {
   returnFields = {
     theatre: 1,
     location: 1,
+    latitude: 1,
+    longitude: 1,
     performances: 1,
     groupdiscountprice: 1,
     groupfacevalue: 1,
@@ -1356,7 +1248,7 @@ app.get('/shows', function* (next) {
   }
 
   if (this.query.view === 'detailed') {
-    if(userHasPrivilege.apply(this, ['admin']) === true) {
+    if(authorizationCheck.apply(this, ['admin']) === true) {
       returnFields = {};
     }
   }
@@ -1426,7 +1318,7 @@ app.get('/shows/:id', function* (next) {
   }
 
   if (this.query.view === 'detailed') {
-    if(userHasPrivilege.apply(this, ['admin']) === true) {
+    if(authorizationCheck.apply(this, ['admin']) === true) {
       returnFields = {};
     }
   }
@@ -1447,10 +1339,10 @@ app.get('/shows/:id', function* (next) {
   yield next;
 });
 
-app.post('/shows', isAuthenticated, function* (next) {
+app.post('/shows', authenticationCheck, function* (next) {
   var show;
 
-  if(userHasPrivilege.apply(this, ['admin']) === true) {
+  if(authorizationCheck.apply(this, ['admin']) === true) {
     show = yield Show.createOne(this.locals.document);
 
     if (!show) {
@@ -1464,7 +1356,7 @@ app.post('/shows', isAuthenticated, function* (next) {
   yield next;
 });
 
-app.put('/shows/:id', isAuthenticated, function* (next) {
+app.put('/shows/:id', authenticationCheck, function* (next) {
   var updateFields = {};
   var show;
 
@@ -1476,7 +1368,7 @@ app.put('/shows/:id', isAuthenticated, function* (next) {
     };
   }
 
-  if(userHasPrivilege.apply(this, ['admin']) === true) {
+  if(authorizationCheck.apply(this, ['admin']) === true) {
     show = yield Show.update({
       _id: this.params.id
     }, updateFields);
@@ -1512,7 +1404,7 @@ app.post('/shows/:id/reviews', function* (next) {
   //   };
   // }
 
-  if(userHasPrivilege.apply(this, ['admin']) === true) {
+  if(authorizationCheck.apply(this, ['admin']) === true) {
     show = yield Show.update(searchFields, updateFields);
 
     if (!show) {
@@ -1545,7 +1437,7 @@ app.put('/shows/:id/reviews', function* (next) {
     };
   }
 
-  if(userHasPrivilege.apply(this, ['admin']) === true) {
+  if(authorizationCheck.apply(this, ['admin']) === true) {
     show = yield Show.update(searchFields, updateFields);
 
     if (!show) {
@@ -1559,6 +1451,13 @@ app.put('/shows/:id/reviews', function* (next) {
   yield next;
 });
 
+/////
+var mount = require('koa-mount');
+var routes = {};
+routes.notes = require(__dirname + '/1.0.0/notes');
+app.use(mount('/notes', routes.notes));
+/////
+
 // Routes: Catch-all
 app.get(/^([^.]+)$/, function* (next) {
   this.locals.status = 404;
@@ -1566,7 +1465,7 @@ app.get(/^([^.]+)$/, function* (next) {
   yield next;
 }); //matches everything without an extension
 
-app.use(setResponse);
+app.use(setResponse());
 
 app.use(conditional());
 app.use(gzip());
