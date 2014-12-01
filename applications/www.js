@@ -8,6 +8,7 @@ require('./_utilities/auth');
 var _ = require('lodash');
 // var _.str = require('underscore.string');
 var argv = require('yargs').argv;
+var email = require('_utilities/email');
 var koa = require('koa');
 // var mount = require('koa-mount');
 // var bodyParser = require('koa-bodyparser');
@@ -79,22 +80,27 @@ if (environment === 'development') {
 // }
 
 function *error404(next) {
-  var settings = {
-    bodyClass: 'error error-404'
+  var settings;
+
+  var locals = {
+    bodyClass: 'error error-404',
+    title: 'Page not found'
   };
 
-  _.merge(settings, defaults);
+  _.merge(settings, [defaults, locals]);
 
   this.body = yield render('error-404', settings);
   this.status = 404;
 }
 
 function *home(next) {
-  var settings = {
+  var settings = {};
+
+  var locals = {
     bodyClass: 'home'
   };
 
-  _.merge(settings, defaults);
+  _.merge(settings, defaults, locals);
 
   // var body = yield renderEach('user', db.users);
   var body = yield render('home', settings);
@@ -106,14 +112,17 @@ function *home(next) {
   this.body = html;
 }
 
-function *privacy(next) {
-  var settings = {
-    bodyClass: 'privacy'
+function *account(next) {
+  var settings = {};
+
+  var locals = {
+    bodyClass: 'account',
+    title: 'Account settings'
   };
 
-  _.merge(settings, defaults);
+  _.merge(settings, defaults, locals);
 
-  var body = yield render('privacy', settings);
+  var body = yield render('account', settings);
 
   settings.body = body;
 
@@ -122,14 +131,76 @@ function *privacy(next) {
   this.body = html;
 }
 
-function *terms(next) {
-  var settings = {
-    bodyClass: 'terms'
+function *passwordReset(next) {
+  var settings = {};
+
+  var locals = {
+    bodyClass: 'privacy',
+    title: 'Password Reset'
   };
 
-  _.merge(settings, defaults);
+  _.merge(settings, defaults, locals);
 
-  var body = yield render('terms', settings);
+  var body = yield render('password-reset', settings);
+
+  settings.body = body;
+
+  var html = yield render('layouts/default', settings);
+
+  this.body = html;
+}
+
+function *privacyPolicy(next) {
+  var settings = {};
+
+  var locals = {
+    bodyClass: 'legal privacy-policy',
+    title: 'Privacy Policy'
+  };
+
+  _.merge(settings, defaults, locals);
+
+  console.log('settings', settings);
+
+  var body = yield render('privacy-policy', settings);
+
+  settings.body = body;
+
+  var html = yield render('layouts/default', settings);
+
+  this.body = html;
+}
+
+function *refundPolicy(next) {
+  var settings = {};
+
+  var locals = {
+    bodyClass: 'legal refund-policy',
+    title: 'Refund Policy'
+  };
+
+  _.merge(settings, defaults, locals);
+
+  var body = yield render('refund-policy', settings);
+
+  settings.body = body;
+
+  var html = yield render('layouts/default', settings);
+
+  this.body = html;
+}
+
+function *termsOfService(next) {
+  var settings = {};
+
+  var locals = {
+    bodyClass: 'legal terms-of-service',
+    title: 'Terms of Service'
+  };
+
+  _.merge(settings, defaults, locals);
+
+  var body = yield render('terms-of-service', settings);
 
   settings.body = body;
 
@@ -139,6 +210,12 @@ function *terms(next) {
 }
 
 app.get('/', home);
+app.get('/account', account);
+app.get('/privacy-policy', privacyPolicy);
+app.get('/refund-policy', refundPolicy);
+app.get('/terms-of-service', termsOfService);
+app.get('/account/password-reset/', error404);
+app.get('/account/password-reset/:token', passwordReset);
 
 app.get(/^([^.]+)$/, error404); //matches everything without an extension
 

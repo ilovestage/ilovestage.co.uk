@@ -56,6 +56,11 @@ debug('booting');
 app.keys = [packageJson.config.redis.key];
 // app.keys = ['some secret hurr'];
 
+app.use(function *(next) {
+  this.locals = this.locals || {};
+  yield next;
+});
+
 // use logger
 app.use(function *(next) {
   var start = new Date();

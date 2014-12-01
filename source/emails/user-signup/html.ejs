@@ -1,1 +1,48 @@
-<h1>Welcome, <%= user.firstname %> <%= user.lastname %></h1>
+<% include ../_includes/header %>
+                                    <table border="0" cellpadding="0" cellspacing="0" width="600" id="templateBody">
+                                        <tr>
+                                            <td valign="top" class="bodyContainer"><table border="0" cellpadding="0" cellspacing="0" width="100%" class="mcnDividerBlock">
+    <tbody class="mcnDividerBlockOuter">
+        <tr>
+            <td class="mcnDividerBlockInner" style="padding: 5px;">
+                <table class="mcnDividerContent" border="0" cellpadding="0" cellspacing="0" width="100%" style="border-top-width: 1px;border-top-style: none;border-top-color: #999999;">
+                    <tbody><tr>
+                        <td>
+                            <span></span>
+                        </td>
+                    </tr>
+                </tbody></table>
+            </td>
+        </tr>
+    </tbody>
+</table><table border="0" cellpadding="0" cellspacing="0" width="100%" class="mcnTextBlock">
+    <tbody class="mcnTextBlockOuter">
+        <tr>
+            <td valign="top" class="mcnTextBlockInner">
+
+                <table align="left" border="0" cellpadding="0" cellspacing="0" width="600" class="mcnTextContentContainer">
+                    <tbody><tr>
+
+                        <td valign="top" class="mcnTextContent" style="padding-top:9px; padding-right: 18px; padding-bottom: 9px; padding-left: 18px;">
+
+                            <h1 class="null" style="text-align: left;">Welcome To ILOVESTAGE</h1>
+
+<p>Hi <%= user.firstname %><br>
+<br>
+Thanks for signing up to ILOVESTAGE, the <span style="line-height:20.7999992370605px">app for&nbsp;</span>London theatregoers' !<br>
+<br>
+<span style="line-height:20.7999992370605px">ILOVESTAGE is&nbsp;a great way to find tickets for the top 10 West End shows at affordable group-rate prices.</span><br>
+<br>
+As an added benefit, enjoy discounts at many restaurants, gift shops and much more with our special offers.</p>
+
+                        </td>
+                    </tr>
+                </tbody></table>
+
+            </td>
+        </tr>
+    </tbody>
+</table></td>
+                                        </tr>
+                                    </table>
+<% include ../_includes/footer %>
