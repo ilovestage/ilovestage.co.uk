@@ -11,6 +11,9 @@ function appListen(port) {
   }
 }
 
+require('app-module-path').addPath(__dirname + '/applications');
+require('app-module-path').addPath(__dirname);
+
 var argv = require('yargs').argv;
 var debug = require('debug');
 var forceSSL = require('koa-force-ssl');
@@ -22,7 +25,7 @@ var logger = require('koa-logger');
 var mount = require('koa-mount');
 var router = require('koa-router');
 
-var packageJson = require(__dirname + '/package.json');
+var packageJson = require('package.json');
 var environment = process.env.NODE_ENV ? process.env.NODE_ENV : 'development';
 
 var port = {};
