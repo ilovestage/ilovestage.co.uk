@@ -16,10 +16,10 @@ require('app-module-path').addPath(__dirname);
 
 var argv = require('yargs').argv;
 var debug = require('debug');
-var forceSSL = require('koa-force-ssl');
-var fs = require('fs');
+// var forceSSL = require('koa-force-ssl');
+// var fs = require('fs');
 var http = require('http');
-var https = require('https');
+// var https = require('https');
 var koa = require('koa');
 var logger = require('koa-logger');
 var mount = require('koa-mount');
@@ -32,7 +32,7 @@ var port = {};
 port.http = process.env.PORT ? process.env.PORT : packageJson.config.applications[argv.application].http.port;
 port.https = process.env.PORT ? process.env.PORT : packageJson.config.applications[argv.application].https.port;
 
-var optionsSSL;
+// var optionsSSL;
 
 // if(environment === 'production') {
 //   optionsSSL = {
