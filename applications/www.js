@@ -30,18 +30,6 @@ var render = views('source/' + argv.application + '/views', {
   }
 });
 
-var defaults = {
-  application: packageJson.config.applications[argv.application],
-  url: {
-    assets: packageJson.config.environment[environment].url.assets
-  },
-  lang: 'en',
-  year: currentDate.getFullYear(),
-  title: 'I Love Stage',
-  description: 'ILOVESTAGE is a great way to find tickets for the top 10 West End shows at affordable group-rate prices.',
-  preview: false
-};
-
 var app = koa();
 
 app.name = argv.application;
@@ -68,8 +56,6 @@ qs(app);
 
 app.use(serve('build/' + argv.application));
 
-app.use(router(app));
-
 if (environment === 'development') {
   // No options or {init: false}
   // The snippet must be provide by BROWSERSYNC_SNIPPET environment variable
@@ -86,6 +72,28 @@ if (environment === 'development') {
 //   return res.join('\n');
 // }
 
+app.use(function* (next) {
+  this.locals = this.locals || {};
+
+  this.locals.defaults = {
+    application: packageJson.config.applications[argv.application],
+    url: {
+      assets: packageJson.config.environment[environment].url.assets
+    },
+    lang: 'en',
+    year: currentDate.getFullYear(),
+    title: 'I Love Stage',
+    description: 'ILOVESTAGE is a great way to find tickets for the top 10 West End shows at affordable group-rate prices.',
+    preview: false
+  };
+
+  this.locals.defaults.preview = this.query.preview;
+
+  console.log('this.locals.defaults', this.locals.defaults);
+
+  yield next;
+});
+
 function *error404(next) {
   var settings = {};
 
@@ -94,7 +102,7 @@ function *error404(next) {
     title: 'Page not found'
   };
 
-  _.merge(settings, defaults, locals);
+  _.merge(settings, this.locals.defaults, locals);
 
   var body = yield render('error-404', settings);
 
@@ -110,11 +118,10 @@ function *home(next) {
   var settings = {};
 
   var locals = {
-    bodyClass: 'home',
-    preview: this.query.preview
+    bodyClass: 'home'
   };
 
-  _.merge(settings, defaults, locals);
+  _.merge(settings, this.locals.defaults, locals);
 
   // var body = yield renderEach('user', db.users);
   var body = yield render('home', settings);
@@ -134,7 +141,7 @@ function *account(next) {
     title: 'Account settings'
   };
 
-  _.merge(settings, defaults, locals);
+  _.merge(settings, this.locals.defaults, locals);
 
   var body = yield render('account', settings);
 
@@ -153,7 +160,7 @@ function *passwordReset(next) {
     title: 'Reset Password'
   };
 
-  _.merge(settings, defaults, locals);
+  _.merge(settings, this.locals.defaults, locals);
 
   var body = yield render('password-reset', settings);
 
@@ -172,7 +179,7 @@ function *passwordResetEmailSent(next) {
     title: 'Password Reset Email Sent'
   };
 
-  _.merge(settings, defaults, locals);
+  _.merge(settings, this.locals.defaults, locals);
 
   var body = yield render('password-reset-email-sent', settings);
 
@@ -191,7 +198,7 @@ function *passwordResetSuccess(next) {
     title: 'Password Has Been Successfully Reset'
   };
 
-  _.merge(settings, defaults, locals);
+  _.merge(settings, this.locals.defaults, locals);
 
   var body = yield render('password-reset-success', settings);
 
@@ -211,7 +218,7 @@ function *passwordResetVerification(next) {
     token: this.query.token
   };
 
-  _.merge(settings, defaults, locals);
+  _.merge(settings, this.locals.defaults, locals);
 
   var body = yield render('password-reset-verification', settings);
 
@@ -230,9 +237,7 @@ function *privacyPolicy(next) {
     title: 'Privacy Policy'
   };
 
-  _.merge(settings, defaults, locals);
-
-  console.log('settings', settings);
+  _.merge(settings, this.locals.defaults, locals);
 
   var body = yield render('privacy-policy', settings);
 
@@ -251,7 +256,7 @@ function *refundPolicy(next) {
     title: 'Refund Policy'
   };
 
-  _.merge(settings, defaults, locals);
+  _.merge(settings, this.locals.defaults, locals);
 
   var body = yield render('refund-policy', settings);
 
@@ -270,7 +275,7 @@ function *termsOfService(next) {
     title: 'Terms of Service'
   };
 
-  _.merge(settings, defaults, locals);
+  _.merge(settings, this.locals.defaults, locals);
 
   var body = yield render('terms-of-service', settings);
 
@@ -280,6 +285,8 @@ function *termsOfService(next) {
 
   this.body = html;
 }
+
+app.use(router(app));
 
 app.get('/', home);
 app.get('/account', error404);
