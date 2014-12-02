@@ -109,7 +109,8 @@ function *home(next) {
   var settings = {};
 
   var locals = {
-    bodyClass: 'home'
+    bodyClass: 'home',
+    preview: this.query.preview
   };
 
   _.merge(settings, defaults, locals);

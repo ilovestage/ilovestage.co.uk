@@ -10,7 +10,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
 
     <link href="<%= url.assets %>/styles/styles.css" rel="stylesheet" />
-    <link rel="shortcut icon" href="<%= url.assets %>/images/chrome/favicon.png" />
+    <link rel="shortcut icon" href="<%= url.assets %>/images/chrome/favicon.ico" />
   </head>
   <body class="<%= bodyClass %>">
     <% include ../../../_utilities/views/_includes/scripts/google.analytics.html %>
@@ -19,16 +19,19 @@
       <%- body %>
     </main>
     <footer>
-      <span>&copy; <%= year %> ILOVESTAGE Ltd.</span>
       <ul class="social-links">
-        <li><a href="https://www.facebook.com/ilovestageuk/">Facebook</a></li>
-        <li><a href="https://www.twitter.com/ilovestageuk/">Twitter</a></li>
+        <li><a class="facebook" href="https://www.facebook.com/ilovestageuk/">Facebook</a></li>
+        <li><a class="twitter" href="https://www.twitter.com/ilovestageuk/">Twitter</a></li>
+        <li><a class="googleplus" href="https://plus.google.com/+ilovestageuk/">Google+</a></li>
       </ul>
+      <% if(preview) { %>
       <ul class="site-links">
         <li><a href="/terms-of-service/">Terms of Service</a></li>
         <li><a href="/privacy-policy/">Privacy Policy</a></li>
         <li><a href="/refund-policy/">Refund Policy</a></li>
       </ul>
+      <% } %>
+      <span>&copy; <%= year %> ILOVESTAGE Ltd.</span>
     </footer>
     <script src="<%= url.assets %>/scripts/script.js"></script>
   </body>
