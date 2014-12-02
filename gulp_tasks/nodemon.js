@@ -28,7 +28,7 @@ gulp.task('nodemon', function (cb) {
       // application: argv.application,
       env: {
         // 'DEBUG': 'monk:*'
-        'DEBUG': '*'
+        // 'DEBUG': '*'
       },
       ext: 'js html',
       nodeArgs: ['--debug=' + portDebug],
