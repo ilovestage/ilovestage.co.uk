@@ -166,7 +166,6 @@ User.schema = {
   'required': [
     'firstname',
     'lastname',
-    'dateofbirth',
     'strategies',
     'communications'
   ]
