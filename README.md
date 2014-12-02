@@ -37,6 +37,9 @@ node --harmony app.js --application importer --job shows-all
 Run finalise bookings cron job
 node --harmony app.js --application cron --job bookings-finalise
 
+Run events populate cron job
+node --harmony app.js --application cron --job events-populate
+
 node --harmony app.js --application api
 npm start app.js --application api
 

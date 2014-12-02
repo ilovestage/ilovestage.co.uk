@@ -5,7 +5,7 @@ module.exports = function() {
   return function* authenticationCheck(next) {
     if(this.request.header.uid) {
       if (this.locals.currentUser) {
-        this.locals.status = 200;
+        this.locals.status = 404;
         // yield next;
       } else {
         this.locals.message = this.locals.messages.noUserForUid;

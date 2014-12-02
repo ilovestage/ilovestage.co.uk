@@ -76,7 +76,7 @@ var email = {
           var mailOptions = {
             from: email.sender.name + ' <' + email.sender.address + '>', // sender address
             to: {
-              name: locals.user.firstname,
+              name: locals.user.firstname + ' ' + locals.user.lastname,
               address: locals.email
             }, // list of receivers
             subject: locals.subject, // Subject line
@@ -90,12 +90,12 @@ var email = {
               self.locals.error = error;
             } else {
               self.locals.message = info;
-              self.locals.message = 'Password reset email sent.';
+              // self.locals.message = 'Email sent';
             }
 
             // console.log('self.locals', self.locals);
-            console.log('error', error);
-            console.log('mailOptions', mailOptions);
+            // console.log('error', error);
+            // console.log('mailOptions', mailOptions);
 
           });
         }

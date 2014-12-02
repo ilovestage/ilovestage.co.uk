@@ -12,6 +12,19 @@ var connectionString = mongo.connectionString(packageJson.config.environment[env
 
 var Event = model('events', connectionString);
 
+// console.log(Event);
+
+var index = {
+  'showid': 1,
+  'starttime': 1
+};
+
+Event.ensureIndex(index);
+
+var info = Event.indexInformation(index);
+
+console.log('info', info);
+
 Event.schema = {
   'title': 'Event Schema',
   'type': 'object',

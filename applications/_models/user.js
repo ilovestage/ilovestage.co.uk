@@ -51,9 +51,13 @@ User.schema = {
       'type': 'string',
       'format': 'date'
     },
-    'countrycode': {
+    'countrycodealpha2': {
       'type': 'string',
-      'format': 'country-code'
+      'format': 'country-code-alpha2'
+    },
+    'countrycodealpha3': {
+      'type': 'string',
+      'format': 'country-code-alpha3'
     },
     'strategies': {
       'type': 'object',

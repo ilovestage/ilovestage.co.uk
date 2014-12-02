@@ -1,53 +1,46 @@
 'use strict';
 
+var cryptography = require('_utilities/cryptography');
 
-var cryptography = require(__dirname + '/../_utilities/cryptography');
+function authorizationCheck(_id) {
+  var authorizationStatus;
+  var uid;
 
-module.exports = function() {
+  this.locals.status = 200;
 
-  return function* authorizationCheck(_id) {
-    var authorizationStatus;
-    var uid;
+  console.log('_id', _id);
 
-    this.locals.status = 200;
+  if(typeof _id === 'undefined') {
+    uid = null;
+  } else {
+    uid = cryptography.encryptId(_id.toString()); // to be sent encrypted
+  }
 
-    // if(!_id || !this.locals.currentUser) {
-    //   authorizationStatus = false;
-    // }
+  console.log('uid', uid);
+  // console.log('this.locals.currentUser.uid', this.locals.currentUser.uid);
+  // console.log('this.locals.currentUser', this.locals.currentUser);
 
-    if(typeof _id === 'undefined') {
-      uid = null;
-    } else {
-      uid = cryptography.encryptId(_id.toString()); // to be sent encrypted
-    }
+  if(this.locals.bypassAuthentication === true) {
+    // console.log('case 1');
+    authorizationStatus = true;
+  } else if(!_id || !this.locals.currentUser) {
+    // console.log('case 2');
+    authorizationStatus = false;
+  } else if(uid === this.locals.currentUser.uid) {
+    // console.log('case 3');
+    authorizationStatus = true;
+  } else if(this.locals.currentUser.role === 'admin') {
+    // console.log('case 4');
+    authorizationStatus = true;
+  } else {
+    // console.log('case 5');
+    this.locals.status = 403;
+    authorizationStatus = false;
+  }
 
-    // console.log('_id', _id);
-    // console.log('uid', uid);
-    // console.log('this.locals.currentUser.uid', this.locals.currentUser.uid);
-    // console.log('this.locals.currentUser', this.locals.currentUser);
+  // return yield Promise.resolve(authorizationStatus);
+  // return Promise.resolve(authorizationStatus);
+  return authorizationStatus;
+}
 
-    if(this.locals.bypassAuthentication === true) {
-      // console.log('case 1');
-      authorizationStatus = true;
-    } else if(uid === this.locals.currentUser.uid) {
-      // console.log('case 2');
-      authorizationStatus = true;
-    } else if(this.locals.currentUser.role === 'admin') {
-      // console.log('case 3');
-      authorizationStatus = true;
-    } else {
-      // console.log('case 4');
-      this.locals.status = 403;
-      authorizationStatus = false;
-    }
-
-    yield next;
-
-    return function (cb) {
-      console.log('authorizationStatus', authorizationStatus);
-      cb(false, authorizationStatus);
-    };
-
-  };
-
-};
+module.exports = authorizationCheck;

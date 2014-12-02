@@ -54,8 +54,6 @@ if(typeof process.env.DEBUG !== 'undefined') {
   console.log('process.env.DEBUG', process.env.DEBUG);
 }
 
-debug('booting');
-
 app.keys = [packageJson.config.redis.key];
 // app.keys = ['some secret hurr'];
 
