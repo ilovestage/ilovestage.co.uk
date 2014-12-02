@@ -38,7 +38,7 @@ var defaults = {
   lang: 'en',
   year: currentDate.getFullYear(),
   title: 'I Love Stage',
-  description: 'I Love Stage'
+  description: 'ILOVESTAGE is a great way to find tickets for the top 10 West End shows at affordable group-rate prices.'
 };
 
 var app = koa();
