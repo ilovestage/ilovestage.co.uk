@@ -119,7 +119,7 @@ User.schema = {
             '$ref': '#/definitions/communicationsTypes'
           },
           'additionalItems': false,
-          'minItems': 1,
+          // 'minItems': 1,
           'uniqueItems': true
         },
         'marketing': {
@@ -128,7 +128,7 @@ User.schema = {
             '$ref': '#/definitions/communicationsTypes'
           },
           'additionalItems': false,
-          'minItems': 1,
+          // 'minItems': 1,
           'uniqueItems': true
         }
       }
@@ -166,8 +166,7 @@ User.schema = {
   'required': [
     'firstname',
     'lastname',
-    'strategies',
-    'communications'
+    'strategies'
   ]
 };
 
