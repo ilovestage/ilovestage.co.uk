@@ -47,9 +47,7 @@ app.get('/', function* (next) {
 
     show = yield Show.findOne(searchFields, returnFields);
 
-    if (!show) {
-      this.locals.status = 404;
-    } else {
+    if (show) {
       searchFields.showid = show._id.toString();
     }
   } else if (typeof this.query.showid !== 'undefined') {
@@ -102,9 +100,7 @@ app.get('/', function* (next) {
     });
   });
 
-  if (!events) {
-    this.locals.status = 404;
-  } else {
+  if (events) {
     this.locals.result = events;
     this.locals.status = 200;
   }
@@ -119,10 +115,7 @@ app.del('/:id', authenticationCheck, function* (next) {
     _id: this.params.id
   });
 
-  if (!event) {
-    this.locals.message = this.locals.messages.resourceNotFound;
-    this.locals.status = 404;
-  } else {
+  if (event) {
     this.locals.result = event;
     this.locals.status = 204;
   }
@@ -140,9 +133,7 @@ app.get('/:id', function* (next) {
     _id: this.params.id
   });
 
-  if (!event) {
-    this.locals.status = 404;
-  } else {
+  if (event) {
     event.bookings = yield Booking.count({
       eventid: this.params.id
     });
@@ -184,9 +175,7 @@ app.post('/', authenticationCheck, function* (next) {
   if(authorizationCheck.apply(this, ['admin']) === true) {
     event = yield Event.createOne(this.locals.document);
 
-    if (!event) {
-      this.locals.status = 404;
-    } else {
+    if (event) {
       this.locals.result = event;
       this.locals.status = 201;
     }
@@ -213,9 +202,7 @@ app.put('/:id', authenticationCheck, function* (next) {
   if(authorizationCheck.apply(this, ['admin']) === true) {
     event = yield Event.update(searchFields, updateFields);
 
-    if (!event) {
-      this.locals.status = 404;
-    } else {
+    if (event) {
       this.locals.result = event;
       this.locals.status = 200;
     }

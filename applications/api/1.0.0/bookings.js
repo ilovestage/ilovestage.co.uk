@@ -31,9 +31,7 @@ app.del('/:id', authenticationCheck, function* (next) {
 
   booking = yield Booking.findOne(searchFields);
 
-  if (!booking) {
-    this.locals.status = 404;
-  } else {
+  if (booking) {
     if(authorizationCheck.apply(this, [booking.userid]) === true) {
       booking = yield Booking.remove({
         _id: this.params.id
@@ -91,9 +89,6 @@ app.get('/', function* (next) {
       this.locals.status = 200;
     }
   }
-  //  else {
-  //   this.locals.status = 404;
-  // }
 
   yield next;
 });
@@ -137,9 +132,6 @@ app.get('/:id', authenticationCheck, function* (next) {
       this.locals.status = 200;
     }
   }
-  //  else {
-  //   this.locals.status = 404;
-  // }
 
   yield next;
 });
@@ -147,7 +139,7 @@ app.get('/:id', authenticationCheck, function* (next) {
 app.post('/', function* (next) {
   var booking;
   var event;
-  var returnFields;
+  // var returnFields;
   // var searchFields;
   var show;
   var user;
@@ -177,9 +169,7 @@ app.post('/', function* (next) {
     } else {
         booking = yield Booking.createOne(this.request.body);
 
-        if (!booking) {
-          this.locals.status = 404;
-        } else {
+        if (booking) {
           show = yield Show.findOne({
             _id: mongo.toObjectId(event.showid)
           }, {});
@@ -260,9 +250,7 @@ app.put('/:id', function* (next) {
     //   }
     // }
 
-    if (!booking) {
-      this.locals.status = 404;
-    } else {
+    if (booking) {
       this.locals.result = booking;
       this.locals.status = 200;
     }

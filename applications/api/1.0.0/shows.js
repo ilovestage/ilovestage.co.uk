@@ -39,7 +39,6 @@ app.use(bodyParser());
 
 app.use(router(app));
 
-// Routes: Shows
 app.del('/:id', authenticationCheck, function* (next) {
   var searchFields = {};
   var show = {};
@@ -49,9 +48,7 @@ app.del('/:id', authenticationCheck, function* (next) {
   if(authorizationCheck.apply(this, ['admin']) === true) {
     show = yield Show.remove(searchFields);
 
-    if (!show) {
-      this.locals.status = 404;
-    } else {
+    if (show) {
       this.locals.result = show;
       this.locals.status = 204;
     }
@@ -104,9 +101,7 @@ app.get('/', function* (next) {
     limit: limit
   });
 
-  if (!shows) {
-    this.locals.status = 404;
-  } else {
+  if (shows) {
     if (this.query.view !== 'detailed') {
       shows.forEach(function(document) {
         showsModified.push(internationalization.translate(document, self.locals.lang));
@@ -149,9 +144,7 @@ app.get('/:id', function* (next) {
 
   show = yield Show.findOne(searchFields, returnFields);
 
-  if (!show) {
-    this.locals.status = 404;
-  } else {
+  if (show) {
     if (this.query.view !== 'detailed') {
       show = internationalization.translate(show, this.locals.lang);
     }
@@ -169,9 +162,7 @@ app.post('/', authenticationCheck, function* (next) {
   if(authorizationCheck.apply(this, ['admin']) === true) {
     show = yield Show.createOne(this.locals.document);
 
-    if (!show) {
-      this.locals.status = 404;
-    } else {
+    if (show) {
       this.locals.result = show;
       this.locals.status = 201;
     }
@@ -197,9 +188,7 @@ app.put('/:id', authenticationCheck, function* (next) {
       _id: this.params.id
     }, updateFields);
 
-    if (!show) {
-      this.locals.status = 404;
-    } else {
+    if (show) {
       this.locals.result = show;
       this.locals.status = 200;
     }
@@ -231,9 +220,7 @@ app.post('/:id/reviews', function* (next) {
   if(authorizationCheck.apply(this, ['admin']) === true) {
     show = yield Show.update(searchFields, updateFields);
 
-    if (!show) {
-      this.locals.status = 404;
-    } else {
+    if (show) {
       this.locals.result = show;
       this.locals.status = 201;
     }
@@ -264,9 +251,7 @@ app.put('/:id/reviews', function* (next) {
   if(authorizationCheck.apply(this, ['admin']) === true) {
     show = yield Show.update(searchFields, updateFields);
 
-    if (!show) {
-      this.locals.status = 404;
-    } else {
+    if (show) {
       this.locals.result = show;
       this.locals.status = 200;
     }

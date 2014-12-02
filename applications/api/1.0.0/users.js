@@ -54,11 +54,8 @@ app.del('/:id', authenticationCheck, function* (next) {
     user = yield User.remove(searchFields);
   }
 
-  if (!user) {
-    this.locals.status = 404;
-  } else {
+  if (user) {
     this.locals.result = user;
-
     this.locals.status = 204;
   }
 
@@ -107,10 +104,7 @@ app.get('/', function* (next) {
 
     user = yield User.findOne(searchFields, returnFields);
 
-    if (!user) {
-      this.locals.message = 'A user with those credentials does not exist.';
-      this.locals.status = 404;
-    } else {
+    if (user) {
       if ((typeof user.strategies !== 'undefined') && (typeof user.strategies[this.query.provider] !== 'undefined') && (typeof user.strategies[this.query.provider].uid !== 'undefined')) {
         if (this.query.token === user.strategies[this.query.provider].token) {
           this.locals.status = 200;
@@ -141,10 +135,7 @@ app.get('/', function* (next) {
 
     user = yield User.findOne(searchFields, returnFields);
 
-    if (!user) {
-      this.locals.message = 'A user with those credentials does not exist.';
-      this.locals.status = 404;
-    } else {
+    if (user) {
       token = cryptography.encryptPasswordResetToken(user._id.toString());
 
       updateFields = {
@@ -172,10 +163,7 @@ app.get('/', function* (next) {
 
     user = yield User.findOne(searchFields, returnFields);
 
-    if (!user) {
-      this.locals.message = 'A user with those credentials does not exist.';
-      this.locals.status = 404;
-    } else {
+    if (user) {
       updateFields = {
         $set: {
           password: this.query.password
@@ -203,10 +191,7 @@ app.get('/', function* (next) {
 
     user = yield User.findOne(searchFields, returnFields);
 
-    if (!user) {
-      this.locals.message = 'A user with those credentials does not exist.';
-      this.locals.status = 404;
-    } else {
+    if (user) {
       if ((typeof user.strategies !== 'undefined') && (typeof user.strategies.local !== 'undefined') && (typeof user.strategies.local.password !== 'undefined')) {
         password = cryptography.encryptPassword(this.query.password);
 
@@ -240,10 +225,7 @@ app.get('/', function* (next) {
         limit: limit
       });
 
-      if (!users) {
-        this.locals.message = this.locals.messages.resourceNotFound;
-        this.locals.status = 404;
-      } else {
+      if (users) {
         this.locals.result = users;
         this.locals.status = 200;
       }
@@ -276,9 +258,7 @@ app.get('/:id', authenticationCheck, function* (next) {
 
   user = yield User.findOne(searchFields, returnFields);
 
-  if (!user) {
-    this.locals.status = 404;
-  } else {
+  if (user) {
     if(authorizationCheck.apply(this, [user._id]) === true) {
       this.locals.result = user;
       this.locals.status = 200;
@@ -352,9 +332,7 @@ app.post('/', function* (next) {
 
       user = yield User.createOne(this.locals.document);
 
-      if (!user) {
-        this.locals.status = 404;
-      } else {
+      if (user) {
         card = yield createCardBoundThunk({
           metadata: {
             userid: user._id.toString()
@@ -428,9 +406,7 @@ app.put('/:id', authenticationCheck, function* (next) {
   if(authorizationCheck.apply(this, [this.params.id]) === true) {
     user = yield User.update(searchFields, updateFields);
 
-    if (!user) {
-      this.locals.status = 404;
-    } else {
+    if (user) {
       this.locals.result = user;
       this.locals.status = 200;
     }

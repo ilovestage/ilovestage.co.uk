@@ -31,8 +31,6 @@ app.del('/:id', function* (next) {
     payment = yield Payment.remove(searchFields);
 
     if (payment) {
-      this.locals.status = 404;
-    } else {
       this.locals.result = payment;
       this.locals.status = 204;
     }
@@ -70,9 +68,7 @@ app.get('/', authenticationCheck, function* (next) {
       limit: limit
     });
 
-    if (!payment) {
-      this.locals.status = 404;
-    } else {
+    if (payment) {
       this.locals.result = payment;
       this.locals.status = 200;
     }
@@ -90,9 +86,7 @@ app.get('/:id', authenticationCheck, function* (next) {
     _id: this.params.id
   });
 
-  if (!payment) {
-    this.locals.status = 404;
-  } else {
+  if (payment) {
     booking = yield Booking.findOne({
       _id: payment.bookingid
     });
@@ -134,9 +128,7 @@ app.post('/', function* (next) {
 
       booking = yield Booking.findOne(searchFields, {});
 
-      if (!booking) {
-        this.locals.status = 404;
-      } else {
+      if (booking) {
         this.locals.status = 201;
 
         searchFields = {
@@ -145,9 +137,7 @@ app.post('/', function* (next) {
 
         user = yield User.findOne(searchFields, {});
 
-        if (!user) {
-          this.locals.status = 404;
-        } else {
+        if (user) {
           if(authorizationCheck.apply(this, [user._id]) === true) {
             chargeInfo = {
               amount: this.locals.document.amount,
@@ -165,9 +155,7 @@ app.post('/', function* (next) {
 
             payment = yield Payment.createOne(charge);
 
-            if (!payment) {
-              this.locals.status = 404;
-            } else {
+            if (payment) {
               this.locals.result = payment;
               this.locals.status = 201;
             }
