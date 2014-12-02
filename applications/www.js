@@ -73,8 +73,6 @@ if (environment === 'development') {
 // }
 
 app.use(function* (next) {
-  this.locals = this.locals || {};
-
   this.locals.defaults = {
     application: packageJson.config.applications[argv.application],
     url: {
