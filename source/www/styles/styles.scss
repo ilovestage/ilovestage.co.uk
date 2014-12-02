@@ -25,9 +25,6 @@ body {
     text-align: center;
 
     main {
-      display: flex;
-      flex: 1;
-      flex-direction: column;
       max-width: 100rem;
       justify-content: center;
 
@@ -54,6 +51,9 @@ body {
   }
 
   main {
+    display: flex;
+    flex: 1;
+    flex-direction: column;
     margin-left: auto;
     margin-right: auto;
     max-width: 50rem;
@@ -72,6 +72,23 @@ body {
       margin-right: auto;
       margin-top: 0;
       text-indent: -5000px;
+    }
+
+    #goog-fixurl {
+      ul {
+        list-style: none;
+        padding-left: 0;
+      }
+
+      form {
+        margin-top: 1rem;
+
+        #goog-wm-sb {
+          margin-left: 1rem;
+        }
+
+      }
+
     }
 
   }
