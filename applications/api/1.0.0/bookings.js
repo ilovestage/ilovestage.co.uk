@@ -4,6 +4,7 @@ var packageJson = require('package.json');
 var environment = process.env.NODE_ENV ? process.env.NODE_ENV : 'development';
 
 var koa = require('koa');
+var moment = require('moment');
 var router = require('koa-router');
 
 var authenticationCheck = require('_middleware/authenticationCheck');
@@ -15,13 +16,13 @@ var email = require('_utilities/email');
 
 var Booking = require('_models/booking');
 var Event = require('_models/event');
+var Show = require('_models/show');
 var User = require('_models/user');
 
 var app = koa();
 
 app.use(router(app));
 
-// Routes: Bookings
 app.del('/:id', authenticationCheck, function* (next) {
   var booking;
   var searchFields = {};
@@ -49,6 +50,7 @@ app.del('/:id', authenticationCheck, function* (next) {
 app.get('/', function* (next) {
   var bookings;
   var limit = 50;
+  var returnFields = {};
   var searchFields = {};
   var sortParameters = [];
 
@@ -78,24 +80,26 @@ app.get('/', function* (next) {
     }
   }
 
-  bookings = yield Booking.find(searchFields, {
+  bookings = yield Booking.find(searchFields, returnFields, {
     sort: sortParameters,
     limit: limit
   });
 
   if(bookings) {
-    if((this.query.userid && (authorizationCheck.apply(this, [this.query.userid]))) || (authorizationCheck.apply(this, ['admin']))) {
+    if(authorizationCheck.apply(this, [this.query.userid])) {
       this.locals.result = bookings;
       this.locals.status = 200;
     }
-  } else {
-    this.locals.status = 404;
   }
+  //  else {
+  //   this.locals.status = 404;
+  // }
 
   yield next;
 });
 
 app.get('/:id', authenticationCheck, function* (next) {
+  console.log('id');
   var booking;
   var event;
   var returnFields = {};
@@ -104,8 +108,11 @@ app.get('/:id', authenticationCheck, function* (next) {
   searchFields._id = mongo.toObjectId(this.params.id);
 
   booking = yield Booking.findOne(searchFields);
+  console.log('booking', booking);
 
   if(booking) {
+    console.log('booking', booking);
+
     if(authorizationCheck.apply(this, [booking.userid]) === true) {
       if (this.query.view === 'detailed') {
         returnFields = {
@@ -116,22 +123,23 @@ app.get('/:id', authenticationCheck, function* (next) {
           'facevalue': 1,
           'discount_price': 1
         };
-
-        searchFields = {
-          _id: booking.eventid
-        };
-
-        event = yield Event.findOne(searchFields, returnFields);
-
-        booking.event = event;
       }
+
+      searchFields = {
+        _id: booking.eventid
+      };
+
+      event = yield Event.findOne(searchFields, returnFields);
+
+      booking.event = event;
 
       this.locals.result = booking;
       this.locals.status = 200;
     }
-  } else {
-    this.locals.status = 404;
   }
+  //  else {
+  //   this.locals.status = 404;
+  // }
 
   yield next;
 });
@@ -141,23 +149,24 @@ app.post('/', function* (next) {
   var event;
   var returnFields;
   // var searchFields;
+  var show;
   var user;
 
-  returnFields = {
-    _id: 1,
-    firstname: 1,
-    lastname: 1,
-    'strategies.local.email': 1
-  };
+  // returnFields = {
+  //   _id: 1,
+  //   firstname: 1,
+  //   lastname: 1,
+  //   'strategies.local.email': 1
+  // };
 
   if(authorizationCheck.apply(this, [this.locals.document.userid]) === true) {
     event = yield Event.findOne({
-      _id: mongo.toObjectId(this.locals.document.eventid)
-    }, returnFields);
+      _id: mongo.toObjectId(this.locals.document.eventid),
+    }, {});
 
     user = yield User.findOne({
       _id: mongo.toObjectId(this.locals.document.userid)
-    }, returnFields);
+    }, {});
 
     if(!user) {
       this.locals.message = 'User referenced by booking could not be found.';
@@ -171,10 +180,16 @@ app.post('/', function* (next) {
         if (!booking) {
           this.locals.status = 404;
         } else {
+          show = yield Show.findOne({
+            _id: mongo.toObjectId(event.showid)
+          }, {});
+
           email.send({
             subject: 'Booking confirmed',
             email: user.strategies.local.email,
-            user: user
+            user: user,
+            show: show,
+            date: moment(event.starttime).format('dddd, MMMM Do YYYY, h:mm:ss a')
           }, 'user-booking');
 
           this.locals.result = booking;
