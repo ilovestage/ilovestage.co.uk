@@ -71,7 +71,7 @@ User.schema = {
             },
             'password': {
               'type': 'string',
-              'minLength': 2,
+              'minLength': 0,
               'maxLength': 255
             }
           },
