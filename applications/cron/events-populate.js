@@ -14,16 +14,18 @@ var moment = require('moment');
 require('moment-recur');
 
 // var Bookings = db.get('bookings');
-var Events = db.get('events');
+// var Events = db.get('events');
 // var Payments = db.get('payments');
-var Shows = db.get('shows');
+// var Shows = db.get('shows');
 // var Users = db.get('users');
 
+// var Booking = require(__dirname + '/../_models/booking');
+var Event = require(__dirname + '/../_models/event');
+// var Payment = require(__dirname + '/../_models/payment');
+var Show = require(__dirname + '/../_models/show');
+// var User = require(__dirname + '/../_models/user');
+
 // var result = null;
-var searchFields = {};
-var returnFields = {};
-var updateFields = {};
-var insertFields = {};
 
 var publicHolidays = [
   moment({
@@ -56,10 +58,14 @@ function processPerformance(show, day, time) {
   // console.log('recurrence', recurrence);
 
   // nextDates = recurrence.next(52); // return dates for next 52 weeks
-  nextDates = recurrence.next(4); // return dates for next 4 weeks
+  nextDates = recurrence.next(1); // return dates for next 1 weeks
   // console.log('nextDates', nextDates);
 
   nextDates.forEach(function(date) {
+    var insertFields = {};
+    var searchFields = {};
+    // var updateFields = {};
+
     var starttime = moment(date._d).utc().add({
       hours: time[0],
       minutes: time[1]
@@ -72,9 +78,13 @@ function processPerformance(show, day, time) {
 
     // console.log('time', (parseInt(time[0]) + 3));
 
-    details = {
+    searchFields = {
       'showid': show._id,
-      // 'availability': 2,
+      'starttime': starttime.toDate()
+    };
+
+    insertFields = {
+      'showid': show._id,
       'starttime': starttime.toDate(),
       'endtime': endtime.toDate(),
       'priceband': show.priceband,
@@ -84,9 +94,23 @@ function processPerformance(show, day, time) {
       'singlefacevalue': show.singlefacevalue
     };
 
-    // console.log('details', details);
+    // console.log('searchFields', searchFields);
+    console.log('insertFields', insertFields);
 
-    var event = Events.insert(details);
+    // var event = Event.update(searchFields, insertFields, {
+    //   upsert: true
+    // });
+
+    co(function* () {
+      var event = yield Event.create(insertFields);
+
+      return event;
+    }).then(function (event) {
+      console.log('Event added: ' + event);
+    }, function (err) {
+      console.error(err.stack);
+    });
+
   });
 
 }
@@ -106,9 +130,10 @@ function processShow(show) {
 }
 
 co(function* () {
-  var shows = yield Shows.find(searchFields, {
-    fields: returnFields
-  });
+  var returnFields = {};
+  var searchFields = {};
+
+  var shows = yield Show.find(searchFields, returnFields);
 
   return shows;
 }).then(function (shows) {
@@ -119,7 +144,7 @@ co(function* () {
     processShow(show);
   });
 
-  process.exit();
+  // process.exit();
 }, function (err) {
   console.error(err.stack);
 });
