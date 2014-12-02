@@ -179,7 +179,8 @@ app.use(function* (next) {
 
 app.use(helmet.defaults());
 
-app.use(authenticationCheck());
+// app.use(authenticationCheck());
+// app.use(authenticationCheck(app));
 
 app.use(mount('/bookings', require(__dirname + '/1.0.0/bookings')));
 app.use(mount('/events', require(__dirname + '/1.0.0/events')));

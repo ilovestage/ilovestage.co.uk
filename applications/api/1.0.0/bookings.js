@@ -46,7 +46,6 @@ app.del('/:id', authenticationCheck, function* (next) {
   yield next;
 });
 
-// app.get('/bookings', auth(httpBasicAuthCredentials), function* (next) {
 app.get('/', function* (next) {
   var bookings;
   var limit = 50;

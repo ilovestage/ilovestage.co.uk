@@ -40,7 +40,7 @@ qs(app);
 
 app.use(bodyParser());
 
-app.use(authenticationCheck());
+// app.use(authenticationCheck());
 
 app.use(router(app));
 
