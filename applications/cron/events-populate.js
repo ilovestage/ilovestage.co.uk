@@ -1,14 +1,14 @@
 'use strict';
 
-var packageJson = require(__dirname + '/../../package.json');
-var environment = process.env.NODE_ENV ? process.env.NODE_ENV : 'development';
+// var packageJson = require(__dirname + '/../../package.json');
+// var environment = process.env.NODE_ENV ? process.env.NODE_ENV : 'development';
 
-var mongo = require(__dirname + '/../_utilities/mongo');
-var connectionString = mongo.connectionString(packageJson.config.environment[environment].server.database);
+// var mongo = require(__dirname + '/../_utilities/mongo');
+// var connectionString = mongo.connectionString(packageJson.config.environment[environment].server.database);
 
 var _ = require('lodash');
 var co = require('co');
-var db = require('monk')(connectionString);
+// var db = require('monk')(connectionString);
 var moment = require('moment');
 
 require('moment-recur');
@@ -35,7 +35,7 @@ var publicHolidays = [
   })
 ];
 
-var dateToday = moment();
+// var dateToday = moment();
 var dateNextYear = moment().add(1, 'y');
 // console.log('dateToday', dateToday);
 // console.log('dateNextYear', dateNextYear);
@@ -44,8 +44,9 @@ var dateNextYear = moment().add(1, 'y');
 
 function processPerformance(show, day, time) {
   // console.log('show, day, time', show.translations[0].name, day, time);
-  var dayOfWeek = 'Monday';
-  var details;
+  // var dayOfWeek = 'Monday';
+  var dayOfWeek = day;
+  // var details;
   var nextDates;
   var recurrence;
 
@@ -95,7 +96,7 @@ function processPerformance(show, day, time) {
     };
 
     // console.log('searchFields', searchFields);
-    console.log('insertFields', insertFields);
+    // console.log('insertFields', insertFields);
 
     // var event = Event.update(searchFields, insertFields, {
     //   upsert: true
@@ -116,6 +117,7 @@ function processPerformance(show, day, time) {
 }
 
 function processShow(show) {
+  // console.log('show', show);
   // console.log('show.performances', show.performances);
   show.performances.forEach(function(day) {
     // console.log('day', day);
