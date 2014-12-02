@@ -63,7 +63,7 @@ var email = {
   send: function(locals, layout) {
     var self = this;
 
-    // self.locals.error = 'here 1234';
+    self.locals = self.locals || {};
 
     emailTemplates(templatesDir, function (err, template) {
 
