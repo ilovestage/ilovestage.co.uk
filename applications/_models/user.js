@@ -76,8 +76,7 @@ User.schema = {
             }
           },
           'required': [
-            'email',
-            'password'
+            'email'
           ]
         },
         'oauth2': {
