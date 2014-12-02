@@ -96,7 +96,7 @@ csv.parse(showsFileString, showsParseOptions, function(error, showRows) {
 
         var show = Shows.findAndModify({
           query: {
-            importid: languageRows[languageRowsIterator].id
+            reference: languageRows[languageRowsIterator].id
           },
           update: {
             $push: {
@@ -139,7 +139,7 @@ csv.parse(showsFileString, showsParseOptions, function(error, showRows) {
       showRows[showRowIterator].performances.push(day);
     }
 
-    showRows[showRowIterator].importid = showRows[showRowIterator].id;
+    showRows[showRowIterator].reference = showRows[showRowIterator].id;
     showRows[showRowIterator] = deleteKey(showRows[showRowIterator], ['id']);
 
     console.log(showRows[showRowIterator]);
