@@ -19,6 +19,20 @@ var mongo = require('_utilities/mongo');
 
 var Show = require('_models/show');
 
+var returnFieldsShow = {
+  theatre: 1,
+  location: 1,
+  latitude: 1,
+  longitude: 1,
+  performances: 1,
+  groupdiscountprice: 1,
+  groupfacevalue: 1,
+  singlediscountprice: 1,
+  singlefacevalue: 1,
+  priceband: 1,
+  reference: 1
+};
+
 var app = koa();
 
 app.use(bodyParser());
@@ -54,18 +68,7 @@ app.get('/', function* (next) {
   var shows;
   var showsModified = [];
 
-  returnFields = {
-    theatre: 1,
-    location: 1,
-    latitude: 1,
-    longitude: 1,
-    performances: 1,
-    groupdiscountprice: 1,
-    groupfacevalue: 1,
-    singlediscountprice: 1,
-    singlefacevalue: 1,
-    priceband: 1
-  };
+  returnFields = returnFieldsShow;
 
   if (this.query.view === 'detailed') {
     returnFields.translations = 1;
@@ -126,16 +129,7 @@ app.get('/:id', function* (next) {
 
   searchFields._id = mongo.toObjectId(this.params.id);
 
-  returnFields = {
-    theatre: 1,
-    location: 1,
-    performances: 1,
-    groupdiscountprice: 1,
-    groupfacevalue: 1,
-    singlediscountprice: 1,
-    singlefacevalue: 1,
-    priceband: 1
-  };
+  returnFields = returnFieldsShow;
 
   if (this.query.view === 'detailed') {
     returnFields.translations = 1;
