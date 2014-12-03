@@ -3,7 +3,7 @@
 var packageJson = require('package.json');
 var environment = process.env.NODE_ENV ? process.env.NODE_ENV : 'development';
 
-require('_utilities/auth');
+// var passsport = require('_utilities/passport');
 
 var _ = require('lodash');
 // var _.str = require('underscore.string');
