@@ -9,7 +9,9 @@ MONGO_PASSWORD="curtaincall1"
 MONGO_HOST="ds063889.mongolab.com"
 MONGO_PORT="63889"
 TIMESTAMP=`date +%F-%H%M`
-MONGODUMP_PATH="/usr/bin/mongodump"
+# MONGODUMP_PATH="/usr/bin/mongodump"
+# MONGODUMP_PATH="/usr/local/bin/mongodump"
+MONGODUMP_PATH="$(which mongodump)"
 BACKUPS_DIR="$HOME/Sites/ilovestage.co.uk/backups/$APP_NAME"
 BACKUP_NAME="$APP_NAME-$TIMESTAMP"
 
