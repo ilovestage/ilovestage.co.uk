@@ -12,7 +12,9 @@ var internationalization = {
 
     data._id = data._id.toString(); // to prevent corruption of object type
 
-    var translation = data.translations[0];
+    var translation = _.find(data.translations, function(translation) {
+      return translation.lang = lang;
+    });
 
     data = deleteKey(data, ['translations']);
 

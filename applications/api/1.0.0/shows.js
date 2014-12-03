@@ -5,12 +5,13 @@ var environment = process.env.NODE_ENV ? process.env.NODE_ENV : 'development';
 
 var bodyParser = require('koa-bodyparser');
 var koa = require('koa');
+var moment = require('moment');
 var router = require('koa-router');
 
-var authenticationCheck = require('_middleware/authenticationCheck');
-var authorizationCheck = require('_middleware/authorizationCheck');
 var setResponse = require('_middleware/setResponse');
 
+var authentication = require('_utilities/authentication');
+var authorization = require('_utilities/authorization');
 // var cryptography = require('_utilities/cryptography');
 // var date = require('_utilities/date');
 // var email = require('_utilities/email');
@@ -39,13 +40,13 @@ app.use(bodyParser());
 
 app.use(router(app));
 
-app.del('/:id', authenticationCheck, function* (next) {
+app.del('/:id', authentication, function* (next) {
   var searchFields = {};
   var show = {};
 
   searchFields._id = mongo.toObjectId(this.params.id);
 
-  if(authorizationCheck.apply(this, ['admin']) === true) {
+  if(authorization.apply(this, ['admin']) === true) {
     show = yield Show.remove(searchFields);
 
     if (show) {
@@ -78,7 +79,7 @@ app.get('/', function* (next) {
   }
 
   if (this.query.view === 'detailed') {
-    if(authorizationCheck.apply(this, ['admin']) === true) {
+    if(authorization.apply(this, ['admin']) === true) {
       returnFields = {};
     }
   }
@@ -122,44 +123,48 @@ app.get('/:id', function* (next) {
   var searchFields = {};
   var show;
 
-  searchFields._id = mongo.toObjectId(this.params.id);
+  var id = mongo.toObjectId(this.params.id);
 
-  returnFields = returnFieldsShow;
+  if(id) {
+    searchFields._id = id;
 
-  if (this.query.view === 'detailed') {
-    returnFields.translations = 1;
-  } else {
-    returnFields.translations = {
-      $elemMatch : {
-        lang: this.locals.lang
+    returnFields = returnFieldsShow;
+
+    if (this.query.view === 'detailed') {
+      returnFields.translations = 1;
+    } else {
+      returnFields.translations = {
+        $elemMatch : {
+          lang: this.locals.lang
+        }
+      };
+    }
+
+    if (this.query.view === 'detailed') {
+      if(authorization.apply(this, ['admin']) === true) {
+        returnFields = {};
       }
-    };
-  }
-
-  if (this.query.view === 'detailed') {
-    if(authorizationCheck.apply(this, ['admin']) === true) {
-      returnFields = {};
-    }
-  }
-
-  show = yield Show.findOne(searchFields, returnFields);
-
-  if (show) {
-    if (this.query.view !== 'detailed') {
-      show = internationalization.translate(show, this.locals.lang);
     }
 
-    this.locals.result = show;
-    this.locals.status = 200;
+    show = yield Show.findOne(searchFields, returnFields);
+
+    if (show) {
+      if (this.query.view !== 'detailed') {
+        show = internationalization.translate(show, this.locals.lang);
+      }
+
+      this.locals.result = show;
+      this.locals.status = 200;
+    }
   }
 
   yield next;
 });
 
-app.post('/', authenticationCheck, function* (next) {
+app.post('/', authentication, function* (next) {
   var show;
 
-  if(authorizationCheck.apply(this, ['admin']) === true) {
+  if(authorization.apply(this, ['admin']) === true) {
     show = yield Show.createOne(this.locals.document);
 
     if (show) {
@@ -171,7 +176,7 @@ app.post('/', authenticationCheck, function* (next) {
   yield next;
 });
 
-app.put('/:id', authenticationCheck, function* (next) {
+app.put('/:id', authentication, function* (next) {
   var updateFields = {};
   var show;
 
@@ -183,7 +188,7 @@ app.put('/:id', authenticationCheck, function* (next) {
     };
   }
 
-  if(authorizationCheck.apply(this, ['admin']) === true) {
+  if(authorization.apply(this, ['admin']) === true) {
     show = yield Show.update({
       _id: this.params.id
     }, updateFields);
@@ -217,7 +222,7 @@ app.post('/:id/reviews', function* (next) {
   //   };
   // }
 
-  if(authorizationCheck.apply(this, ['admin']) === true) {
+  if(authorization.apply(this, ['admin']) === true) {
     show = yield Show.update(searchFields, updateFields);
 
     if (show) {
@@ -248,7 +253,7 @@ app.put('/:id/reviews', function* (next) {
     };
   }
 
-  if(authorizationCheck.apply(this, ['admin']) === true) {
+  if(authorization.apply(this, ['admin']) === true) {
     show = yield Show.update(searchFields, updateFields);
 
     if (show) {

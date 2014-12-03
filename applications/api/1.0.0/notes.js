@@ -8,9 +8,10 @@ var koa = require('koa');
 
 var router = require('koa-router');
 
-var authenticationCheck = require('_middleware/authenticationCheck');
-var authorizationCheck = require('_middleware/authorizationCheck');
 var setResponse = require('_middleware/setResponse');
+
+var authentication = require('_utilities/authentication');
+var authorization = require('_utilities/authorization');
 
 var Booking = require('_models/booking');
 var Event = require('_models/event');

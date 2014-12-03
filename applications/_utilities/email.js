@@ -1,6 +1,6 @@
 'use strict';
 
-var packageJson = require(__dirname + '/../../package.json');
+var packageJson = require('package.json');
 var environment = process.env.NODE_ENV ? process.env.NODE_ENV : 'development';
 
 var emailTemplates = require('email-templates');

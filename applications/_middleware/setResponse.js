@@ -6,8 +6,6 @@ var js2xmlparser = require('js2xmlparser');
 module.exports = function() {
 
   return function* setResponse(next) {
-    this.locals.body.status = this.locals.status; // use HTTP status code
-
     if(!this.locals.message) {
       switch(this.locals.status) {
         case 400:
@@ -41,12 +39,13 @@ module.exports = function() {
       }
     }
 
-    this.locals.body.error = this.locals.error;
-    this.locals.body.message = this.locals.message;
-    this.locals.body.result = this.locals.result;
     this.locals.body.originalUrl = this.request.originalUrl;
+    this.locals.body.status = this.locals.status; // use HTTP status code
+    this.locals.body.message = this.locals.message;
+    this.locals.body.error = this.locals.error;
+    this.locals.body.result = this.locals.result;
 
-    if(this.locals.contentType === 'xml') {
+    if((this.request.header['content-type'] === 'application/vnd.api+xml') || (this.query.format === 'xml')) {
       this.body = js2xmlparser('response', this.locals.body);
       this.type = 'application/vnd.api+xml';
     } else {

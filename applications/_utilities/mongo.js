@@ -32,11 +32,11 @@ var mongo = {
   },
 
   toObjectId: function (hex) {
-    if (hex instanceof bson.BSONPure.ObjectID) {
-      return hex;
+    if (!hex || hex.length !== 24) {
+      return false;
     }
 
-    if (!hex || hex.length !== 24) {
+    if (hex instanceof bson.BSONPure.ObjectID) {
       return hex;
     }
 

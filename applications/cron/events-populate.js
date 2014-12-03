@@ -1,9 +1,9 @@
 'use strict';
 
-// var packageJson = require(__dirname + '/../../package.json');
+// var packageJson = require('package.json');
 // var environment = process.env.NODE_ENV ? process.env.NODE_ENV : 'development';
 
-// var mongo = require(__dirname + '/../_utilities/mongo');
+// var mongo = require('_utilities/mongo');
 // var connectionString = mongo.connectionString(packageJson.config.environment[environment].server.database);
 
 var _ = require('lodash');
@@ -19,11 +19,11 @@ require('moment-recur');
 // var Shows = db.get('shows');
 // var Users = db.get('users');
 
-// var Booking = require(__dirname + '/../_models/booking');
-var Event = require(__dirname + '/../_models/event');
-// var Payment = require(__dirname + '/../_models/payment');
-var Show = require(__dirname + '/../_models/show');
-// var User = require(__dirname + '/../_models/user');
+// var Booking = require('_models/booking');
+var Event = require('_models/event');
+// var Payment = require('_models/payment');
+var Show = require('_models/show');
+// var User = require('_models/user');
 
 // var result = null;
 
@@ -81,13 +81,13 @@ function processPerformance(show, day, time) {
 
     searchFields = {
       'showid': show._id,
-      'starttime': starttime.toDate()
+      'starttime': moment(starttime).toDate()
     };
 
     insertFields = {
       'showid': show._id,
-      'starttime': starttime.toDate(),
-      'endtime': endtime.toDate(),
+      'starttime': moment(starttime).toDate(),
+      'endtime': moment(endtime).toDate(),
       'priceband': show.priceband,
       'groupdiscountprice': show.groupdiscountprice,
       'groupfacevalue': show.groupfacevalue,

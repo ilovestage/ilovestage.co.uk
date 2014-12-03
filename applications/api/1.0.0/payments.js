@@ -4,11 +4,13 @@ var packageJson = require('package.json');
 var environment = process.env.NODE_ENV ? process.env.NODE_ENV : 'development';
 
 var koa = require('koa');
+var moment = require('moment');
 var router = require('koa-router');
 
-var authenticationCheck = require('_middleware/authenticationCheck');
-var authorizationCheck = require('_middleware/authorizationCheck');
 var setResponse = require('_middleware/setResponse');
+
+var authentication = require('_utilities/authentication');
+var authorization = require('_utilities/authorization');
 
 var Booking = require('_models/booking');
 var Event = require('_models/event');
@@ -27,7 +29,7 @@ app.del('/:id', function* (next) {
 
   searchFields._id = mongo.toObjectId(this.params.id);
 
-  if(authorizationCheck.apply(this, ['admin']) === true) {
+  if(authorization.apply(this, ['admin']) === true) {
     payment = yield Payment.remove(searchFields);
 
     if (payment) {
@@ -39,7 +41,7 @@ app.del('/:id', function* (next) {
   yield next;
 });
 
-app.get('/', authenticationCheck, function* (next) {
+app.get('/', authentication, function* (next) {
   var limit = 50;
   var payment;
   var searchFields = {};
@@ -63,7 +65,7 @@ app.get('/', authenticationCheck, function* (next) {
     }
   }
 
-  if(authorizationCheck.apply(this, ['admin']) === true) {
+  if(authorization.apply(this, ['admin']) === true) {
     payment = yield Payment.find(searchFields, {
       limit: limit
     });
@@ -77,7 +79,7 @@ app.get('/', authenticationCheck, function* (next) {
   yield next;
 });
 
-app.get('/:id', authenticationCheck, function* (next) {
+app.get('/:id', authentication, function* (next) {
   var booking;
   var payment;
   // var searchFields = {};
@@ -94,7 +96,7 @@ app.get('/:id', authenticationCheck, function* (next) {
     if (!booking) {
       this.locals.status = 422;
     } else {
-      if(authorizationCheck.apply(this, [booking.userid]) === true) {
+      if(authorization.apply(this, [booking.userid]) === true) {
         this.locals.result = payment;
         this.locals.status = 200;
       }
@@ -119,49 +121,43 @@ app.post('/', function* (next) {
   validator = Payment.validate(this.locals.document);
 
   if(validator.valid === true) {
-    this.locals.document.time = new Date();
+    searchFields._id = mongo.toObjectId(this.locals.document.bookingid);
 
-    if(!this.locals.document.hasOwnProperty('bookingid') || !this.locals.document.hasOwnProperty('processor') || !this.locals.document.hasOwnProperty('currency') || !this.locals.document.hasOwnProperty('amount')) {
-      this.locals.status = 400;
-    } else {
-      searchFields._id = mongo.toObjectId(this.locals.document.bookingid);
+    booking = yield Booking.findOne(searchFields, {});
 
-      booking = yield Booking.findOne(searchFields, {});
+    if (booking) {
+      this.locals.status = 201;
 
-      if (booking) {
-        this.locals.status = 201;
+      searchFields = {
+        _id: booking.userid
+      };
 
-        searchFields = {
-          _id: booking.userid
-        };
+      user = yield User.findOne(searchFields, {});
 
-        user = yield User.findOne(searchFields, {});
+      if (user) {
+        if(authorization.apply(this, [user._id]) === true) {
+          chargeInfo = {
+            amount: this.locals.document.amount,
+            currency: this.locals.document.currency,
+            customer: user.stripeid,
+            card: user.stripetoken,
+            metadata: {
+              bookingid: this.locals.document.bookingid
+            },
+            capture: 'true',
+            description: this.locals.document.description
+          };
 
-        if (user) {
-          if(authorizationCheck.apply(this, [user._id]) === true) {
-            chargeInfo = {
-              amount: this.locals.document.amount,
-              currency: this.locals.document.currency,
-              customer: user.stripeid,
-              card: user.stripetoken,
-              metadata: {
-                bookingid: this.locals.document.bookingid
-              },
-              capture: 'true',
-              description: this.locals.document.description
-            };
+          charge = yield createChargeBoundThunk(chargeInfo);
 
-            charge = yield createChargeBoundThunk(chargeInfo);
+          payment = yield Payment.createOne(charge);
 
-            payment = yield Payment.createOne(charge);
-
-            if (payment) {
-              this.locals.result = payment;
-              this.locals.status = 201;
-            }
+          if (payment) {
+            this.locals.result = payment;
+            this.locals.status = 201;
           }
-
         }
+
       }
     }
   } else {

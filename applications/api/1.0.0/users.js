@@ -4,6 +4,7 @@ var packageJson = require('package.json');
 var environment = process.env.NODE_ENV ? process.env.NODE_ENV : 'development';
 
 var koa = require('koa');
+var moment = require('moment');
 var router = require('koa-router');
 
 var bodyParser = require('koa-bodyparser');
@@ -13,15 +14,15 @@ var qs = require('koa-qs');
 var stripe = require('stripe')(packageJson.config.environment[environment].api.stripe.key);
 var thunkify = require('thunkify');
 
+var setResponse = require('_middleware/setResponse');
+
+var authentication = require('_utilities/authentication');
+var authorization = require('_utilities/authorization');
 var cryptography = require('_utilities/cryptography');
 // var date = require('_utilities/date');
 var email = require('_utilities/email');
 // var internationalization = require('_utilities/internationalization');
 var mongo = require('_utilities/mongo');
-
-var authenticationCheck = require('_middleware/authenticationCheck');
-var authorizationCheck = require('_middleware/authorizationCheck');
-var setResponse = require('_middleware/setResponse');
 
 // var Booking = require('_models/booking');
 // var Event = require('_models/event');
@@ -40,17 +41,17 @@ qs(app);
 
 app.use(bodyParser());
 
-// app.use(authenticationCheck());
+// app.use(authentication());
 
 app.use(router(app));
 
-app.del('/:id', authenticationCheck, function* (next) {
+app.del('/:id', authentication, function* (next) {
   var searchFields = {};
   var user;
 
   searchFields._id = mongo.toObjectId(this.params.id);
 
-  if(authorizationCheck.apply(this, [user._id]) === true) {
+  if(authorization.apply(this, [user._id]) === true) {
     user = yield User.remove(searchFields);
   }
 
@@ -84,7 +85,7 @@ app.get('/', function* (next) {
   };
 
   if (this.query.view === 'detailed') {
-    if(authorizationCheck.apply(this, ['admin']) === true) {
+    if(authorization.apply(this, ['admin']) === true) {
       returnFields = {};
     }
   }
@@ -220,7 +221,7 @@ app.get('/', function* (next) {
       this.locals.result = user;
     }
   } else {
-    if(authorizationCheck.apply(this, ['admin']) === true) {
+    if(authorization.apply(this, ['admin']) === true) {
       users = yield User.find(searchFields, returnFields, {
         limit: limit
       });
@@ -236,7 +237,7 @@ app.get('/', function* (next) {
   yield next;
 });
 
-app.get('/:id', authenticationCheck, function* (next) {
+app.get('/:id', authentication, function* (next) {
   var returnFields;
   var searchFields = {};
   var user;
@@ -251,7 +252,7 @@ app.get('/:id', authenticationCheck, function* (next) {
   };
 
   if (this.query.view === 'detailed') {
-    if(authorizationCheck.apply(this, ['admin']) === true) {
+    if(authorization.apply(this, ['admin']) === true) {
       returnFields = {};
     }
   }
@@ -259,7 +260,7 @@ app.get('/:id', authenticationCheck, function* (next) {
   user = yield User.findOne(searchFields, returnFields);
 
   if (user) {
-    if(authorizationCheck.apply(this, [user._id]) === true) {
+    if(authorization.apply(this, [user._id]) === true) {
       this.locals.result = user;
       this.locals.status = 200;
     }
@@ -277,7 +278,7 @@ app.post('/', function* (next) {
   var user;
   var validator;
 
-  if(authorizationCheck.apply(this, ['admin']) !== true) {
+  if(authorization.apply(this, ['admin']) !== true) {
     this.locals.document.role = 'standard';
   }
 
@@ -324,9 +325,8 @@ app.post('/', function* (next) {
     } else {
       dj.object(this.locals.document);
 
-      if(this.locals.document) {
-        this.locals.document = deleteKey(this.locals.document, ['format']);
-      }
+      this.locals.document.createtime = moment().toDate();
+      this.locals.document.updatetime = moment().toDate();
 
       this.locals.document.strategies.local.password = cryptography.encryptPassword(this.locals.document.strategies.local.password);
 
@@ -382,12 +382,12 @@ app.post('/', function* (next) {
   yield next;
 });
 
-app.put('/:id', authenticationCheck, function* (next) {
+app.put('/:id', authentication, function* (next) {
   var searchFields = {};
   var updateFields = {};
   var user;
 
-  if(authorizationCheck.apply(this, ['admin']) !== true) {
+  if(authorization.apply(this, ['admin']) !== true) {
     if(this.locals.document.role) {
       this.locals.document = deleteKey(this.locals.document, ['role']);
     }
@@ -403,7 +403,7 @@ app.put('/:id', authenticationCheck, function* (next) {
     };
   }
 
-  if(authorizationCheck.apply(this, [this.params.id]) === true) {
+  if(authorization.apply(this, [this.params.id]) === true) {
     user = yield User.update(searchFields, updateFields);
 
     if (user) {

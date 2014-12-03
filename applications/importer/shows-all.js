@@ -1,9 +1,9 @@
 'use strict';
 
-var packageJson = require(__dirname + '/../../package.json');
+var packageJson = require('package.json');
 var environment = process.env.NODE_ENV ? process.env.NODE_ENV : 'development';
 
-var mongo = require(__dirname + '/../_utilities/mongo');
+var mongo = require('_utilities/mongo');
 var connectionString = mongo.connectionString(packageJson.config.environment[environment].server.database);
 
 var db = require('monk')(connectionString);

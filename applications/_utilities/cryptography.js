@@ -1,7 +1,7 @@
 'use strict';
 
-var packageJson = require(__dirname + '/../../package.json');
-// var environment = process.env.NODE_ENV ? process.env.NODE_ENV : 'development';
+var packageJson = require('package.json');
+var environment = process.env.NODE_ENV ? process.env.NODE_ENV : 'development';
 
 var crypto = require('crypto');
 

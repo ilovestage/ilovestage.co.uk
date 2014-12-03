@@ -4,7 +4,7 @@ var countryData = require('country-data');
 var tv4 = require('tv4');
 var formats = require('tv4-formats');
 
-var mongo = require(__dirname + '/mongo');
+var mongo = require('_utilities/mongo');
 
 var validator = tv4.freshApi();
 

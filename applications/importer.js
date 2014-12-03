@@ -1,6 +1,6 @@
 'use strict';
 
-var packageJson = require(__dirname + '/../package.json');
+var packageJson = require('package.json');
 
 var argv = require('yargs').argv;
 var koa = require('koa');

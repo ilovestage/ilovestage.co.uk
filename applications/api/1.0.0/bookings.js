@@ -7,10 +7,11 @@ var koa = require('koa');
 var moment = require('moment');
 var router = require('koa-router');
 
-var authenticationCheck = require('_middleware/authenticationCheck');
-var authorizationCheck = require('_middleware/authorizationCheck');
 var setResponse = require('_middleware/setResponse');
 
+var authentication = require('_utilities/authentication');
+var authorization = require('_utilities/authorization');
+var dateQuery = require('_utilities/dateQuery');
 var mongo = require('_utilities/mongo');
 var email = require('_utilities/email');
 
@@ -23,7 +24,7 @@ var app = koa();
 
 app.use(router(app));
 
-app.del('/:id', authenticationCheck, function* (next) {
+app.del('/:id', authentication, function* (next) {
   var booking;
   var searchFields = {};
 
@@ -32,7 +33,7 @@ app.del('/:id', authenticationCheck, function* (next) {
   booking = yield Booking.findOne(searchFields);
 
   if (booking) {
-    if(authorizationCheck.apply(this, [booking.userid]) === true) {
+    if(authorization.apply(this, [booking.userid]) === true) {
       booking = yield Booking.remove({
         _id: this.params.id
       });
@@ -48,52 +49,61 @@ app.del('/:id', authenticationCheck, function* (next) {
 app.get('/', function* (next) {
   var bookings;
   var limit = 50;
+  var options;
   var returnFields = {};
   var searchFields = {};
   var sortParameters = [];
 
-  if (typeof this.query.userid !== 'undefined') {
-    searchFields.userid = this.query.userid;
-  }
+  if(authorization.apply(this, [this.query.userid])) {
+    searchFields = dateQuery(this.query, 'createtime');
 
-  if (typeof this.query.eventid !== 'undefined') {
-    searchFields.eventid = this.query.eventid;
-  }
-
-  if (typeof this.query.status !== 'undefined') {
-    searchFields.status = this.query.status;
-  }
-
-  if (typeof this.query.sort !== 'undefined') {
-    // searchFields.bookings = this.query.bookings;
-    sortParameters[this.query.sort] = (this.query.order !== 'ascending') ? -1 : 1;
-    // console.log(this.query.sort, this.query.order, sortParameters);
-  }
-
-  if (this.query.limit && (typeof parseInt(this.query.limit) === 'number')) {
-    limit = parseInt(this.query.limit);
-
-    if (limit > 50) {
-      limit = 50;
+    if (typeof this.query.userid !== 'undefined') {
+      searchFields.userid = this.query.userid;
     }
-  }
 
-  bookings = yield Booking.find(searchFields, returnFields, {
-    sort: sortParameters,
-    limit: limit
-  });
+    if (typeof this.query.eventid !== 'undefined') {
+      searchFields.eventid = this.query.eventid;
+    }
 
-  if(bookings) {
-    if(authorizationCheck.apply(this, [this.query.userid])) {
+    if (typeof this.query.status !== 'undefined') {
+      searchFields.status = this.query.status;
+    }
+
+    if (typeof this.query.sort !== 'undefined') {
+      // searchFields.bookings = this.query.bookings;
+      sortParameters[this.query.sort] = (this.query.order !== 'ascending') ? -1 : 1;
+    }
+
+    if (this.query.limit && (typeof parseInt(this.query.limit) === 'number')) {
+      limit = parseInt(this.query.limit);
+
+      if (limit > 50) {
+        limit = 50;
+      }
+    }
+
+    options = {
+      sort: sortParameters,
+      limit: limit
+    };
+
+    console.log('searchFields', searchFields);
+    console.log('returnFields', returnFields);
+    console.log('options', options);
+
+    bookings = yield Booking.find(searchFields, returnFields, options);
+
+    if(bookings.length > 0) {
       this.locals.result = bookings;
       this.locals.status = 200;
     }
+
   }
 
   yield next;
 });
 
-app.get('/:id', authenticationCheck, function* (next) {
+app.get('/:id', authentication, function* (next) {
   console.log('id');
   var booking;
   var event;
@@ -108,7 +118,7 @@ app.get('/:id', authenticationCheck, function* (next) {
   if(booking) {
     console.log('booking', booking);
 
-    if(authorizationCheck.apply(this, [booking.userid]) === true) {
+    if(authorization.apply(this, [booking.userid]) === true) {
       if (this.query.view === 'detailed') {
         returnFields = {
           '_id': 1,
@@ -151,7 +161,7 @@ app.post('/', function* (next) {
   //   'strategies.local.email': 1
   // };
 
-  if(authorizationCheck.apply(this, [this.locals.document.userid]) === true) {
+  if(authorization.apply(this, [this.locals.document.userid]) === true) {
     event = yield Event.findOne({
       _id: mongo.toObjectId(this.locals.document.eventid),
     }, {});
@@ -167,7 +177,7 @@ app.post('/', function* (next) {
       this.locals.message = 'Event referenced by booking could not be found.';
       this.locals.status = 409;
     } else {
-        booking = yield Booking.createOne(this.request.body);
+        booking = yield Booking.createOne(this.locals.document);
 
         if (booking) {
           show = yield Show.findOne({
@@ -200,6 +210,8 @@ app.put('/:id', function* (next) {
 
   searchFields._id = mongo.toObjectId(this.params.id);
 
+  this.locals.document.updatetime = moment().toDate();
+
   if (this.query.replace === 'true') {
     updateFields = this.locals.document;
   } else {
@@ -208,7 +220,7 @@ app.put('/:id', function* (next) {
     };
   }
 
-  if(authorizationCheck.apply(this, [this.locals.document.userid]) === true) {
+  if(authorization.apply(this, [this.locals.document.userid]) === true) {
     booking = yield Booking.update(searchFields, updateFields);
 
     // if(booking && this.locals.document.tickets >= 8) {

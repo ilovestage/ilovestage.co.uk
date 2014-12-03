@@ -1,9 +1,9 @@
 'use strict';
 
-var packageJson = require(__dirname + '/../../package.json');
+var packageJson = require('package.json');
 var environment = process.env.NODE_ENV ? process.env.NODE_ENV : 'development';
 
-var mongo = require(__dirname + '/mongo');
+var mongo = require('_utilities/mongo');
 var connectionString = mongo.connectionString(packageJson.config.environment[environment].server.database);
 
 var co = require('co');
@@ -103,4 +103,4 @@ passport.use(new GoogleStrategy({
   }
 ));
 
-// module.exports = passport;
+module.exports = passport;

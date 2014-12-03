@@ -1,6 +1,6 @@
 'use strict';
 
-module.exports = function* authenticationCheck(next) {
+function* authentication(next) {
   console.log('called 2', next);
   if(this.request.header.uid) {
     console.log('case 1');
@@ -32,4 +32,6 @@ module.exports = function* authenticationCheck(next) {
   console.log('here at end', next);
 
   yield next;
-};
+}
+
+module.exports = authentication;
