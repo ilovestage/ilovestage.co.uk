@@ -14,5 +14,5 @@ source/images/sample/
 source/scripts/*.js
 source/scripts/*.map
 test/temp
-
 backup
+backups
