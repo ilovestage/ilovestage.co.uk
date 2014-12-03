@@ -40,6 +40,9 @@ node --harmony app.js --application cron --job bookings-finalise
 Run events populate cron job
 node --harmony app.js --application cron --job events-populate
 
+Run mongodump cron job
+/var/www/ilovestage.co.uk/server-configuration/cron/mongodump.sh
+
 node --harmony app.js --application api
 npm start app.js --application api
 
