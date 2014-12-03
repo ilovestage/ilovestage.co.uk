@@ -12,7 +12,7 @@ TIMESTAMP=`date +%F-%H%M`
 # MONGODUMP_PATH="/usr/bin/mongodump"
 # MONGODUMP_PATH="/usr/local/bin/mongodump"
 MONGODUMP_PATH="$(which mongodump)"
-BACKUPS_DIR="$HOME/Sites/ilovestage.co.uk/backups/$APP_NAME"
+BACKUPS_DIR="$HOME/backups/$APP_NAME"
 BACKUP_NAME="$APP_NAME-$TIMESTAMP"
 
 # mongo admin --eval "printjson(db.fsyncLock())"
