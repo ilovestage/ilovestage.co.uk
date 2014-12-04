@@ -89,21 +89,26 @@ app.get('/', authentication, function* (next) {
 app.get('/:id', authentication, function* (next) {
   var booking;
   var payment;
-  // var searchFields = {};
+  var returnFields = {};
+  var searchFields = {};
 
-  payment = yield Payment.findOne({
-    _id: this.params.id
-  });
+  var id = mongo.toObjectId(this.params.id);
 
-  if (payment instanceof Object) {
-    booking = yield Booking.findOne({
-      _id: payment.bookingid
-    });
+  if(id) {
+    searchFields._id = id;
 
-    if (booking instanceof Object) {
-      if(authorization.apply(this, [booking.userid]) === true) {
-        this.locals.result = payment;
-        this.locals.status = 200;
+    payment = yield Payment.findOne(searchFields, returnFields);
+
+    if (payment instanceof Object) {
+      booking = yield Booking.findOne({
+        _id: payment.bookingid
+      });
+
+      if (booking instanceof Object) {
+        if(authorization.apply(this, [booking.userid]) === true) {
+          this.locals.result = payment;
+          this.locals.status = 200;
+        }
       }
     }
   }

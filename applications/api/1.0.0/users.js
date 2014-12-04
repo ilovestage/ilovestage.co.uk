@@ -245,27 +245,31 @@ app.get('/:id', authentication, function* (next) {
   var searchFields = {};
   var user;
 
-  searchFields._id = mongo.toObjectId(this.params.id);
+  var id = mongo.toObjectId(this.params.id);
 
-  returnFields = {
-    _id: 1,
-    firstname: 1,
-    lastname: 1,
-    'strategies.local.email': 1
-  };
+  if(id) {
+    searchFields._id = id;
+  
+    returnFields = {
+      _id: 1,
+      firstname: 1,
+      lastname: 1,
+      'strategies.local.email': 1
+    };
 
-  if (this.query.view === 'detailed') {
-    if(authorization.apply(this, ['admin']) === true) {
-      returnFields = {};
+    if (this.query.view === 'detailed') {
+      if(authorization.apply(this, ['admin']) === true) {
+        returnFields = {};
+      }
     }
-  }
 
-  user = yield User.findOne(searchFields, returnFields);
+    user = yield User.findOne(searchFields, returnFields);
 
-  if (user instanceof Object) {
-    if(authorization.apply(this, [user._id]) === true) {
-      this.locals.result = user;
-      this.locals.status = 200;
+    if (user instanceof Object) {
+      if(authorization.apply(this, [user._id]) === true) {
+        this.locals.result = user;
+        this.locals.status = 200;
+      }
     }
   }
 

@@ -135,38 +135,42 @@ app.del('/:id', authentication, function* (next) {
 
 app.get('/:id', function* (next) {
   var event;
-  var returnFields;
-  var searchFields;
+  var returnFields = {};
+  var searchFields = {};
   var show;
 
-  event = yield Event.findOne({
-    _id: this.params.id
-  });
+  var id = mongo.toObjectId(this.params.id);
 
-  if (event instanceof Object) {
-    event.bookings = yield Booking.count({
-      eventid: this.params.id
-    });
+  if(id) {
+    searchFields._id = id;
 
-    if (this.query.view === 'detailed') {
-      returnFields = {
-        '-_id': 1,
-        'name': 1,
-        'theatre': 1,
-        'location': 1,
-        'synopsis': 1,
-        'images': 1
-      };
+    event = yield Event.findOne(searchFields, returnFields);
 
-      searchFields._id = mongo.toObjectId(event.showid);
+    if (event instanceof Object) {
+      event.bookings = yield Booking.count({
+        eventid: this.params.id
+      });
 
-      show = yield Show.findOne(searchFields, returnFields);
+      if (this.query.view === 'detailed') {
+        returnFields = {
+          '-_id': 1,
+          'name': 1,
+          'theatre': 1,
+          'location': 1,
+          'synopsis': 1,
+          'images': 1
+        };
 
-      event.show = show;
+        searchFields._id = mongo.toObjectId(event.showid);
+
+        show = yield Show.findOne(searchFields, returnFields);
+
+        event.show = show;
+      }
+
+      this.locals.result = event;
+      this.locals.status = 200;
     }
-
-    this.locals.result = event;
-    this.locals.status = 200;
   }
 
   yield next;

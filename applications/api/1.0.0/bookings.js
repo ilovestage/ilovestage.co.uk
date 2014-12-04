@@ -109,34 +109,38 @@ app.get('/:id', authentication, function* (next) {
   var returnFields = {};
   var searchFields = {};
 
-  searchFields._id = mongo.toObjectId(this.params.id);
+  var id = mongo.toObjectId(this.params.id);
 
-  booking = yield Booking.findOne(searchFields);
+  if(id) {
+    searchFields._id = id;
 
-  if (booking instanceof Object) {
-    if(authorization.apply(this, [booking.userid]) === true) {
-      if (this.query.view === 'detailed') {
-        returnFields = {
-          '_id': 1,
-          'starttime': 1,
-          'endtime': 1,
-          'priceband': 1,
-          'facevalue': 1,
-          'discount_price': 1
+    booking = yield Booking.findOne(searchFields);
+
+    if (booking instanceof Object) {
+      if(authorization.apply(this, [booking.userid]) === true) {
+        if (this.query.view === 'detailed') {
+          returnFields = {
+            '_id': 1,
+            'starttime': 1,
+            'endtime': 1,
+            'priceband': 1,
+            'facevalue': 1,
+            'discount_price': 1
+          };
+        }
+
+        searchFields = {
+          _id: booking.eventid
         };
-      }
 
-      searchFields = {
-        _id: booking.eventid
-      };
+        event = yield Event.findOne(searchFields, returnFields);
 
-      event = yield Event.findOne(searchFields, returnFields);
+        if (event instanceof Object) {
+          booking.event = event;
 
-      if (event instanceof Object) {
-        booking.event = event;
-
-        this.locals.result = booking;
-        this.locals.status = 200;
+          this.locals.result = booking;
+          this.locals.status = 200;
+        }
       }
     }
   }
@@ -176,12 +180,17 @@ app.post('/', function* (next) {
       this.locals.status = 409;
     } else {
       booking = yield Booking.createOne(this.locals.document);
-
+console.log('booking', booking);
+console.log('event', event);
+console.log('typeof event.showid', typeof event.showid);
+console.log('mongo.toObjectId(event.showid)', mongo.toObjectId(event.showid));
       if (booking instanceof Object) {
-        show = yield Show.findOne({
+        var test123 = {
           _id: mongo.toObjectId(event.showid)
-        }, {});
-
+        };
+console.log('test123', test123);
+        show = yield Show.findOne(test123, {});
+console.log('show', show);
         if (show instanceof Object) {
           email.send({
             subject: 'Booking confirmed',
