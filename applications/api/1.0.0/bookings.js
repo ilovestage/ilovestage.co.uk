@@ -28,20 +28,22 @@ app.del('/:id', authentication, function* (next) {
   var booking;
   var searchFields = {};
 
-  searchFields._id = mongo.toObjectId(this.params.id);
+  if(authorization.apply(this, ['admin']) === true) {
+    searchFields._id = mongo.toObjectId(this.params.id);
 
-  booking = yield Booking.findOne(searchFields);
+    booking = yield Booking.findOne(searchFields);
 
-  if (booking instanceof Object) {
-    if(authorization.apply(this, [booking.userid]) === true) {
-      booking = null;
+    if (booking instanceof Object) {
+      if(authorization.apply(this, [booking.userid]) === true) {
+        booking = null;
 
-      booking = yield Booking.remove({
-        _id: this.params.id
-      });
+        booking = yield Booking.remove({
+          _id: this.params.id
+        });
 
-      this.locals.result = booking;
-      this.locals.status = 204;
+        this.locals.result = booking;
+        this.locals.status = 204;
+      }
     }
   }
 

@@ -119,13 +119,15 @@ app.get('/', function* (next) {
 app.del('/:id', authentication, function* (next) {
   var event;
 
-  event = yield Event.remove({
-    _id: this.params.id
-  });
+  if(authorization.apply(this, ['admin']) === true) {
+    event = yield Event.remove({
+      _id: this.params.id
+    });
 
-  if (event instanceof Object) {
-    this.locals.result = event;
-    this.locals.status = 204;
+    if (event instanceof Object) {
+      this.locals.result = event;
+      this.locals.status = 204;
+    }
   }
 
   yield next;
