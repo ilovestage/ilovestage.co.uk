@@ -43,6 +43,7 @@ module.exports = function() {
     this.locals.body.status = this.locals.status; // use HTTP status code
     this.locals.body.message = this.locals.message;
     this.locals.body.error = this.locals.error;
+    this.locals.body.querystringParameters = this.locals.querystringParameters;
     this.locals.body.result = this.locals.result;
 
     if((this.request.header['content-type'] === 'application/vnd.api+xml') || (this.query.format === 'xml')) {

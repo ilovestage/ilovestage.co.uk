@@ -17,7 +17,8 @@ var js2xmlparser = require('js2xmlparser');
 var koa = require('koa');
 var moment = require('moment');
 var mount = require('koa-mount');
-var qs = require('koa-qs');
+// var qs = require('koa-qs');
+var Qs = require('qs');
 var responseTime = require('koa-response-time');
 var router = require('koa-router');
 // var session = require('koa-generic-session');
@@ -39,13 +40,14 @@ app.use(helmet.defaults());
 app.use(health());
 app.use(bodyParser());
 // app.use(session());
-qs(app);
+// qs(app);
 
 app.use(function* (next) {
   this.locals.body = {};
   this.locals.lang = (typeof this.query.lang !== 'undefined') ? this.query.lang : 'en';
   this.locals.message = null;
   this.locals.messages = this.locals.messages || messages;
+  this.locals.querystringParameters = Qs.parse(this.querystring);
 
   if(this.request.body) {
     this.locals.document = this.request.body;
@@ -106,7 +108,6 @@ app.use(function* (next) {
   if(this.query.bypass === 'true') {
     this.locals.bypassAuthentication = true;
     this.locals.currentUser = 'bypassed';
-    // this.locals.status = 200;
   } else {
     this.locals.bypassAuthentication = false;
 
@@ -123,7 +124,8 @@ app.use(function* (next) {
       this.locals.currentUser = yield User.findOne(searchFields, returnFields);
       this.locals.status = (typeof this.locals.currentUser !== 'undefined') ? 404 : 403;
 
-      // console.log('currentUser', this.locals.currentUser, 'uid', this.request.header.uid);
+      // console.log('this.locals.currentUser', this.locals.currentUser);
+      // console.log('this.request.header.uid', this.request.header.uid);
       // console.log('searchFields.uid', searchFields.uid);
     } else {
       this.locals.status = 401;
