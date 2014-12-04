@@ -46,18 +46,20 @@ app.use(bodyParser());
 app.use(router(app));
 
 app.del('/:id', authentication, function* (next) {
+  console.log('this.locals', this.locals);
+  console.log('this.locals.currentUser', this.locals.currentUser);
   var searchFields = {};
   var user;
 
   searchFields._id = mongo.toObjectId(this.params.id);
 
-  if(authorization.apply(this, [user._id]) === true) {
+  if(authorization.apply(this, [this.params.id]) === true) {
     user = yield User.remove(searchFields);
-  }
 
-  if (user instanceof Object) {
-    this.locals.result = user;
-    this.locals.status = 204;
+    if (user instanceof Object) {
+      this.locals.result = user;
+      this.locals.status = 204;
+    }
   }
 
   yield next;
@@ -189,6 +191,7 @@ app.get('/', function* (next) {
     searchFields['strategies.local.email'] = this.query.email;
 
     returnFields['strategies.local.password'] = 1;
+    returnFields.uid = 1;
 
     user = yield User.findOne(searchFields, returnFields);
 
@@ -323,6 +326,8 @@ app.post('/', function* (next) {
       this.locals.message = 'A user with those credentials already exists.';
       this.locals.status = 409;
     } else {
+      user = null;
+
       this.locals.document.createtime = moment().toDate();
       this.locals.document.updatetime = moment().toDate();
 
@@ -343,13 +348,18 @@ app.post('/', function* (next) {
           stripeid: card.id
         };
 
-        searchFields._id = mongo.toObjectId(user._id);
+        user = yield user.update(updateFields);
 
-        user = yield User.update(searchFields, updateFields, {
-          new: true
-        });
+        if(user instanceof Object) {
+          if (user.strategies && user.strategies.local && user.strategies.local.password) {
+            if(user.strategies.local) {
+              user.strategies.local = deleteKey(user.strategies.local, ['password']);
+            }
+          }
 
-        if((user instanceof Object) && user.stripeid) {
+          this.locals.result = user;
+          this.locals.status = 201;
+
           mailFields.subject = 'Welcome to I Love Stage';
           mailFields.email = user.strategies.local.email;
           mailFields.name = {
@@ -360,15 +370,6 @@ app.post('/', function* (next) {
           // email.send(mailFields, 'user-signup');
           email.mailingList.addUser(mailFields);
         }
-
-        if ((user instanceof Object) && user.strategies && user.strategies.local && user.strategies.local.password) {
-          if(user.strategies.local) {
-            user.strategies.local = deleteKey(user.strategies.local, ['password']);
-          }
-        }
-
-        this.locals.result = user;
-        this.locals.status = 201;
       }
     }
   } else {
