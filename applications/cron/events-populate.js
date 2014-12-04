@@ -85,7 +85,7 @@ function processPerformance(show, day, time) {
     };
 
     insertFields = {
-      'showid': show._id,
+      'showid': show._id.toString(),
       'starttime': moment(starttime).toDate(),
       'endtime': moment(endtime).toDate(),
       'priceband': show.priceband,
