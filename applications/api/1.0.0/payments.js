@@ -3,20 +3,27 @@
 var packageJson = require('package.json');
 var environment = process.env.NODE_ENV ? process.env.NODE_ENV : 'development';
 
+var deleteKey = require('key-del');
 var koa = require('koa');
-var moment = require('moment');
+// var moment = require('moment');
 var router = require('koa-router');
+var stripe = require('stripe')(packageJson.config.environment[environment].api.stripe.key);
+var thunkify = require('thunkify');
 
 var setResponse = require('_middleware/setResponse');
 
 var authentication = require('_utilities/authentication');
 var authorization = require('_utilities/authorization');
+var mongo = require('_utilities/mongo');
 
 var Booking = require('_models/booking');
-var Event = require('_models/event');
+// var Event = require('_models/event');
 var Payment = require('_models/payment');
-var Show = require('_models/show');
+// var Show = require('_models/show');
 var User = require('_models/user');
+
+var createChargeThunk = thunkify(stripe.charges.create);
+var createChargeBoundThunk = createChargeThunk.bind(stripe.charges);
 
 var app = koa();
 
@@ -32,7 +39,7 @@ app.del('/:id', function* (next) {
   if(authorization.apply(this, ['admin']) === true) {
     payment = yield Payment.remove(searchFields);
 
-    if (payment) {
+    if (payment instanceof Object) {
       this.locals.result = payment;
       this.locals.status = 204;
     }
@@ -70,7 +77,7 @@ app.get('/', authentication, function* (next) {
       limit: limit
     });
 
-    if (payment) {
+    if (payment instanceof Object) {
       this.locals.result = payment;
       this.locals.status = 200;
     }
@@ -88,14 +95,12 @@ app.get('/:id', authentication, function* (next) {
     _id: this.params.id
   });
 
-  if (payment) {
+  if (payment instanceof Object) {
     booking = yield Booking.findOne({
       _id: payment.bookingid
     });
 
-    if (!booking) {
-      this.locals.status = 422;
-    } else {
+    if (booking instanceof Object) {
       if(authorization.apply(this, [booking.userid]) === true) {
         this.locals.result = payment;
         this.locals.status = 200;
@@ -125,7 +130,7 @@ app.post('/', function* (next) {
 
     booking = yield Booking.findOne(searchFields, {});
 
-    if (booking) {
+    if (booking instanceof Object) {
       this.locals.status = 201;
 
       searchFields = {
@@ -134,7 +139,7 @@ app.post('/', function* (next) {
 
       user = yield User.findOne(searchFields, {});
 
-      if (user) {
+      if (user instanceof Object) {
         if(authorization.apply(this, [user._id]) === true) {
           chargeInfo = {
             amount: this.locals.document.amount,
@@ -152,7 +157,7 @@ app.post('/', function* (next) {
 
           payment = yield Payment.createOne(charge);
 
-          if (payment) {
+          if (payment instanceof Object) {
             this.locals.result = payment;
             this.locals.status = 201;
           }

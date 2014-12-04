@@ -55,7 +55,7 @@ app.del('/:id', authentication, function* (next) {
     user = yield User.remove(searchFields);
   }
 
-  if (user) {
+  if (user instanceof Object) {
     this.locals.result = user;
     this.locals.status = 204;
   }
@@ -105,18 +105,18 @@ app.get('/', function* (next) {
 
     user = yield User.findOne(searchFields, returnFields);
 
-    if (user) {
+    if (user instanceof Object) {
       if ((typeof user.strategies !== 'undefined') && (typeof user.strategies[this.query.provider] !== 'undefined') && (typeof user.strategies[this.query.provider].uid !== 'undefined')) {
         if (this.query.token === user.strategies[this.query.provider].token) {
           this.locals.status = 200;
         } else {
-          user = {};
+          user = null;
 
           this.locals.message = 'A user with those credentials exists but the supplied token was incorrect.';
           this.locals.status = 401;
         }
       } else {
-        user = {};
+        user = null;
 
         this.locals.message = 'A user with those credentials exists but the user has no token set.';
         this.locals.status = 401;
@@ -136,7 +136,7 @@ app.get('/', function* (next) {
 
     user = yield User.findOne(searchFields, returnFields);
 
-    if (user) {
+    if (user instanceof Object) {
       token = cryptography.encryptPasswordResetToken(user._id.toString());
 
       updateFields = {
@@ -164,7 +164,7 @@ app.get('/', function* (next) {
 
     user = yield User.findOne(searchFields, returnFields);
 
-    if (user) {
+    if (user instanceof Object) {
       updateFields = {
         $set: {
           password: this.query.password
@@ -192,20 +192,20 @@ app.get('/', function* (next) {
 
     user = yield User.findOne(searchFields, returnFields);
 
-    if (user) {
+    if (user instanceof Object) {
       if ((typeof user.strategies !== 'undefined') && (typeof user.strategies.local !== 'undefined') && (typeof user.strategies.local.password !== 'undefined')) {
         password = cryptography.encryptPassword(this.query.password);
 
         if (password === user.strategies.local.password) {
           this.locals.status = 200;
         } else {
-          user = {};
+          user = null;
 
           this.locals.message = 'A user with those credentials exists but the supplied password was incorrect.';
           this.locals.status = 401;
         }
       } else {
-        user = {};
+        user = null;
 
         this.locals.message = 'A user with those credentials exists but the user has no password set.';
         this.locals.status = 401;
@@ -226,7 +226,7 @@ app.get('/', function* (next) {
         limit: limit
       });
 
-      if (users) {
+      if(users.length > 0) {
         this.locals.result = users;
         this.locals.status = 200;
       }
@@ -259,7 +259,7 @@ app.get('/:id', authentication, function* (next) {
 
   user = yield User.findOne(searchFields, returnFields);
 
-  if (user) {
+  if (user instanceof Object) {
     if(authorization.apply(this, [user._id]) === true) {
       this.locals.result = user;
       this.locals.status = 200;
@@ -317,14 +317,12 @@ app.post('/', function* (next) {
 
     user = yield User.findOne(searchFields);
 
-    if (user) {
-      user = {};
+    if (user instanceof Object) {
+      user = null;
 
       this.locals.message = 'A user with those credentials already exists.';
       this.locals.status = 409;
     } else {
-      dj.object(this.locals.document);
-
       this.locals.document.createtime = moment().toDate();
       this.locals.document.updatetime = moment().toDate();
 
@@ -332,7 +330,7 @@ app.post('/', function* (next) {
 
       user = yield User.createOne(this.locals.document);
 
-      if (user) {
+      if (user instanceof Object) {
         card = yield createCardBoundThunk({
           metadata: {
             userid: user._id.toString()
@@ -351,7 +349,7 @@ app.post('/', function* (next) {
           new: true
         });
 
-        if(user && user.stripeid) {
+        if((user instanceof Object) && user.stripeid) {
           mailFields.subject = 'Welcome to I Love Stage';
           mailFields.email = user.strategies.local.email;
           mailFields.name = {
@@ -363,7 +361,7 @@ app.post('/', function* (next) {
           email.mailingList.addUser(mailFields);
         }
 
-        if (user && user.strategies && user.strategies.local && user.strategies.local.password) {
+        if ((user instanceof Object) && user.strategies && user.strategies.local && user.strategies.local.password) {
           if(user.strategies.local) {
             user.strategies.local = deleteKey(user.strategies.local, ['password']);
           }
@@ -406,7 +404,7 @@ app.put('/:id', authentication, function* (next) {
   if(authorization.apply(this, [this.params.id]) === true) {
     user = yield User.update(searchFields, updateFields);
 
-    if (user) {
+    if (user instanceof Object) {
       this.locals.result = user;
       this.locals.status = 200;
     }

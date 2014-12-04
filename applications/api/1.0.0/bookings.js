@@ -1,7 +1,7 @@
 'use strict';
 
-var packageJson = require('package.json');
-var environment = process.env.NODE_ENV ? process.env.NODE_ENV : 'development';
+// var packageJson = require('package.json');
+// var environment = process.env.NODE_ENV ? process.env.NODE_ENV : 'development';
 
 var koa = require('koa');
 var moment = require('moment');
@@ -32,8 +32,10 @@ app.del('/:id', authentication, function* (next) {
 
   booking = yield Booking.findOne(searchFields);
 
-  if (booking) {
+  if (booking instanceof Object) {
     if(authorization.apply(this, [booking.userid]) === true) {
+      booking = null;
+
       booking = yield Booking.remove({
         _id: this.params.id
       });
@@ -87,10 +89,6 @@ app.get('/', function* (next) {
       limit: limit
     };
 
-    console.log('searchFields', searchFields);
-    console.log('returnFields', returnFields);
-    console.log('options', options);
-
     bookings = yield Booking.find(searchFields, returnFields, options);
 
     if(bookings.length > 0) {
@@ -104,7 +102,6 @@ app.get('/', function* (next) {
 });
 
 app.get('/:id', authentication, function* (next) {
-  console.log('id');
   var booking;
   var event;
   var returnFields = {};
@@ -113,11 +110,8 @@ app.get('/:id', authentication, function* (next) {
   searchFields._id = mongo.toObjectId(this.params.id);
 
   booking = yield Booking.findOne(searchFields);
-  console.log('booking', booking);
 
-  if(booking) {
-    console.log('booking', booking);
-
+  if (booking instanceof Object) {
     if(authorization.apply(this, [booking.userid]) === true) {
       if (this.query.view === 'detailed') {
         returnFields = {
@@ -136,10 +130,12 @@ app.get('/:id', authentication, function* (next) {
 
       event = yield Event.findOne(searchFields, returnFields);
 
-      booking.event = event;
+      if (event instanceof Object) {
+        booking.event = event;
 
-      this.locals.result = booking;
-      this.locals.status = 200;
+        this.locals.result = booking;
+        this.locals.status = 200;
+      }
     }
   }
 
@@ -177,13 +173,14 @@ app.post('/', function* (next) {
       this.locals.message = 'Event referenced by booking could not be found.';
       this.locals.status = 409;
     } else {
-        booking = yield Booking.createOne(this.locals.document);
+      booking = yield Booking.createOne(this.locals.document);
 
-        if (booking) {
-          show = yield Show.findOne({
-            _id: mongo.toObjectId(event.showid)
-          }, {});
+      if (booking instanceof Object) {
+        show = yield Show.findOne({
+          _id: mongo.toObjectId(event.showid)
+        }, {});
 
+        if (show instanceof Object) {
           email.send({
             subject: 'Booking confirmed',
             email: user.strategies.local.email,
@@ -195,6 +192,9 @@ app.post('/', function* (next) {
           this.locals.result = booking;
           this.locals.status = 201;
         }
+
+      }
+
     }
 
   }
@@ -262,7 +262,7 @@ app.put('/:id', function* (next) {
     //   }
     // }
 
-    if (booking) {
+    if (booking instanceof Object) {
       this.locals.result = booking;
       this.locals.status = 200;
     }

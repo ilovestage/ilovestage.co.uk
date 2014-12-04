@@ -1,11 +1,11 @@
 'use strict';
 
-var packageJson = require('package.json');
-var environment = process.env.NODE_ENV ? process.env.NODE_ENV : 'development';
+// var packageJson = require('package.json');
+// var environment = process.env.NODE_ENV ? process.env.NODE_ENV : 'development';
 
 var bodyParser = require('koa-bodyparser');
 var koa = require('koa');
-var moment = require('moment');
+// var moment = require('moment');
 var router = require('koa-router');
 
 var setResponse = require('_middleware/setResponse');
@@ -42,14 +42,14 @@ app.use(router(app));
 
 app.del('/:id', authentication, function* (next) {
   var searchFields = {};
-  var show = {};
+  var show;
 
   searchFields._id = mongo.toObjectId(this.params.id);
 
   if(authorization.apply(this, ['admin']) === true) {
     show = yield Show.remove(searchFields);
 
-    if (show) {
+    if (show instanceof Object) {
       this.locals.result = show;
       this.locals.status = 204;
     }
@@ -102,7 +102,7 @@ app.get('/', function* (next) {
     limit: limit
   });
 
-  if (shows) {
+  if (shows.length > 0) {
     if (this.query.view !== 'detailed') {
       shows.forEach(function(document) {
         showsModified.push(internationalization.translate(document, self.locals.lang));
@@ -148,7 +148,7 @@ app.get('/:id', function* (next) {
 
     show = yield Show.findOne(searchFields, returnFields);
 
-    if (show) {
+    if (show instanceof Object) {
       if (this.query.view !== 'detailed') {
         show = internationalization.translate(show, this.locals.lang);
       }
@@ -167,7 +167,7 @@ app.post('/', authentication, function* (next) {
   if(authorization.apply(this, ['admin']) === true) {
     show = yield Show.createOne(this.locals.document);
 
-    if (show) {
+    if (show instanceof Object) {
       this.locals.result = show;
       this.locals.status = 201;
     }
@@ -193,7 +193,7 @@ app.put('/:id', authentication, function* (next) {
       _id: this.params.id
     }, updateFields);
 
-    if (show) {
+    if (show instanceof Object) {
       this.locals.result = show;
       this.locals.status = 200;
     }
@@ -225,7 +225,7 @@ app.post('/:id/reviews', function* (next) {
   if(authorization.apply(this, ['admin']) === true) {
     show = yield Show.update(searchFields, updateFields);
 
-    if (show) {
+    if (show instanceof Object) {
       this.locals.result = show;
       this.locals.status = 201;
     }
@@ -256,7 +256,7 @@ app.put('/:id/reviews', function* (next) {
   if(authorization.apply(this, ['admin']) === true) {
     show = yield Show.update(searchFields, updateFields);
 
-    if (show) {
+    if (show instanceof Object) {
       this.locals.result = show;
       this.locals.status = 200;
     }

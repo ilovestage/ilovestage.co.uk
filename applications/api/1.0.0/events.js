@@ -1,7 +1,7 @@
 'use strict';
 
-var packageJson = require('package.json');
-var environment = process.env.NODE_ENV ? process.env.NODE_ENV : 'development';
+// var packageJson = require('package.json');
+// var environment = process.env.NODE_ENV ? process.env.NODE_ENV : 'development';
 
 var _ = require('lodash');
 var co = require('co');
@@ -15,12 +15,13 @@ var setResponse = require('_middleware/setResponse');
 var authentication = require('_utilities/authentication');
 var authorization = require('_utilities/authorization');
 var dateQuery = require('_utilities/dateQuery');
+var mongo = require('_utilities/mongo');
 
 var Booking = require('_models/booking');
 var Event = require('_models/event');
-var Payment = require('_models/payment');
+// var Payment = require('_models/payment');
 var Show = require('_models/show');
-var User = require('_models/user');
+// var User = require('_models/user');
 
 var app = koa();
 
@@ -64,13 +65,11 @@ app.get('/', function* (next) {
     searchFields.eventid = this.query.eventid;
   }
 
-  console.log('searchFields', searchFields);
-
   events = yield Event.find(searchFields, returnFields, {
     limit: limit
   });
 
-  if (events) {
+  if (events.length > 0) {
     _(events).forEach(function (document) {
       co(function* () {
         var bookings = yield Booking.count({
@@ -124,7 +123,7 @@ app.del('/:id', authentication, function* (next) {
     _id: this.params.id
   });
 
-  if (event) {
+  if (event instanceof Object) {
     this.locals.result = event;
     this.locals.status = 204;
   }
@@ -142,7 +141,7 @@ app.get('/:id', function* (next) {
     _id: this.params.id
   });
 
-  if (event) {
+  if (event instanceof Object) {
     event.bookings = yield Booking.count({
       eventid: this.params.id
     });
@@ -177,7 +176,6 @@ app.post('/', authentication, function* (next) {
   this.locals.document.starttime = moment(this.locals.document.starttime).toDate();
   this.locals.document.endtime = moment(this.locals.document.endtime).toDate();
 
-
   if(!this.locals.document.status) {
     this.locals.document.status = 'pending';
   }
@@ -185,7 +183,7 @@ app.post('/', authentication, function* (next) {
   if(authorization.apply(this, ['admin']) === true) {
     event = yield Event.createOne(this.locals.document);
 
-    if (event) {
+    if (event instanceof Object) {
       this.locals.result = event;
       this.locals.status = 201;
     }
@@ -212,7 +210,7 @@ app.put('/:id', authentication, function* (next) {
   if(authorization.apply(this, ['admin']) === true) {
     event = yield Event.update(searchFields, updateFields);
 
-    if (event) {
+    if (event instanceof Object) {
       this.locals.result = event;
       this.locals.status = 200;
     }
