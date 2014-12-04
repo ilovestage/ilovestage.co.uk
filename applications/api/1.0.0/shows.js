@@ -31,7 +31,8 @@ var returnFieldsShow = {
   singlediscountprice: 1,
   singlefacevalue: 1,
   priceband: 1,
-  reference: 1
+  reference: 1,
+  videourl: 1
 };
 
 var app = koa();
