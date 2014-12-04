@@ -121,12 +121,19 @@ app.use(function* (next) {
       searchFields.uid = this.request.header.uid;
       // searchFields.uid = mongo.toObjectId(this.request.header.uid);
 
-      this.locals.currentUser = yield User.findOne(searchFields, returnFields);
+      var currentUser = yield User.findOne(searchFields, returnFields);
+
+      if (currentUser instanceof Object) {
+        this.locals.currentUser = currentUser;
+      } else {
+        this.locals.currentUser = {};
+      }
+
       this.locals.status = (typeof this.locals.currentUser !== 'undefined') ? 404 : 403;
 
-      // console.log('this.locals.currentUser', this.locals.currentUser);
-      // console.log('this.request.header.uid', this.request.header.uid);
-      // console.log('searchFields.uid', searchFields.uid);
+      console.log('this.locals.currentUser', this.locals.currentUser);
+      console.log('this.request.header.uid', this.request.header.uid);
+      console.log('searchFields.uid', searchFields.uid);
     } else {
       this.locals.status = 401;
     }
