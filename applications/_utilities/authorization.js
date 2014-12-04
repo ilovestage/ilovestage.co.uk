@@ -20,7 +20,7 @@ function authorization(_id) {
     console.log('case 1');
     this.locals.status = 404;
     authorizationStatus = true;
-  } else if(!this.locals.currentUser) {
+  } else if(!this.locals.currentUser || !this.locals.currentUser.uid) {
     console.log('case 2');
     this.locals.status = 401;
     authorizationStatus = false;
