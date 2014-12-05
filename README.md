@@ -16,6 +16,9 @@ db.users.drop()
 Dump database:
 mongodump --host ds063889.mongolab.com:63889 --username ilovestage --password curtaincall1 --db ilovestage
 
+Connect to database:
+mongo ds063889.mongolab.com:63889/ilovestage -u ilovestage -p curtaincall1
+
 Run via npm:
 nodemon --harmony app.js --application api --debug
 
