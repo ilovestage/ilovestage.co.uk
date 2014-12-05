@@ -68,7 +68,7 @@ app.del('/:id', authentication, function* (next) {
 app.get('/', function* (next) {
   var limit = 50;
   var password;
-  var returnFields;
+  var returnFields = {};
   var searchFields = {};
   var token;
   var updateFields = {};
@@ -241,7 +241,7 @@ app.get('/', function* (next) {
 });
 
 app.get('/:id', authentication, function* (next) {
-  var returnFields;
+  var returnFields = {};
   var searchFields = {};
   var user;
 
@@ -249,7 +249,7 @@ app.get('/:id', authentication, function* (next) {
 
   if(id) {
     searchFields._id = id;
-  
+
     returnFields = {
       _id: 1,
       firstname: 1,

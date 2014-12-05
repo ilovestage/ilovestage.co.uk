@@ -121,8 +121,9 @@ app.post('/', function* (next) {
   var charge;
   var chargeInfo;
   var payment;
+  var returnFields = {};
   var user;
-  var searchFields;
+  var searchFields = {};
   var validator;
 
   // console.log('this.locals.document', this.locals.document);
