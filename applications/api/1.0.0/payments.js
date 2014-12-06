@@ -86,6 +86,17 @@ app.get('/', authentication, function* (next) {
   yield next;
 });
 
+app.get('/schema', authentication, function* (next) {
+  if(authorization.apply(this, ['admin']) === true) {
+    var schema = Payment.schema;
+
+    this.locals.result = schema;
+    this.locals.status = 200;
+  }
+
+  yield next;
+});
+
 app.get('/:id', authentication, function* (next) {
   var booking;
   var payment;

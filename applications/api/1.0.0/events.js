@@ -29,6 +29,23 @@ app.use(router(app));
 
 qs(app);
 
+app.del('/:id', authentication, function* (next) {
+  var event;
+
+  if(authorization.apply(this, ['admin']) === true) {
+    event = yield Event.remove({
+      _id: this.params.id
+    });
+
+    if (event instanceof Object) {
+      this.locals.result = event;
+      this.locals.status = 204;
+    }
+  }
+
+  yield next;
+});
+
 app.get('/', function* (next) {
   var events;
   var limit = 50;
@@ -116,18 +133,12 @@ app.get('/', function* (next) {
   yield next;
 });
 
-app.del('/:id', authentication, function* (next) {
-  var event;
-
+app.get('/schema', authentication, function* (next) {
   if(authorization.apply(this, ['admin']) === true) {
-    event = yield Event.remove({
-      _id: this.params.id
-    });
+    var schema = Event.schema;
 
-    if (event instanceof Object) {
-      this.locals.result = event;
-      this.locals.status = 204;
-    }
+    this.locals.result = schema;
+    this.locals.status = 200;
   }
 
   yield next;

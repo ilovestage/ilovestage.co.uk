@@ -32,6 +32,17 @@ app.get('/', function* (next) {
   yield next;
 });
 
+// app.get('/schema', authentication, function* (next) {
+//   if(authorization.apply(this, ['admin']) === true) {
+//     var schema = Note.schema;
+//
+//     this.locals.result = schema;
+//     this.locals.status = 200;
+//   }
+//
+//   yield next;
+// });
+
 app.post('/', function* (next) {
   this.locals.result = 'Oh hai postman!';
   this.locals.status = 200;
