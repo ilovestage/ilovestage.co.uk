@@ -129,16 +129,16 @@ app.get('/:id', authentication, function* (next) {
 
     if (booking instanceof Object) {
       if(authorization.apply(this, [booking.userid]) === true) {
-        if (this.query.view === 'detailed') {
-          returnFields = {
-            '_id': 1,
-            'starttime': 1,
-            'endtime': 1,
-            'priceband': 1,
-            'facevalue': 1,
-            'discount_price': 1
-          };
-        }
+        // if (this.query.view === 'detailed') {
+        //   returnFields = {
+        //     '_id': 1,
+        //     'starttime': 1,
+        //     'endtime': 1,
+        //     'priceband': 1,
+        //     'facevalue': 1,
+        //     'discount_price': 1
+        //   };
+        // }
 
         searchFields = {
           _id: booking.eventid
