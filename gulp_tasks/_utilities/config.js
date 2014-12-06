@@ -1,8 +1,19 @@
 'use strict';
 
+var argv = require('yargs').argv;
+
 var directory = require(__dirname + '/directory');
 
+var application = argv.application;
+
 module.exports = {
+  application: {
+    src: [
+      directory.root + '/*.js',
+      directory.root + '/applications/' + application + '.js',
+      directory.application + '/**/*.js',
+    ]
+  },
   browserSync: {
     // server: {
     //   // We're serving the src folder as well for sass sourcemap linking
@@ -31,6 +42,10 @@ module.exports = {
   images: {
     src: directory.source + '/images/**',
     dest: directory.destination + '/images'
+  },
+  js: {
+    src: directory.source + '/scripts/**/*.js',
+    dest: directory.destination + '/scripts'
   },
   markup: {
     src: directory.source + '/views/**',

@@ -1,9 +1,10 @@
 var gulp = require('gulp');
 
-var buildTasks = [];
+var buildTasks = ['application'];
 
 if(global.applicationType === 'website') {
   buildTasks.push(
+    'js',
     'sass',
     'browserify',
     'images'

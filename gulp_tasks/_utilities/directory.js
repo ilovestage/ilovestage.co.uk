@@ -7,6 +7,8 @@ var application = argv.application;
 
 var directory = {};
 
+directory.application = path.resolve(__dirname + '/../../applications/' + application);
+directory.root = path.resolve(__dirname + '/../../');
 directory.source = path.resolve(__dirname + '/../../source/' + application);
 directory.destination = path.resolve(__dirname + '/../../build/' + application);
 directory.utilities = path.resolve(__dirname + '/../../source/_utilities');
