@@ -16,6 +16,10 @@ Payment.schema = {
   'title': 'Payment Schema',
   'type': 'object',
   'properties': {
+    'userid': {
+      'type': 'string',
+      'format': 'object-id'
+    },
     'bookingid': {
       'type': 'string',
       'format': 'object-id'
@@ -39,9 +43,16 @@ Payment.schema = {
     'description': {
       'type': 'string',
       'maxLength': 100
+    },
+    'createtime': {
+      'type': 'object'
+    },
+    'updatetime': {
+      'type': 'object'
     }
   },
   'required': [
+    'userid',
     'bookingid',
     'processor',
     'amount',
