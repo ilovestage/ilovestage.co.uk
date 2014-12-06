@@ -36,7 +36,7 @@ app.del('/:id', function* (next) {
 
   searchFields._id = mongo.toObjectId(this.params.id);
 
-  if(authorization.apply(this, ['admin']) === true) {
+  if (authorization.apply(this, ['admin']) === true) {
     payment = yield Payment.remove(searchFields);
 
     if (payment instanceof Object) {
@@ -72,7 +72,7 @@ app.get('/', authentication, function* (next) {
     }
   }
 
-  if(authorization.apply(this, ['admin']) === true) {
+  if (authorization.apply(this, ['admin']) === true) {
     payment = yield Payment.find(searchFields, {
       limit: limit
     });
@@ -87,7 +87,7 @@ app.get('/', authentication, function* (next) {
 });
 
 app.get('/schema', authentication, function* (next) {
-  if(authorization.apply(this, ['admin']) === true) {
+  if (authorization.apply(this, ['admin']) === true) {
     var schema = Payment.schema;
 
     this.locals.result = schema;
@@ -105,7 +105,7 @@ app.get('/:id', authentication, function* (next) {
 
   var id = mongo.toObjectId(this.params.id);
 
-  if(id) {
+  if (id) {
     searchFields._id = id;
 
     payment = yield Payment.findOne(searchFields, returnFields);
@@ -116,7 +116,7 @@ app.get('/:id', authentication, function* (next) {
       });
 
       if (booking instanceof Object) {
-        if(authorization.apply(this, [booking.userid]) === true) {
+        if (authorization.apply(this, [booking.userid]) === true) {
           this.locals.result = payment;
           this.locals.status = 200;
         }
@@ -132,7 +132,7 @@ app.post('/', function* (next) {
   var charge;
   var chargeInfo;
   var payment;
-  var returnFields = {};
+  // var returnFields = {};
   var user;
   var searchFields = {};
   var validator;
@@ -142,7 +142,7 @@ app.post('/', function* (next) {
 
   validator = Payment.validate(this.locals.document);
 
-  if(validator.valid === true) {
+  if (validator.valid === true) {
     searchFields._id = mongo.toObjectId(this.locals.document.bookingid);
 
     booking = yield Booking.findOne(searchFields, {});
@@ -157,7 +157,7 @@ app.post('/', function* (next) {
       user = yield User.findOne(searchFields, {});
 
       if (user instanceof Object) {
-        if(authorization.apply(this, [user._id]) === true) {
+        if (authorization.apply(this, [user._id]) === true) {
           chargeInfo = {
             amount: this.locals.document.amount,
             currency: this.locals.document.currency,

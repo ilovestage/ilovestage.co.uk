@@ -32,7 +32,7 @@ qs(app);
 app.del('/:id', authentication, function* (next) {
   var event;
 
-  if(authorization.apply(this, ['admin']) === true) {
+  if (authorization.apply(this, ['admin']) === true) {
     event = yield Event.remove({
       _id: this.params.id
     });
@@ -52,7 +52,7 @@ app.get('/', function* (next) {
   var manipulatedEvents = [];
   var returnFields = {};
   var searchFields = {};
-  var show;
+  // var show;
 
   searchFields = dateQuery(this.querystring, 'starttime');
 
@@ -88,7 +88,7 @@ app.get('/', function* (next) {
   });
 
   if (events.length > 0) {
-    _(events).forEach(function (document) {
+    _(events).forEach(function(document) {
 
       co(function* () {
         var bookings = yield Booking.count({
@@ -96,10 +96,10 @@ app.get('/', function* (next) {
         });
 
         return bookings;
-      }).then(function (bookings) {
+      }).then(function(bookings) {
         document.bookings = bookings;
 
-        if(bookings > 0) {
+        if (bookings > 0) {
           // var matched = Booking.collection.find({
           //   eventid: document._id.toString()
           // }, {});
@@ -130,11 +130,11 @@ app.get('/', function* (next) {
           // {
           //   explain: true
           // }
-          function (err, result) {
+          function(err, result) {
             console.log('bookings', bookings);
             console.log('err, result', err, result);
 
-            if(result && result[0] && result[0].total) {
+            if (result && result[0] && result[0].total) {
               document.ticketsBooked = result[0].total;
             } else {
               document.ticketsBooked = 0;
@@ -144,7 +144,7 @@ app.get('/', function* (next) {
         }
 
         manipulatedEvents.push(document);
-      }, function (err) {
+      }, function(err) {
         console.error(err.stack);
       });
     });
@@ -157,7 +157,7 @@ app.get('/', function* (next) {
 });
 
 app.get('/schema', authentication, function* (next) {
-  if(authorization.apply(this, ['admin']) === true) {
+  if (authorization.apply(this, ['admin']) === true) {
     var schema = Event.schema;
 
     this.locals.result = schema;
@@ -175,7 +175,7 @@ app.get('/:id', function* (next) {
 
   var id = mongo.toObjectId(this.params.id);
 
-  if(id) {
+  if (id) {
     searchFields._id = id;
 
     event = yield Event.findOne(searchFields, returnFields);
@@ -216,11 +216,11 @@ app.post('/', authentication, function* (next) {
   this.locals.document.starttime = moment(this.locals.document.starttime).toDate();
   this.locals.document.endtime = moment(this.locals.document.endtime).toDate();
 
-  if(!this.locals.document.status) {
+  if (!this.locals.document.status) {
     this.locals.document.status = 'pending';
   }
 
-  if(authorization.apply(this, ['admin']) === true) {
+  if (authorization.apply(this, ['admin']) === true) {
     event = yield Event.createOne(this.locals.document);
 
     if (event instanceof Object) {
@@ -247,7 +247,7 @@ app.put('/:id', authentication, function* (next) {
     };
   }
 
-  if(authorization.apply(this, ['admin']) === true) {
+  if (authorization.apply(this, ['admin']) === true) {
     event = yield Event.update(searchFields, updateFields);
 
     if (event instanceof Object) {

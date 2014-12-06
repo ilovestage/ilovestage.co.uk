@@ -130,7 +130,7 @@ csv.parse(showsFileString, showsParseOptions, function(error, showRows) {
         day: input[0]
       };
 
-      if(typeof input[1] !== 'undefined') {
+      if (typeof input[1] !== 'undefined') {
         day.times = input[1].split('/');
       } else {
         day.times = null;
@@ -170,7 +170,7 @@ csv.parse(showsFileString, showsParseOptions, function(error, showRows) {
 
     // console.log('showRowIterator', showRowIterator, 'showRows.length', (showRows.length - 1));
 
-    if(showRowIterator === (showRows.length - 1)) {
+    if (showRowIterator === (showRows.length - 1)) {
       addTranslations();
       console.log('Updated shows data successfully imported.');
       setTimeout(function() {

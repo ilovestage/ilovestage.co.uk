@@ -3,10 +3,10 @@
 var argv = require('yargs').argv;
 var requireDir = require('require-dir');
 
-if(argv.application) {
+if (argv.application) {
   console.log('Building ' + argv.application + ' application.');
 
-  switch(argv.application) {
+  switch (argv.application) {
     case 'admin':
       global.applicationType = 'website';
     break;

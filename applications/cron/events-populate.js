@@ -106,9 +106,9 @@ function processPerformance(show, day, time) {
       var event = yield Event.create(insertFields);
 
       return event;
-    }).then(function (event) {
+    }).then(function(event) {
       console.log('Event added: ' + event);
-    }, function (err) {
+    }, function(err) {
       console.error(err.stack);
     });
 
@@ -121,7 +121,7 @@ function processShow(show) {
   // console.log('show.performances', show.performances);
   show.performances.forEach(function(day) {
     // console.log('day', day);
-    if(Array.isArray(day.times)) {
+    if (Array.isArray(day.times)) {
       day.times.forEach(function(time) {
         // console.log('time', time);
         // console.log('show, day, time', show, day.day, time);
@@ -138,7 +138,7 @@ co(function* () {
   var shows = yield Show.find(searchFields, returnFields);
 
   return shows;
-}).then(function (shows) {
+}).then(function(shows) {
   console.log('Shows to process: ' + shows.length);
 
   _(shows).forEach(function(show) {
@@ -147,6 +147,6 @@ co(function* () {
   });
 
   // process.exit();
-}, function (err) {
+}, function(err) {
   console.error(err.stack);
 });

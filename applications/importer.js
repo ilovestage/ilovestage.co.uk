@@ -13,7 +13,7 @@ var visitor = ua(packageJson.config.applications.importer.googleanalytics.key);
 app.use(function* (next) {
   var job = argv.job.split('-');
 
-  visitor.event(job[0], job[1], function (err) {
+  visitor.event(job[0], job[1], function(err) {
     console.log('err', err);
   });
   yield next;

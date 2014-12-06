@@ -6,7 +6,7 @@ var mongo = {
 
   connectionString: function(configuration) {
 
-  	if(typeof configuration === 'undefined') {
+  	if (typeof configuration === 'undefined') {
   		return false;
   	}
 
@@ -15,7 +15,7 @@ var mongo = {
     connectionString += configuration.protocol;
     connectionString += '://';
 
-    if((configuration.credentials.username !== null) && (configuration.credentials.password)) {
+    if ((configuration.credentials.username !== null) && (configuration.credentials.password)) {
       connectionString += configuration.credentials.username;
       connectionString += ':';
       connectionString += configuration.credentials.password;
@@ -31,7 +31,7 @@ var mongo = {
     return connectionString;
   },
 
-  toObjectId: function (hex) {
+  toObjectId: function(hex) {
     if (!hex || hex.length !== 24) {
       return false;
     }

@@ -2,7 +2,7 @@
 
 function* authentication(next) {
   console.log('called 2', next);
-  if(this.request.header.uid) {
+  if (this.request.header.uid) {
     console.log('case 1');
     if (this.locals.currentUser) {
       console.log('case 1a');
@@ -14,7 +14,7 @@ function* authentication(next) {
     }
   } else {
     console.log('case 2');
-    if(!this.request.header.uid) {
+    if (!this.request.header.uid) {
       console.log('case 2a');
       this.locals.message = this.locals.messages.noUid;
     } else {

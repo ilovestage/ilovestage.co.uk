@@ -46,7 +46,7 @@ passport.deserializeUser(function(userid, done) {
 });
 
 passport.use(new LocalStrategy(
-  function (username, password, done) {
+  function(username, password, done) {
     co(function *() {
       try {
         console.log('in here', username, password, done);

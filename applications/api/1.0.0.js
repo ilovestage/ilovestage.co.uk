@@ -49,7 +49,7 @@ app.use(function* (next) {
   this.locals.messages = this.locals.messages || messages;
   this.locals.querystringParameters = Qs.parse(this.querystring);
 
-  if(this.request.body) {
+  if (this.request.body) {
     this.locals.document = this.request.body;
     this.locals.document.createtime = moment().toDate();
     this.locals.document.updatetime = moment().toDate();
@@ -74,7 +74,7 @@ app.use(function* (next) {
       this.locals.body.error = this.locals.error;
       this.locals.body.result = this.locals.result;
 
-      if((this.request.header['content-type'] === 'application/vnd.api+xml') || (this.query.format === 'xml')) {
+      if ((this.request.header['content-type'] === 'application/vnd.api+xml') || (this.query.format === 'xml')) {
         this.body = js2xmlparser('response', this.locals.body);
         this.type = 'application/vnd.api+xml';
       } else {
@@ -94,7 +94,7 @@ app.use(function* (next) {
 });
 
 app.use(function* (next) {
-  if((environment !== 'development') && (this.locals.bypassAuthentication !== true)) {
+  if ((environment !== 'development') && (this.locals.bypassAuthentication !== true)) {
     app.use(auth(packageJson.config.http.auth));
   }
 
@@ -105,13 +105,13 @@ app.use(function* (next) {
   var returnFields = {};
   var searchFields = {};
 
-  if(this.query.bypass === 'true') {
+  if (this.query.bypass === 'true') {
     this.locals.bypassAuthentication = true;
     this.locals.currentUser = 'bypassed';
   } else {
     this.locals.bypassAuthentication = false;
 
-    if(this.request.header.uid) {
+    if (this.request.header.uid) {
       returnFields = {
         _id: 1,
         uid: 1,
@@ -143,10 +143,10 @@ app.use(function* (next) {
 });
 
 app.use(function* (next) {
-  if(this.request.body) {
+  if (this.request.body) {
     dj.object(this.locals.document);
 
-    if(this.locals.document.format) {
+    if (this.locals.document.format) {
       this.locals.document = deleteKey(this.locals.document, ['format']);
     }
   }

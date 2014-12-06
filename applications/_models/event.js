@@ -21,9 +21,9 @@ var index = {
 
 Event.ensureIndex(index);
 
-var info = Event.indexInformation(index);
+// var info = Event.indexInformation(index);
 
-console.log('info', info);
+// console.log('info', info);
 
 Event.schema = {
   'title': 'Event Schema',

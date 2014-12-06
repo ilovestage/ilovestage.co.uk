@@ -65,10 +65,10 @@ var email = {
 
     self.locals = self.locals || {};
 
-    emailTemplates(templatesDir, function (err, template) {
+    emailTemplates(templatesDir, function(err, template) {
 
       // Send a single email
-      template(layout, locals, function (error, html, text) {
+      template(layout, locals, function(error, html, text) {
 
         if (error) {
           console.log(error);
@@ -84,7 +84,7 @@ var email = {
             html: html // html body
           };
 
-          email.transporter.sendMail(mailOptions, function (error, info) {
+          email.transporter.sendMail(mailOptions, function(error, info) {
             if (error) {
               self.locals.status = 400;
               self.locals.error = error;

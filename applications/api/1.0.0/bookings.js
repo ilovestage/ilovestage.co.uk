@@ -28,13 +28,13 @@ app.del('/:id', authentication, function* (next) {
   var booking;
   var searchFields = {};
 
-  if(authorization.apply(this, ['admin']) === true) {
+  if (authorization.apply(this, ['admin']) === true) {
     searchFields._id = mongo.toObjectId(this.params.id);
 
     booking = yield Booking.findOne(searchFields);
 
     if (booking instanceof Object) {
-      if(authorization.apply(this, [booking.userid]) === true) {
+      if (authorization.apply(this, [booking.userid]) === true) {
         booking = null;
 
         booking = yield Booking.remove({
@@ -58,7 +58,7 @@ app.get('/', function* (next) {
   var searchFields = {};
   var sortParameters = [];
 
-  if(authorization.apply(this, [this.query.userid])) {
+  if (authorization.apply(this, [this.query.userid])) {
     searchFields = dateQuery(this.query, 'createtime');
 
     if (typeof this.query.userid !== 'undefined') {
@@ -93,7 +93,7 @@ app.get('/', function* (next) {
 
     bookings = yield Booking.find(searchFields, returnFields, options);
 
-    if(bookings.length > 0) {
+    if (bookings.length > 0) {
       this.locals.result = bookings;
       this.locals.status = 200;
     }
@@ -104,7 +104,7 @@ app.get('/', function* (next) {
 });
 
 app.get('/schema', authentication, function* (next) {
-  if(authorization.apply(this, ['admin']) === true) {
+  if (authorization.apply(this, ['admin']) === true) {
     var schema = Booking.schema;
 
     this.locals.result = schema;
@@ -122,13 +122,13 @@ app.get('/:id', authentication, function* (next) {
 
   var id = mongo.toObjectId(this.params.id);
 
-  if(id) {
+  if (id) {
     searchFields._id = id;
 
     booking = yield Booking.findOne(searchFields);
 
     if (booking instanceof Object) {
-      if(authorization.apply(this, [booking.userid]) === true) {
+      if (authorization.apply(this, [booking.userid]) === true) {
         // if (this.query.view === 'detailed') {
         //   returnFields = {
         //     '_id': 1,
@@ -174,7 +174,7 @@ app.post('/', function* (next) {
   //   'strategies.local.email': 1
   // };
 
-  if(authorization.apply(this, [this.locals.document.userid]) === true) {
+  if (authorization.apply(this, [this.locals.document.userid]) === true) {
     event = yield Event.findOne({
       _id: mongo.toObjectId(this.locals.document.eventid),
     }, {});
@@ -183,25 +183,31 @@ app.post('/', function* (next) {
       _id: mongo.toObjectId(this.locals.document.userid)
     }, {});
 
-    if(!user) {
+    if (!user) {
       this.locals.message = 'User referenced by booking could not be found.';
       this.locals.status = 409;
-    } else if(!event) {
+    } else if (!event) {
       this.locals.message = 'Event referenced by booking could not be found.';
       this.locals.status = 409;
     } else {
       booking = yield Booking.createOne(this.locals.document);
-console.log('booking', booking);
-console.log('event', event);
-console.log('typeof event.showid', typeof event.showid);
-console.log('mongo.toObjectId(event.showid)', mongo.toObjectId(event.showid));
+
+      console.log('booking', booking);
+      console.log('event', event);
+      console.log('typeof event.showid', typeof event.showid);
+      console.log('mongo.toObjectId(event.showid)', mongo.toObjectId(event.showid));
+
       if (booking instanceof Object) {
         var test123 = {
           _id: mongo.toObjectId(event.showid)
         };
-console.log('test123', test123);
+
+        console.log('test123', test123);
+
         show = yield Show.findOne(test123, {});
-console.log('show', show);
+
+        console.log('show', show);
+
         if (show instanceof Object) {
           email.send({
             subject: 'Booking confirmed',
@@ -242,10 +248,10 @@ app.put('/:id', function* (next) {
     };
   }
 
-  if(authorization.apply(this, [this.locals.document.userid]) === true) {
+  if (authorization.apply(this, [this.locals.document.userid]) === true) {
     booking = yield Booking.update(searchFields, updateFields);
 
-    // if(booking && this.locals.document.tickets >= 8) {
+    // if (booking && this.locals.document.tickets >= 8) {
     //   returnFields = {
     //     _id: 1,
     //     firstname: 1,
@@ -255,7 +261,7 @@ app.put('/:id', function* (next) {
     //
     //   user = yield User.findById(booking.userid, returnFields);
     //
-    //   if(user && user.length > 0) {
+    //   if (user && user.length > 0) {
     //     email.send({
     //       subject: 'Booking confirmed',
     //       email: user.strategies.local.email,

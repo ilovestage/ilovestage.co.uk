@@ -25,8 +25,8 @@ app.use(cors());
 app.use(router(app));
 
 app.use(function* (next) {
-  if(environment !== 'development') {
-    visitor.pageview(this.request.originalUrl, function (err) {
+  if (environment !== 'development') {
+    visitor.pageview(this.request.originalUrl, function(err) {
       console.log('err', err);
     });
   }

@@ -15,6 +15,6 @@ gulp.task('application', function() {
   return gulp.src(config.src)
   .pipe(jshint('.jshintrc'))
   .pipe(jshint.reporter('jshint-stylish'))
-  .pipe(jscs('.jscs.json'));
+  .pipe(jscs('.jscsrc'));
   // .pipe(jscs.reporter('checkstyle'))
 });

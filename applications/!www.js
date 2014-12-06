@@ -63,7 +63,7 @@ app.use(router(app));
 //   if (this.isAuthenticated()) {
 //     yield next;
 //   } else {
-//     if(this.request.originalUrl !== '/login') {
+//     if (this.request.originalUrl !== '/login') {
 //       this.redirect('/login');
 //     } else {
 //       yield next;

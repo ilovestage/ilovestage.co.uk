@@ -184,7 +184,7 @@ co(function* () {
   });
 
   return bookings;
-}).then(function (bookings) {
+}).then(function(bookings) {
   console.log('Bookings to process: ' + bookings.length);
 
   var bookingIterator;
@@ -194,6 +194,6 @@ co(function* () {
   }
 
   process.exit();
-}, function (err) {
+}, function(err) {
   console.error(err.stack);
 });

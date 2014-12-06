@@ -80,10 +80,10 @@ function dateQuery(querystring, field) {
     var rangeStart = moment().subtract(query.range, query.units); // e.g. (3, 'months') gives "3 months before currentDate"
     var rangeEnd = moment().add(query.range, query.units); // e.g. (3, 'months') gives "3 months after currentDate"
 
-    if(query.timeframe === 'past') {
+    if (query.timeframe === 'past') {
       searchFields[field].$gte = rangeStart.toDate();
       searchFields[field].$lt = moment().toDate();
-    } else if(query.timeframe === 'future') {
+    } else if (query.timeframe === 'future') {
       searchFields[field].$gte = moment().toDate();
       searchFields[field].$lt = rangeEnd.toDate();
     }

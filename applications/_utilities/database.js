@@ -9,7 +9,7 @@ var monk = require('monk');
 var mongo = require(__dirname + '/mongo');
 
 var database = function(configuration) {
-	if(typeof configuration === 'undefined') {
+	if (typeof configuration === 'undefined') {
 		return false;
 	}
 
@@ -20,7 +20,7 @@ var database = function(configuration) {
   var __construct = (function(configuration) {
     var connectionString;
 
-    if(typeof configuration === 'string') {
+    if (typeof configuration === 'string') {
       connectionString = configuration;
     } else {
       connectionString = mongo.connectionString(configuration);

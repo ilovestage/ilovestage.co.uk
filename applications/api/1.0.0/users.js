@@ -53,7 +53,7 @@ app.del('/:id', authentication, function* (next) {
 
   searchFields._id = mongo.toObjectId(this.params.id);
 
-  if(authorization.apply(this, [this.params.id]) === true) {
+  if (authorization.apply(this, [this.params.id]) === true) {
     user = yield User.remove(searchFields);
 
     if (user instanceof Object) {
@@ -87,7 +87,7 @@ app.get('/', function* (next) {
   };
 
   if (this.query.view === 'detailed') {
-    if(authorization.apply(this, ['admin']) === true) {
+    if (authorization.apply(this, ['admin']) === true) {
       returnFields = {};
     }
   }
@@ -108,7 +108,11 @@ app.get('/', function* (next) {
     user = yield User.findOne(searchFields, returnFields);
 
     if (user instanceof Object) {
-      if ((typeof user.strategies !== 'undefined') && (typeof user.strategies[this.query.provider] !== 'undefined') && (typeof user.strategies[this.query.provider].uid !== 'undefined')) {
+      if (
+        (typeof user.strategies !== 'undefined') &&
+        (typeof user.strategies[this.query.provider] !== 'undefined') &&
+        (typeof user.strategies[this.query.provider].uid !== 'undefined')
+      ) {
         if (this.query.token === user.strategies[this.query.provider].token) {
           this.locals.status = 200;
         } else {
@@ -124,16 +128,27 @@ app.get('/', function* (next) {
         this.locals.status = 401;
       }
 
-      if ((typeof user !== 'undefined') && (typeof user.strategies !== 'undefined') && (typeof user.strategies[this.query.provider] !== 'undefined') && (typeof user.strategies[this.query.provider].token !== 'undefined')) {
+      if (
+        (typeof user !== 'undefined') &&
+        (typeof user.strategies !== 'undefined') &&
+        (typeof user.strategies[this.query.provider] !== 'undefined') &&
+        (typeof user.strategies[this.query.provider].token !== 'undefined')
+      ) {
 
-        if(user.strategies[this.query.provider]) {
+        if (user.strategies[this.query.provider]) {
           user.strategies[this.query.provider] = deleteKey(user.strategies[this.query.provider], ['token']);
         }
       }
 
       this.locals.result = user;
+
     }
-  } else if ((typeof this.query.email !== 'undefined') && (this.query.forgot === 'password')) {
+
+  } else if (
+    (typeof this.query.email !== 'undefined') &&
+    (this.query.forgot === 'password')
+  ) {
+
     searchFields['strategies.local.email'] = this.query.email;
 
     user = yield User.findOne(searchFields, returnFields);
@@ -158,15 +173,23 @@ app.get('/', function* (next) {
 
       this.locals.message = 'Reset password email sent';
 
-      // this.locals.result = user;
+      this.locals.result = user;
     }
-  } else if ((typeof this.query.email !== 'undefined') && (this.query.reset === 'password') && (typeof this.query.token !== 'undefined') && (typeof this.query.password !== 'undefined')) {
+
+  } else if (
+    (this.query.reset === 'password') &&
+    (typeof this.query.email !== 'undefined') &&
+    (typeof this.query.token !== 'undefined') &&
+    (typeof this.query.password !== 'undefined')
+  ) {
+
     searchFields['strategies.local.email'] = this.query.email;
-    searchFields['passwordresettoken'] = this.query.token;
+    searchFields.passwordresettoken = this.query.token;
 
     user = yield User.findOne(searchFields, returnFields);
 
     if (user instanceof Object) {
+
       updateFields = {
         $set: {
           password: this.query.password
@@ -186,8 +209,11 @@ app.get('/', function* (next) {
 
       this.locals.message = 'Password reset';
       this.locals.result = deleteKey(user, ['stripeid', 'passwordresettoken', 'role', 'communications', 'dateofbirth']);
+
     }
+
   } else if ((typeof this.query.email !== 'undefined') && (typeof this.query.password !== 'undefined')) {
+
     searchFields['strategies.local.email'] = this.query.email;
 
     returnFields['strategies.local.password'] = 1;
@@ -196,7 +222,11 @@ app.get('/', function* (next) {
     user = yield User.findOne(searchFields, returnFields);
 
     if (user instanceof Object) {
-      if ((typeof user.strategies !== 'undefined') && (typeof user.strategies.local !== 'undefined') && (typeof user.strategies.local.password !== 'undefined')) {
+      if (
+        (typeof user.strategies !== 'undefined') &&
+        (typeof user.strategies.local !== 'undefined') &&
+        (typeof user.strategies.local.password !== 'undefined')
+      ) {
         password = cryptography.encryptPassword(this.query.password);
 
         if (password === user.strategies.local.password) {
@@ -207,6 +237,7 @@ app.get('/', function* (next) {
           this.locals.message = 'A user with those credentials exists but the supplied password was incorrect.';
           this.locals.status = 401;
         }
+
       } else {
         user = null;
 
@@ -214,25 +245,33 @@ app.get('/', function* (next) {
         this.locals.status = 401;
       }
 
-      if ((typeof user !== 'undefined') && (typeof user.strategies !== 'undefined') && (typeof user.strategies.local !== 'undefined') && (typeof user.strategies.local.password !== 'undefined')) {
+      if (
+        (typeof user !== 'undefined') &&
+        (typeof user.strategies !== 'undefined') &&
+        (typeof user.strategies.local !== 'undefined') &&
+        (typeof user.strategies.local.password !== 'undefined')
+      ) {
 
-        if(user.strategies.local) {
+        if (user.strategies.local) {
           user.strategies.local = deleteKey(user.strategies.local, ['password']);
         }
+
       }
 
       this.locals.result = user;
     }
   } else {
-    if(authorization.apply(this, ['admin']) === true) {
+
+    if (authorization.apply(this, ['admin']) === true) {
       users = yield User.find(searchFields, returnFields, {
         limit: limit
       });
 
-      if(users.length > 0) {
+      if (users.length > 0) {
         this.locals.result = users;
         this.locals.status = 200;
       }
+
     }
 
   }
@@ -241,7 +280,7 @@ app.get('/', function* (next) {
 });
 
 app.get('/schema', authentication, function* (next) {
-  if(authorization.apply(this, ['admin']) === true) {
+  if (authorization.apply(this, ['admin']) === true) {
     var schema = User.schema;
 
     this.locals.result = schema;
@@ -258,7 +297,7 @@ app.get('/:id', authentication, function* (next) {
 
   var id = mongo.toObjectId(this.params.id);
 
-  if(id) {
+  if (id) {
     searchFields._id = id;
 
     returnFields = {
@@ -269,7 +308,7 @@ app.get('/:id', authentication, function* (next) {
     };
 
     if (this.query.view === 'detailed') {
-      if(authorization.apply(this, ['admin']) === true) {
+      if (authorization.apply(this, ['admin']) === true) {
         returnFields = {};
       }
     }
@@ -277,7 +316,7 @@ app.get('/:id', authentication, function* (next) {
     user = yield User.findOne(searchFields, returnFields);
 
     if (user instanceof Object) {
-      if(authorization.apply(this, [user._id]) === true) {
+      if (authorization.apply(this, [user._id]) === true) {
         this.locals.result = user;
         this.locals.status = 200;
       }
@@ -296,40 +335,52 @@ app.post('/', function* (next) {
   var user;
   var validator;
 
-  if(authorization.apply(this, ['admin']) !== true) {
+  if (authorization.apply(this, ['admin']) !== true) {
     this.locals.document.role = 'standard';
   }
 
   validator = User.validate(this.locals.document);
 
-  if(validator.valid === true) {
+  if (validator.valid === true) {
     if (typeof this.locals.document.strategies !== 'undefined') {
-      if((typeof this.locals.document.strategies.local !== 'undefined') && (typeof this.locals.document.strategies.local.email !== 'undefined')) {
+      if (
+        (typeof this.locals.document.strategies.local !== 'undefined') &&
+        (typeof this.locals.document.strategies.local.email !== 'undefined')
+      ) {
         orParameters.push({
           'strategies.local.email': this.locals.document.strategies.local.email
         });
       }
 
-      if((typeof this.locals.document.strategies.oauth2 !== 'undefined') && (typeof this.locals.document.strategies.oauth2.uid !== 'undefined')) {
+      if (
+        (typeof this.locals.document.strategies.oauth2 !== 'undefined') &&
+        (typeof this.locals.document.strategies.oauth2.uid !== 'undefined')
+      ) {
         orParameters.push({
           'strategies.oauth2.uid': this.locals.document.strategies.oauth2.uid
         });
       }
 
-      if((typeof this.locals.document.strategies.facebook !== 'undefined') && (typeof this.locals.document.strategies.facebook.uid !== 'undefined')) {
+      if (
+        (typeof this.locals.document.strategies.facebook !== 'undefined') &&
+        (typeof this.locals.document.strategies.facebook.uid !== 'undefined')
+      ) {
         orParameters.push({
           'strategies.facebook.uid': this.locals.document.strategies.facebook.uid
         });
       }
 
-      if((typeof this.locals.document.strategies.twitter !== 'undefined') && (typeof this.locals.document.strategies.twitter.uid !== 'undefined')) {
+      if (
+        (typeof this.locals.document.strategies.twitter !== 'undefined') &&
+        (typeof this.locals.document.strategies.twitter.uid !== 'undefined')
+      ) {
         orParameters.push({
           'strategies.twitter.uid': this.locals.document.strategies.twitter.uid
         });
       }
     }
 
-    if(orParameters.length > 0) {
+    if (orParameters.length > 0) {
       searchFields.$or = orParameters;
     }
 
@@ -346,7 +397,9 @@ app.post('/', function* (next) {
       this.locals.document.createtime = moment().toDate();
       this.locals.document.updatetime = moment().toDate();
 
-      this.locals.document.strategies.local.password = cryptography.encryptPassword(this.locals.document.strategies.local.password);
+      var password = cryptography.encryptPassword(this.locals.document.strategies.local.password);
+
+      this.locals.document.strategies.local.password = password;
 
       user = yield User.createOne(this.locals.document);
 
@@ -365,9 +418,9 @@ app.post('/', function* (next) {
 
         user = yield user.update(updateFields);
 
-        if(user instanceof Object) {
+        if (user instanceof Object) {
           if (user.strategies && user.strategies.local && user.strategies.local.password) {
-            if(user.strategies.local) {
+            if (user.strategies.local) {
               user.strategies.local = deleteKey(user.strategies.local, ['password']);
             }
           }
@@ -401,8 +454,8 @@ app.put('/:id', authentication, function* (next) {
   var updateFields = {};
   var user;
 
-  if(authorization.apply(this, ['admin']) !== true) {
-    if(this.locals.document.role) {
+  if (authorization.apply(this, ['admin']) !== true) {
+    if (this.locals.document.role) {
       this.locals.document = deleteKey(this.locals.document, ['role']);
     }
   }
@@ -417,7 +470,7 @@ app.put('/:id', authentication, function* (next) {
     };
   }
 
-  if(authorization.apply(this, [this.params.id]) === true) {
+  if (authorization.apply(this, [this.params.id]) === true) {
     user = yield User.update(searchFields, updateFields);
 
     if (user instanceof Object) {

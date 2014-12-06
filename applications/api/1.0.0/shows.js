@@ -47,7 +47,7 @@ app.del('/:id', authentication, function* (next) {
 
   searchFields._id = mongo.toObjectId(this.params.id);
 
-  if(authorization.apply(this, ['admin']) === true) {
+  if (authorization.apply(this, ['admin']) === true) {
     show = yield Show.remove(searchFields);
 
     if (show instanceof Object) {
@@ -63,7 +63,7 @@ app.get('/', function* (next) {
   var limit = 50;
   var returnFields = {};
   var searchFields = {};
-  var self = this;
+  var _this = this;
   var shows;
   var showsModified = [];
 
@@ -73,14 +73,14 @@ app.get('/', function* (next) {
     returnFields.translations = 1;
   } else {
     returnFields.translations = {
-      $elemMatch : {
+      $elemMatch: {
         lang: this.locals.lang
       }
     };
   }
 
   if (this.query.view === 'detailed') {
-    if(authorization.apply(this, ['admin']) === true) {
+    if (authorization.apply(this, ['admin']) === true) {
       returnFields = {};
     }
   }
@@ -106,7 +106,7 @@ app.get('/', function* (next) {
   if (shows.length > 0) {
     if (this.query.view !== 'detailed') {
       shows.forEach(function(document) {
-        showsModified.push(internationalization.translate(document, self.locals.lang));
+        showsModified.push(internationalization.translate(document, _this.locals.lang));
       });
 
       shows = showsModified;
@@ -120,7 +120,7 @@ app.get('/', function* (next) {
 });
 
 app.get('/schema', authentication, function* (next) {
-  if(authorization.apply(this, ['admin']) === true) {
+  if (authorization.apply(this, ['admin']) === true) {
     var schema = Show.schema;
 
     this.locals.result = schema;
@@ -137,7 +137,7 @@ app.get('/:id', function* (next) {
 
   var id = mongo.toObjectId(this.params.id);
 
-  if(id) {
+  if (id) {
     searchFields._id = id;
 
     returnFields = returnFieldsShow;
@@ -153,7 +153,7 @@ app.get('/:id', function* (next) {
     }
 
     if (this.query.view === 'detailed') {
-      if(authorization.apply(this, ['admin']) === true) {
+      if (authorization.apply(this, ['admin']) === true) {
         returnFields = {};
       }
     }
@@ -176,7 +176,7 @@ app.get('/:id', function* (next) {
 app.post('/', authentication, function* (next) {
   var show;
 
-  if(authorization.apply(this, ['admin']) === true) {
+  if (authorization.apply(this, ['admin']) === true) {
     show = yield Show.createOne(this.locals.document);
 
     if (show instanceof Object) {
@@ -200,7 +200,7 @@ app.put('/:id', authentication, function* (next) {
     };
   }
 
-  if(authorization.apply(this, ['admin']) === true) {
+  if (authorization.apply(this, ['admin']) === true) {
     show = yield Show.update({
       _id: this.params.id
     }, updateFields);
@@ -234,7 +234,7 @@ app.post('/:id/reviews', function* (next) {
   //   };
   // }
 
-  if(authorization.apply(this, ['admin']) === true) {
+  if (authorization.apply(this, ['admin']) === true) {
     show = yield Show.update(searchFields, updateFields);
 
     if (show instanceof Object) {
@@ -265,7 +265,7 @@ app.put('/:id/reviews', function* (next) {
     };
   }
 
-  if(authorization.apply(this, ['admin']) === true) {
+  if (authorization.apply(this, ['admin']) === true) {
     show = yield Show.update(searchFields, updateFields);
 
     if (show instanceof Object) {
