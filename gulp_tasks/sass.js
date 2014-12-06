@@ -1,14 +1,14 @@
 'use strict';
 
 var autoprefixer = require('gulp-autoprefixer');
-var browserSync = require('browser-sync');
+// var browserSync = require('browser-sync');
 var gulp = require('gulp');
 // var sass = require('gulp-ruby-sass');
 var sass = require('gulp-sass');
 var sourcemaps = require('gulp-sourcemaps');
 
 var directory = require(__dirname + '/_utilities/directory');
-var handleErrors = require(__dirname + '/_utilities/handleErrors');
+// var handleErrors = require(__dirname + '/_utilities/handleErrors');
 
 var config = require(__dirname + '/_utilities/config').sass;
 

@@ -5,7 +5,7 @@ var browserSync = require('browser-sync');
 var gulp = require('gulp');
 
 var packageJson = require(__dirname + '/../package.json');
-var environment = process.env.NODE_ENV ? process.env.NODE_ENV : 'development';
+// var environment = process.env.NODE_ENV ? process.env.NODE_ENV : 'development';
 
 var port = {};
 port.http = process.env.PORT ? process.env.PORT : packageJson.config.applications[argv.application].http.port;

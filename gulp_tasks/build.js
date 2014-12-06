@@ -2,7 +2,7 @@ var gulp = require('gulp');
 
 var buildTasks = ['application'];
 
-if(global.applicationType === 'website') {
+if (global.applicationType === 'website') {
   buildTasks.push(
     'js',
     'sass',

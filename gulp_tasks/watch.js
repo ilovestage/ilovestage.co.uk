@@ -5,7 +5,7 @@
   - gulp/tasks/browserSync.js watches and reloads compiled files
 */
 
-var browserSync = require('browser-sync');
+// var browserSync = require('browser-sync');
 var gulp = require('gulp');
 
 var directory = require(__dirname + '/_utilities/directory');
