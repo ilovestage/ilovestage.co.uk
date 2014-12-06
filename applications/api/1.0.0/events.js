@@ -64,19 +64,20 @@ app.get('/', function* (next) {
     }
   }
 
-  if (typeof this.query.showname !== 'undefined') {
-    returnFields._id = 1;
-
-    searchFields.name = this.query.showname;
-
-    show = yield Show.findOne(searchFields, returnFields);
-
-    if (show) {
-      searchFields.showid = show._id.toString();
-    }
-  } else if (typeof this.query.showid !== 'undefined') {
+  if (typeof this.query.showid !== 'undefined') {
     searchFields.showid = this.query.showid;
   }
+  // else if (typeof this.query.showname !== 'undefined') {
+  //   returnFields._id = 1;
+  //
+  //   searchFields.name = this.query.showname;
+  //
+  //   show = yield Show.findOne(searchFields, returnFields);
+  //
+  //   if (show) {
+  //     searchFields.showid = show._id.toString();
+  //   }
+  // }
 
   if (typeof this.query.eventid !== 'undefined') {
     searchFields.eventid = this.query.eventid;
