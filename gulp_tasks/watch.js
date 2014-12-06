@@ -1,11 +1,5 @@
 'use strict';
 
-/* Notes:
-  - gulp/tasks/browserify.js handles js recompiling with watchify
-  - gulp/tasks/browserSync.js watches and reloads compiled files
-*/
-
-// var browserSync = require('browser-sync');
 var gulp = require('gulp');
 
 var directory = require(__dirname + '/_utilities/directory');
@@ -16,7 +10,7 @@ gulp.task(
     'browser-sync'
   ],
   function() {
-    if(global.applicationType === 'website') {
+    if (global.applicationType === 'website') {
       global.isWatching = true;
 
       // gulp.watch(directory.source + '/views/**/*.html', ['markup']);

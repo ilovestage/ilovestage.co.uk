@@ -13,7 +13,6 @@
 var environment = process.env.NODE_ENV ? process.env.NODE_ENV : 'development';
 
 var browserify = require('browserify');
-// var browserSync = require('browser-sync');
 var gulp = require('gulp');
 var jshint = require('gulp-jshint');
 var source = require('vinyl-source-stream');
