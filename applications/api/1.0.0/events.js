@@ -89,6 +89,7 @@ app.get('/', function* (next) {
 
   if (events.length > 0) {
     _(events).forEach(function (document) {
+
       co(function* () {
         var bookings = yield Booking.count({
           eventid: document._id.toString()
@@ -98,28 +99,49 @@ app.get('/', function* (next) {
       }).then(function (bookings) {
         document.bookings = bookings;
 
-        Booking.collection.aggregate([
-          {
-            $match: {
-              eventid: document._id.toString()
-            }
-          },
-          {
-            $group: {
-              _id: '$eventid',
-              total: {
-                $sum: '$tickets'
+        if(bookings > 0) {
+          // var matched = Booking.collection.find({
+          //   eventid: document._id.toString()
+          // }, {});
+          // console.log('matched', matched);
+
+          console.log('document._id.toString()', document._id.toString());
+
+          Booking.collection.aggregate([
+            {
+              $match: {
+                eventid: document._id.toString()
+              }
+            },
+            {
+              $group: {
+                _id: '$eventid',
+                total: {
+                  $sum: '$tickets'
+                }
+              }
+            },
+            {
+              $sort: {
+                total: -1
               }
             }
+          ],
+          // {
+          //   explain: true
+          // }
+          function (err, result) {
+            console.log('bookings', bookings);
+            console.log('err, result', err, result);
+
+            if(result && result[0] && result[0].total) {
+              document.ticketsBooked = result[0].total;
+            } else {
+              document.ticketsBooked = 0;
+            }
           }
-        ],
-        function (err, result) {
-          if(result && result[0] && result[0].total) {
-            document.ticketsBooked = result[0].total;
-          } else {
-            document.ticketsBooked = 0;
-          }
-        });
+          );
+        }
 
         manipulatedEvents.push(document);
       }, function (err) {
