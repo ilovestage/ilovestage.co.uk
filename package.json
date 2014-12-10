@@ -32,8 +32,9 @@
   "main": "app.js",
   "scripts": {
     "start": "gulp --debug --application",
-    "test": "./node_modules/.bin/istanbul test ./node_modules/.bin/_mocha -- -R spec",
-    "gulptest": "gulp test --debug --application",
+    "test": "env NODE_ENV=test node --harmony node_modules/istanbul/lib/cli.js cover _mocha -- -u exports -R spec",
+    "teststanbul": "env NODE_ENV=test istanbul test _mocha -- -R spec",
+    "testgulp": "env NODE_ENV=test gulp test --debug --application",
     "preinstall": "./environment-configuration/npm/preinstall.sh",
     "postinstall": "./environment-configuration/npm/postinstall.sh",
     "deploy": "./deploy.sh",
@@ -150,6 +151,7 @@
     "gulp-plumber": "^0.6.6",
     "gulp-sass": "^1.1.0",
     "gulp-sourcemaps": "^1.2.8",
+    "gulp-spawn-mocha": "^0.5.1",
     "gulp-spritesmith": "0.0.2",
     "gulp-streamify": "0.0.5",
     "gulp-uglify": "^1.0.1",
@@ -343,6 +345,46 @@
       }
     },
     "environment": {
+      "test": {
+        "url": {
+          "api": "//localhost",
+          "assets": "//cdn.localhost"
+        },
+        "server": {
+          "database": {
+            "protocol": "mongodb",
+            "host": "127.0.0.1",
+            "name": "ilovestage_test",
+            "port": 27017,
+            "credentials": {
+              "username": null,
+              "password": null
+            }
+          },
+          "redis": {
+            "host": "session.localhost",
+            "port": 6379
+          }
+        },
+        "api": {
+          "stripe": {
+            "key": "sk_test_UINfCzU5LSdkaPoIDETge6iS"
+          }
+        },
+        "email": {
+          "transport": {
+            "service": "Gmail",
+            "auth": {
+              "user": "ilovestageapp@gmail.com",
+              "pass": "curtaincall"
+            }
+          },
+          "sender": {
+            "name": "I Love Stage UK",
+            "address": "ilovestageapp@gmail.com"
+          }
+        }
+      },
       "development": {
         "url": {
           "assets": ""

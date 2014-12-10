@@ -10,6 +10,13 @@ if (global.applicationType === 'website') {
     'images'
   );
 }
+//  else if (global.applicationType === 'test') {
+//   buildTasks.push(
+//     'test'
+//   );
+// }
+
+// buildTasks.push('test');
 
 gulp.task(
   'build',
