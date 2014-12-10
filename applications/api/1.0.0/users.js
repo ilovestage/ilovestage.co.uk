@@ -9,8 +9,6 @@ var router = require('koa-router');
 
 var bodyParser = require('koa-bodyparser');
 var deleteKey = require('key-del');
-// var DJ = require('dot-object');
-// var qs = require('koa-qs');
 var stripe = require('stripe')(packageJson.config.environment[environment].api.stripe.key);
 var thunkify = require('thunkify');
 
@@ -33,15 +31,9 @@ var User = require('_models/user');
 var createCardThunk = thunkify(stripe.customers.create);
 var createCardBoundThunk = createCardThunk.bind(stripe.customers);
 
-// var dj = new DJ();
-
 var app = koa();
 
-// qs(app);
-
 app.use(bodyParser());
-
-// app.use(authentication());
 
 app.use(router(app));
 

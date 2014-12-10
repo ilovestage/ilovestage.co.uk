@@ -7,7 +7,6 @@ var _ = require('lodash');
 var co = require('co');
 var koa = require('koa');
 var moment = require('moment');
-var qs = require('koa-qs');
 var router = require('koa-router');
 
 var setResponse = require('_middleware/setResponse');
@@ -16,6 +15,7 @@ var authentication = require('_utilities/authentication');
 var authorization = require('_utilities/authorization');
 var dateQuery = require('_utilities/dateQuery');
 var mongo = require('_utilities/mongo');
+// var operatorQuery = require('_utilities/operatorQuery');
 
 var Booking = require('_models/booking');
 var Event = require('_models/event');
@@ -26,8 +26,6 @@ var Show = require('_models/show');
 var app = koa();
 
 app.use(router(app));
-
-qs(app);
 
 app.del('/:id', authentication, function* (next) {
   var event;
@@ -50,11 +48,14 @@ app.get('/', function* (next) {
   var events;
   var limit = 50;
   var manipulatedEvents = [];
+  var operators = ['gt', 'gte', 'lt', 'lte'];
+  var operatorIndex = operators.indexOf(this.query.operator);
   var returnFields = {};
   var searchFields = {};
   // var show;
 
-  searchFields = dateQuery(this.querystring, 'starttime');
+  searchFields = dateQuery(searchFields, this.querystring, 'starttime');
+  // searchFields = operatorQuery(searchFields, this.querystring, 'bookings');
 
   if (this.query.limit && (typeof parseInt(this.query.limit) === 'number')) {
     limit = parseInt(this.query.limit);
@@ -67,17 +68,6 @@ app.get('/', function* (next) {
   if (typeof this.query.showid !== 'undefined') {
     searchFields.showid = this.query.showid;
   }
-  // else if (typeof this.query.showname !== 'undefined') {
-  //   returnFields._id = 1;
-  //
-  //   searchFields.name = this.query.showname;
-  //
-  //   show = yield Show.findOne(searchFields, returnFields);
-  //
-  //   if (show) {
-  //     searchFields.showid = show._id.toString();
-  //   }
-  // }
 
   if (typeof this.query.eventid !== 'undefined') {
     searchFields.eventid = this.query.eventid;
@@ -100,13 +90,6 @@ app.get('/', function* (next) {
         document.bookings = bookings;
 
         if (bookings > 0) {
-          // var matched = Booking.collection.find({
-          //   eventid: document._id.toString()
-          // }, {});
-          // console.log('matched', matched);
-
-          console.log('document._id.toString()', document._id.toString());
-
           Booking.collection.aggregate([
             {
               $match: {
@@ -127,23 +110,30 @@ app.get('/', function* (next) {
               }
             }
           ],
-          // {
-          //   explain: true
-          // }
           function(err, result) {
-            console.log('bookings', bookings);
-            console.log('err, result', err, result);
-
             if (result && result[0] && result[0].total) {
               document.ticketsBooked = result[0].total;
             } else {
               document.ticketsBooked = 0;
             }
+
+            // if (typeof this.query.bookings !== 'undefined') {
+            //   if (operatorIndex >= 0) {
+            //     searchFields.bookings = {};
+            //     searchFields.bookings['$' + this.query.operator] = parseInt(this.query.bookings);
+            //   }
+            //   console.log('searchFields', searchFields);
+            // }
+
+            manipulatedEvents.push(document);
           }
           );
+        } else {
+          document.ticketsBooked = 0;
+
+          manipulatedEvents.push(document);
         }
 
-        manipulatedEvents.push(document);
       }, function(err) {
         console.error(err.stack);
       });

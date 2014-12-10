@@ -6,10 +6,11 @@
 var moment = require('moment');
 var Qs = require('qs');
 
-function dateQuery(querystring, field) {
+function dateQuery(searchFields, querystring, field) {
   var dateParameters = {};
   var query;
-  var searchFields = {};
+
+  searchFields = searchFields || {};
 
   query = Qs.parse(querystring);
 
