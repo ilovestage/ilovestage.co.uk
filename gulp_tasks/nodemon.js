@@ -50,7 +50,7 @@ gulp.task('nodemon', function(cb) {
   )
   .on(
     'start',
-    function () {
+    function() {
       console.log('nodemon started');
       if (!called) {
         called = true;
@@ -60,16 +60,16 @@ gulp.task('nodemon', function(cb) {
   )
   .on(
     'change',
-    function (files) {
+    function(files) {
       console.log('Files changed: ', files);
     }
   )
   .on(
     'restart',
-    function (files) {
+    function(files) {
       console.log('App restarted due to: ', files);
       setTimeout(
-        function () {
+        function() {
           browserSync.reload(
             {
               stream: false
@@ -82,7 +82,7 @@ gulp.task('nodemon', function(cb) {
   )
   .on(
     'quit',
-    function () {
+    function() {
       console.log('App has quit');
     }
   );
