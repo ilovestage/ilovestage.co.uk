@@ -6,7 +6,7 @@ var environment = process.env.NODE_ENV ? process.env.NODE_ENV : 'development';
 var model = require('mongel');
 
 var mongo = require('_utilities/mongo');
-var validator = require('_utilities/validator');
+var schema = require('_utilities/schema');
 
 var connectionString = mongo.connectionString(packageJson.config.environment[environment].server.database);
 
@@ -17,18 +17,18 @@ Payment.schema = {
   'type': 'object',
   'properties': {
     'userid': {
-      'type': 'string',
       'format': 'object-id'
     },
     'bookingid': {
-      'type': 'string',
       'format': 'object-id'
     },
     'processor': {
       'type': 'string',
       'enum': [
-        'stripe',
-        'applepay'
+        // 'applepay',
+        // 'googlewallet',
+        // 'paypal',
+        'stripe'
       ]
     },
     'amount': {
@@ -45,10 +45,10 @@ Payment.schema = {
       'maxLength': 100
     },
     'createtime': {
-      'type': 'object'
+      'format': 'date-time'
     },
     'updatetime': {
-      'type': 'object'
+      'format': 'date-time'
     }
   },
   'required': [
@@ -56,12 +56,14 @@ Payment.schema = {
     'bookingid',
     'processor',
     'amount',
-    'currency'
+    'currency',
+    'createtime',
+    'updatetime'
   ]
 };
 
 Payment.validate = function(document) {
-  return validator.validateResult(document, Payment.schema, false, true);
+  return schema.validateResult(document, Payment.schema, false, true);
 };
 
 module.exports = Payment;

@@ -50,7 +50,7 @@ app.del('/:id', function* (next) {
 
 app.get('/', authentication, function* (next) {
   var limit = 50;
-  var payment;
+  var payments;
   var searchFields = {};
 
   if (typeof this.query.processor !== 'undefined') {
@@ -73,12 +73,12 @@ app.get('/', authentication, function* (next) {
   }
 
   if (authorization.apply(this, ['admin']) === true) {
-    payment = yield Payment.find(searchFields, {
+    payments = yield Payment.find(searchFields, {
       limit: limit
     });
 
-    if (payment instanceof Object) {
-      this.locals.result = payment;
+    if (payments.length > 0) {
+      this.locals.result = payments;
       this.locals.status = 200;
     }
   }

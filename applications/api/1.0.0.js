@@ -49,11 +49,19 @@ app.use(function* (next) {
   this.locals.messages = this.locals.messages || messages;
   this.locals.querystringParameters = Qs.parse(this.querystring);
 
+  console.log('this.request.method', this.request.method);
+  // console.log('duration', moment.duration(90, 'minutes').toJSON());
   if (this.request.body) {
     this.locals.document = this.request.body;
-    this.locals.document.createtime = moment().toDate();
-    this.locals.document.updatetime = moment().toDate();
     this.locals.document = deleteKey(this.locals.document, ['format']);
+
+    if (this.request.method === 'POST') {
+      this.locals.document.createtime = moment().toJSON();
+      this.locals.document.updatetime = moment().toJSON();
+    } else if (this.request.method === 'PUT') {
+      this.locals.document.updatetime = moment().toJSON();
+    }
+
     dj.object(this.locals.document);
   }
 

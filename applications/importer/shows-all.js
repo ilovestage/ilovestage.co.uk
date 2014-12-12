@@ -75,28 +75,28 @@ csv.parse(showsFileString, showsParseOptions, function(error, showRows) {
 
         languageRows[languageRowsIterator].reviews = [];
 
-        var reviewers = languageRows[languageRowsIterator].reviewer.split('\n').filter(Boolean);
-        var reviews = languageRows[languageRowsIterator].review.split('\n').filter(Boolean);
+        var authors = languageRows[languageRowsIterator].author.split('\n').filter(Boolean);
+        var evaluations = languageRows[languageRowsIterator].evaluation.split('\n').filter(Boolean);
 
-        // console.log('reviewers', reviewers);
-        // console.log('reviews', reviews);
+        // console.log('authors', authors);
+        // console.log('evaluations', evaluations);
 
         var reviewRowsIterator;
 
-        for (reviewRowsIterator = 0; reviewRowsIterator < reviews.length; reviewRowsIterator++) {
+        for (reviewRowsIterator = 0; reviewRowsIterator < evaluations.length; reviewRowsIterator++) {
           languageRows[languageRowsIterator].reviews.push({
-            reviewer: reviewers[reviewRowsIterator],
-            review: reviews[reviewRowsIterator]
+            author: authors[reviewRowsIterator],
+            evaluation: evaluations[reviewRowsIterator]
           });
         }
 
         var translation = languageRows[languageRowsIterator];
         translation.lang = languageCode;
-        translation = deleteKey(translation, ['id', 'reviewer', 'review']);
+        translation = deleteKey(translation, ['id', 'author', 'evaluation']);
 
         var show = Shows.findAndModify({
           query: {
-            reference: languageRows[languageRowsIterator].id
+            reference: parseInt(languageRows[languageRowsIterator].id)
           },
           update: {
             $push: {
@@ -139,7 +139,7 @@ csv.parse(showsFileString, showsParseOptions, function(error, showRows) {
       showRows[showRowIterator].performances.push(day);
     }
 
-    showRows[showRowIterator].reference = showRows[showRowIterator].id;
+    showRows[showRowIterator].reference = parseInt(showRows[showRowIterator].id);
     showRows[showRowIterator] = deleteKey(showRows[showRowIterator], ['id']);
 
     console.log(showRows[showRowIterator]);

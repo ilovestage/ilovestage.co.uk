@@ -386,9 +386,6 @@ app.post('/', function* (next) {
     } else {
       user = null;
 
-      this.locals.document.createtime = moment().toDate();
-      this.locals.document.updatetime = moment().toDate();
-
       var password = cryptography.encryptPassword(this.locals.document.strategies.local.password);
 
       this.locals.document.strategies.local.password = password;
@@ -432,11 +429,12 @@ app.post('/', function* (next) {
         }
       }
     }
-  } else {
-    this.locals.message = deleteKey(validator, ['stack']);
-    this.locals.result = this.locals.document;
-    this.locals.status = 400;
   }
+  //  else {
+  //   this.locals.message = deleteKey(validator, ['stack']);
+  //   this.locals.result = this.locals.document;
+  //   this.locals.status = 400;
+  // }
 
   yield next;
 });

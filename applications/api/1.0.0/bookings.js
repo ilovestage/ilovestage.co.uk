@@ -166,6 +166,7 @@ app.post('/', function* (next) {
   // var searchFields;
   var show;
   var user;
+  var validator;
 
   // returnFields = {
   //   _id: 1,
@@ -175,50 +176,57 @@ app.post('/', function* (next) {
   // };
 
   if (authorization.apply(this, [this.locals.document.userid]) === true) {
-    event = yield Event.findOne({
-      _id: mongo.toObjectId(this.locals.document.eventid),
-    }, {});
+    this.locals.document.status = 'pending';
 
-    user = yield User.findOne({
-      _id: mongo.toObjectId(this.locals.document.userid)
-    }, {});
+    validator = Booking.validate(this.locals.document);
 
-    if (!user) {
-      this.locals.message = 'User referenced by booking could not be found.';
-      this.locals.status = 409;
-    } else if (!event) {
-      this.locals.message = 'Event referenced by booking could not be found.';
-      this.locals.status = 409;
-    } else {
-      booking = yield Booking.createOne(this.locals.document);
+    if (validator.valid === true) {
+      event = yield Event.findOne({
+        _id: mongo.toObjectId(this.locals.document.eventid),
+      }, {});
 
-      console.log('booking', booking);
-      console.log('event', event);
-      console.log('typeof event.showid', typeof event.showid);
-      console.log('mongo.toObjectId(event.showid)', mongo.toObjectId(event.showid));
+      user = yield User.findOne({
+        _id: mongo.toObjectId(this.locals.document.userid)
+      }, {});
 
-      if (booking instanceof Object) {
-        var test123 = {
-          _id: mongo.toObjectId(event.showid)
-        };
+      if (!user) {
+        this.locals.message = 'User referenced by booking could not be found.';
+        this.locals.status = 409;
+      } else if (!event) {
+        this.locals.message = 'Event referenced by booking could not be found.';
+        this.locals.status = 409;
+      } else {
+        booking = yield Booking.createOne(this.locals.document);
 
-        console.log('test123', test123);
+        console.log('booking', booking);
+        console.log('event', event);
+        console.log('typeof event.showid', typeof event.showid);
+        console.log('mongo.toObjectId(event.showid)', mongo.toObjectId(event.showid));
 
-        show = yield Show.findOne(test123, {});
+        if (booking instanceof Object) {
+          var test123 = {
+            _id: mongo.toObjectId(event.showid)
+          };
 
-        console.log('show', show);
+          console.log('test123', test123);
 
-        if (show instanceof Object) {
-          email.send({
-            subject: 'Booking confirmed',
-            email: user.strategies.local.email,
-            user: user,
-            show: show,
-            date: moment(event.starttime).format('dddd, MMMM Do YYYY, h:mm:ss a')
-          }, 'user-booking');
+          show = yield Show.findOne(test123, {});
 
-          this.locals.result = booking;
-          this.locals.status = 201;
+          console.log('show', show);
+
+          if (show instanceof Object) {
+            email.send({
+              subject: 'Booking confirmed',
+              email: user.strategies.local.email,
+              user: user,
+              show: show,
+              date: moment(event.starttime).format('dddd, MMMM Do YYYY, h:mm:ss a')
+            }, 'user-booking');
+
+            this.locals.result = booking;
+            this.locals.status = 201;
+          }
+
         }
 
       }

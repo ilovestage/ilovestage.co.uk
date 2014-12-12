@@ -22,7 +22,7 @@ var Show = require('_models/show');
 
 var returnFieldsShow = {
   theatre: 1,
-  location: 1,
+  address: 1,
   latitude: 1,
   longitude: 1,
   performances: 1,
@@ -175,13 +175,19 @@ app.get('/:id', function* (next) {
 
 app.post('/', authentication, function* (next) {
   var show;
+  var validator;
 
   if (authorization.apply(this, ['admin']) === true) {
-    show = yield Show.createOne(this.locals.document);
 
-    if (show instanceof Object) {
-      this.locals.result = show;
-      this.locals.status = 201;
+    validator = Show.validate(this.locals.document);
+    
+    if (validator.valid === true) {
+      show = yield Show.createOne(this.locals.document);
+
+      if (show instanceof Object) {
+        this.locals.result = show;
+        this.locals.status = 201;
+      }
     }
   }
 

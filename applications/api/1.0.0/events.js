@@ -202,6 +202,7 @@ app.get('/:id', function* (next) {
 
 app.post('/', authentication, function* (next) {
   var event;
+  var validator;
 
   this.locals.document.starttime = moment(this.locals.document.starttime).toDate();
   this.locals.document.endtime = moment(this.locals.document.endtime).toDate();
@@ -211,11 +212,15 @@ app.post('/', authentication, function* (next) {
   }
 
   if (authorization.apply(this, ['admin']) === true) {
-    event = yield Event.createOne(this.locals.document);
+    validator = Event.validate(this.locals.document);
 
-    if (event instanceof Object) {
-      this.locals.result = event;
-      this.locals.status = 201;
+    if (validator.valid === true) {
+      event = yield Event.createOne(this.locals.document);
+
+      if (event instanceof Object) {
+        this.locals.result = event;
+        this.locals.status = 201;
+      }
     }
   }
 

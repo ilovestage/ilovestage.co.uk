@@ -6,7 +6,7 @@ var environment = process.env.NODE_ENV ? process.env.NODE_ENV : 'development';
 var model = require('mongel');
 
 var mongo = require('_utilities/mongo');
-var validator = require('_utilities/validator');
+var schema = require('_utilities/schema');
 
 var connectionString = mongo.connectionString(packageJson.config.environment[environment].server.database);
 
@@ -103,21 +103,21 @@ User.schema = {
         }
       },
       'anyOf': [
-      {
-        'required': ['local']
-      },
-      {
-        'required': ['oauth2']
-      },
-      {
-        'required': ['facebook']
-      },
-      {
-        'required': ['twitter']
-      },
-      {
-        'required': ['googleplus']
-      }
+        {
+          'required': ['local']
+        },
+        {
+          'required': ['oauth2']
+        },
+        {
+          'required': ['facebook']
+        },
+        {
+          'required': ['twitter']
+        },
+        {
+          'required': ['googleplus']
+        }
       ]
     },
     'communications': {
@@ -144,10 +144,10 @@ User.schema = {
       }
     },
     'createtime': {
-      'type': 'object'
+      'format': 'date-time'
     },
     'updatetime': {
-      'type': 'object'
+      'format': 'date-time'
     }
   },
   'definitions': {
@@ -183,16 +183,18 @@ User.schema = {
   'required': [
     'firstname',
     'lastname',
-    'strategies'
+    'strategies',
+    'createtime',
+    'updatetime'
   ]
 };
 
 User.validate = function(document) {
   document.phone.countrycallingcode = '+' + document.phone.countrycallingcode;
 
-  // console.log(validator.validateMultiple(document, User.schema, false, true));
+  // console.log(schema.validateMultiple(document, User.schema, false, true));
 
-  return validator.validateResult(document, User.schema, false, true);
+  return schema.validateResult(document, User.schema, false, true);
 };
 
 module.exports = User;
