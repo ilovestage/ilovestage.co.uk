@@ -178,9 +178,8 @@ app.post('/', authentication, function* (next) {
   var validator;
 
   if (authorization.apply(this, ['admin']) === true) {
+    validator = Show.validate(this.locals.document, 'create');
 
-    validator = Show.validate(this.locals.document);
-    
     if (validator.valid === true) {
       show = yield Show.createOne(this.locals.document);
 
@@ -188,6 +187,9 @@ app.post('/', authentication, function* (next) {
         this.locals.result = show;
         this.locals.status = 201;
       }
+    } else {
+      this.locals.error = validator;
+      this.locals.status = 400;
     }
   }
 
@@ -197,6 +199,7 @@ app.post('/', authentication, function* (next) {
 app.put('/:id', authentication, function* (next) {
   var updateFields = {};
   var show;
+  var validator;
 
   if (this.query.replace === 'true') {
     updateFields = this.locals.document;
@@ -207,13 +210,17 @@ app.put('/:id', authentication, function* (next) {
   }
 
   if (authorization.apply(this, ['admin']) === true) {
-    show = yield Show.update({
-      _id: this.params.id
-    }, updateFields);
+    validator = Show.validate(this.locals.document, 'update');
 
-    if (show instanceof Object) {
-      this.locals.result = show;
-      this.locals.status = 200;
+    if (validator.valid === true) {
+      show = yield Show.update({
+        _id: this.params.id
+      }, updateFields);
+
+      if (show instanceof Object) {
+        this.locals.result = show;
+        this.locals.status = 200;
+      }
     }
   }
 

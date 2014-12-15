@@ -172,7 +172,7 @@ app.use(mount('/users', require(__dirname + '/1.0.0/users')));
 app.use(router(app));
 
 app.get('/', function* (next) {
-  this.locals.result = packageJson.name + ' API version ' + app.version;
+  this.locals.message = packageJson.name + ' API version ' + app.version;
   this.locals.status = 200;
 
   yield next;

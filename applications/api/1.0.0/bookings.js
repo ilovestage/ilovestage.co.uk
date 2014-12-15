@@ -178,7 +178,7 @@ app.post('/', function* (next) {
   if (authorization.apply(this, [this.locals.document.userid]) === true) {
     this.locals.document.status = 'pending';
 
-    validator = Booking.validate(this.locals.document);
+    validator = Booking.validate(this.locals.document, 'create');
 
     if (validator.valid === true) {
       event = yield Event.findOne({
@@ -231,6 +231,9 @@ app.post('/', function* (next) {
 
       }
 
+    } else {
+      this.locals.error = validator;
+      this.locals.status = 400;
     }
 
   }

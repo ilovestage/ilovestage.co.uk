@@ -12,7 +12,9 @@ var connectionString = mongo.connectionString(packageJson.config.environment[env
 
 var User = model('users', connectionString);
 
-User.schema = {
+User.schema = {};
+
+User.schema.update = {
   'title': 'User Schema',
   'type': 'object',
   'properties': {
@@ -102,23 +104,23 @@ User.schema = {
           '$ref': '#/definitions/oauth',
         }
       },
-      'anyOf': [
-        {
-          'required': ['local']
-        },
-        {
-          'required': ['oauth2']
-        },
-        {
-          'required': ['facebook']
-        },
-        {
-          'required': ['twitter']
-        },
-        {
-          'required': ['googleplus']
-        }
+      'required': [
+        'local'
       ]
+      // 'anyOf': [
+      //   {
+      //     'required': ['oauth2']
+      //   },
+      //   {
+      //     'required': ['facebook']
+      //   },
+      //   {
+      //     'required': ['twitter']
+      //   },
+      //   {
+      //     'required': ['googleplus']
+      //   }
+      // ]
     },
     'communications': {
       'type': 'object',
@@ -179,22 +181,31 @@ User.schema = {
         'sms'
       ]
     }
-  },
-  'required': [
-    'firstname',
-    'lastname',
-    'strategies',
-    'createtime',
-    'updatetime'
-  ]
+  }
 };
 
-User.validate = function(document) {
+User.schema.create = JSON.parse(JSON.stringify(User.schema.update));
+
+User.schema.create.required = [
+  'firstname',
+  'lastname',
+  'strategies',
+  'createtime',
+  'updatetime'
+];
+
+User.validate = function(document, method) {
+  var currentSchema;
+
   document.phone.countrycallingcode = '+' + document.phone.countrycallingcode;
 
-  // console.log(schema.validateMultiple(document, User.schema, false, true));
+  if (method === 'create') {
+    currentSchema = User.schema.create;
+  } else if (method === 'update') {
+    currentSchema = User.schema.update;
+  }
 
-  return schema.validateResult(document, User.schema, false, true);
+  return schema.check(document, currentSchema);
 };
 
 module.exports = User;

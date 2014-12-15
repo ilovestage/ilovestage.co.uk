@@ -12,20 +12,17 @@ var connectionString = mongo.connectionString(packageJson.config.environment[env
 
 var Event = model('events', connectionString);
 
-// console.log(Event);
+// var index = {
+//   'showid': 1,
+//   'starttime': 1
+// };
 
-var index = {
-  'showid': 1,
-  'starttime': 1
-};
-
-Event.ensureIndex(index);
-
+// Event.ensureIndex(index);
 // var info = Event.indexInformation(index);
 
-// console.log('info', info);
+Event.schema = {};
 
-Event.schema = {
+Event.schema.update = {
   'title': 'Event Schema',
   'type': 'object',
   'properties': {
@@ -70,18 +67,29 @@ Event.schema = {
     'updatetime': {
       'format': 'date-time'
     }
-  },
-  'required': [
-    'showid',
-    'starttime',
-    'endtime',
-    'createtime',
-    'updatetime'
-  ]
+  }
 };
 
-Event.validate = function(document) {
-  return schema.validateResult(document, Event.schema, false, true);
+Event.schema.create = JSON.parse(JSON.stringify(Event.schema.update));
+
+Event.schema.create.required = [
+  'showid',
+  'starttime',
+  'endtime',
+  'createtime',
+  'updatetime'
+];
+
+Event.validate = function(document, method) {
+  var currentSchema;
+
+  if (method === 'create') {
+    currentSchema = Event.schema.create;
+  } else if (method === 'update') {
+    currentSchema = Event.schema.update;
+  }
+
+  return schema.check(document, currentSchema);
 };
 
 module.exports = Event;

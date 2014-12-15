@@ -12,7 +12,9 @@ var connectionString = mongo.connectionString(packageJson.config.environment[env
 
 var Show = model('shows', connectionString);
 
-Show.schema = {
+Show.schema = {};
+
+Show.schema.update = {
   'title': 'Show Schema',
   'type': 'object',
   'properties': {
@@ -25,6 +27,15 @@ Show.schema = {
       'type': 'array',
       'items': {
         '$ref': '#/definitions/translation'
+      },
+      'additionalItems': false,
+      'minItems': 1,
+      'uniqueItems': true
+    },
+    'performances': {
+      'type': 'array',
+      'items': {
+        '$ref': '#/definitions/performance'
       },
       'additionalItems': false,
       'minItems': 1,
@@ -341,21 +352,32 @@ Show.schema = {
         'synopsis'
       ]
     }
-  },
-  'required': [
-    'reference',
-    'translations',
-    'theatre',
-    'address',
-    'latitude',
-    'longitude',
-    'createtime',
-    'updatetime'
-  ]
+  }
 };
 
-Show.validate = function(document) {
-  return schema.validateResult(document, Show.schema, false, true);
+Show.schema.create = JSON.parse(JSON.stringify(Show.schema.update));
+
+Show.schema.create.required = [
+  'reference',
+  'translations',
+  'theatre',
+  'address',
+  'latitude',
+  'longitude',
+  'createtime',
+  'updatetime'
+];
+
+Show.validate = function(document, method) {
+  var currentSchema;
+
+  if (method === 'create') {
+    currentSchema = Show.schema.create;
+  } else if (method === 'update') {
+    currentSchema = Show.schema.update;
+  }
+
+  return schema.check(document, currentSchema);
 };
 
 module.exports = Show;

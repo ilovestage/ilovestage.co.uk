@@ -140,7 +140,7 @@ app.post('/', function* (next) {
   // console.log('this.locals.document', this.locals.document);
   // console.log('Valid: ' + validator.validate(this.locals.document, schema.payment, false, true)); // true
 
-  validator = Payment.validate(this.locals.document);
+  validator = Payment.validate(this.locals.document, 'create');
 
   if (validator.valid === true) {
     searchFields._id = mongo.toObjectId(this.locals.document.bookingid);
@@ -183,8 +183,7 @@ app.post('/', function* (next) {
       }
     }
   } else {
-    this.locals.message = deleteKey(validator, ['stack']);
-    this.locals.result = this.locals.document;
+    this.locals.error = validator;
     this.locals.status = 400;
   }
 

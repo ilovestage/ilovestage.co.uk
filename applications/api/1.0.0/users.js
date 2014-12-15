@@ -4,7 +4,7 @@ var packageJson = require('package.json');
 var environment = process.env.NODE_ENV ? process.env.NODE_ENV : 'development';
 
 var koa = require('koa');
-var moment = require('moment');
+// var moment = require('moment');
 var router = require('koa-router');
 
 var bodyParser = require('koa-bodyparser');
@@ -331,7 +331,7 @@ app.post('/', function* (next) {
     this.locals.document.role = 'standard';
   }
 
-  validator = User.validate(this.locals.document);
+  validator = User.validate(this.locals.document, 'create');
 
   if (validator.valid === true) {
     if (typeof this.locals.document.strategies !== 'undefined') {
@@ -429,12 +429,10 @@ app.post('/', function* (next) {
         }
       }
     }
+  } else {
+    this.locals.error = validator;
+    this.locals.status = 400;
   }
-  //  else {
-  //   this.locals.message = deleteKey(validator, ['stack']);
-  //   this.locals.result = this.locals.document;
-  //   this.locals.status = 400;
-  // }
 
   yield next;
 });

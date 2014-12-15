@@ -12,7 +12,9 @@ var connectionString = mongo.connectionString(packageJson.config.environment[env
 
 var Payment = model('payments', connectionString);
 
-Payment.schema = {
+Payment.schema = {};
+
+Payment.schema.update = {
   'title': 'Payment Schema',
   'type': 'object',
   'properties': {
@@ -50,20 +52,31 @@ Payment.schema = {
     'updatetime': {
       'format': 'date-time'
     }
-  },
-  'required': [
-    'userid',
-    'bookingid',
-    'processor',
-    'amount',
-    'currency',
-    'createtime',
-    'updatetime'
-  ]
+  }
 };
 
-Payment.validate = function(document) {
-  return schema.validateResult(document, Payment.schema, false, true);
+Payment.schema.create = JSON.parse(JSON.stringify(Payment.schema.update));
+
+Payment.schema.create.required = [
+  'userid',
+  'bookingid',
+  'processor',
+  'amount',
+  'currency',
+  'createtime',
+  'updatetime'
+];
+
+Payment.validate = function(document, method) {
+  var currentSchema;
+
+  if (method === 'create') {
+    currentSchema = Payment.schema.create;
+  } else if (method === 'update') {
+    currentSchema = Payment.schema.update;
+  }
+
+  return schema.check(document, currentSchema);
 };
 
 module.exports = Payment;

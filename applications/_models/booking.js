@@ -12,7 +12,9 @@ var connectionString = mongo.connectionString(packageJson.config.environment[env
 
 var Booking = model('bookings', connectionString);
 
-Booking.schema = {
+Booking.schema = {};
+
+Booking.schema.update = {
   'title': 'Booking Schema',
   'type': 'object',
   'properties': {
@@ -48,20 +50,31 @@ Booking.schema = {
     'updatetime': {
       'format': 'date-time'
     }
-  },
-  'required': [
-    'userid',
-    'eventid',
-    'tickets',
-    'status',
-    'rate',
-    'createtime',
-    'updatetime'
-  ]
+  }
 };
 
-Booking.validate = function(document) {
-  return schema.validateResult(document, Booking.schema, false, true);
+Booking.schema.create = JSON.parse(JSON.stringify(Booking.schema.update));
+
+Booking.schema.create.required = [
+  'userid',
+  'eventid',
+  'tickets',
+  'status',
+  'rate',
+  'createtime',
+  'updatetime'
+];
+
+Booking.validate = function(document, method) {
+  var currentSchema;
+
+  if (method === 'create') {
+    currentSchema = Booking.schema.create;
+  } else if (method === 'update') {
+    currentSchema = Booking.schema.update;
+  }
+
+  return schema.check(document, currentSchema);
 };
 
 module.exports = Booking;

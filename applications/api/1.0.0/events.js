@@ -48,8 +48,8 @@ app.get('/', function* (next) {
   var events;
   var limit = 50;
   var manipulatedEvents = [];
-  var operators = ['gt', 'gte', 'lt', 'lte'];
-  var operatorIndex = operators.indexOf(this.query.operator);
+  // var operators = ['gt', 'gte', 'lt', 'lte'];
+  // var operatorIndex = operators.indexOf(this.query.operator);
   var returnFields = {};
   var searchFields = {};
   // var show;
@@ -212,7 +212,7 @@ app.post('/', authentication, function* (next) {
   }
 
   if (authorization.apply(this, ['admin']) === true) {
-    validator = Event.validate(this.locals.document);
+    validator = Event.validate(this.locals.document, 'create');
 
     if (validator.valid === true) {
       event = yield Event.createOne(this.locals.document);
@@ -221,6 +221,9 @@ app.post('/', authentication, function* (next) {
         this.locals.result = event;
         this.locals.status = 201;
       }
+    } else {
+      this.locals.error = validator;
+      this.locals.status = 400;
     }
   }
 
