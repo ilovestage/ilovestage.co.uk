@@ -27,24 +27,33 @@ Payment.schema.update = {
     'processor': {
       'type': 'string',
       'enum': [
-        // 'applepay',
-        // 'googlewallet',
-        // 'paypal',
-        'stripe'
+        'Apple Pay',
+        'Google Wallet',
+        'PayPal',
+        // 'Stripe',
+        'STPCard'
       ]
     },
     'amount': {
       'type': 'integer',
       'minimum': 1,
-      'maximum': 5000
+      'maximum': 500000
     },
     'currency': {
       'type': 'string',
       'format': 'currency-code'
     },
-    'description': {
+    'token': {
       'type': 'string',
-      'maxLength': 100
+      'maxLength': 255
+    },
+    'receipt_email': {
+      'type': 'string',
+      'format': 'email'
+    },
+    'statement_description': {
+      'type': 'string',
+      'maxLength': 255
     },
     'createtime': {
       'format': 'date-time'
