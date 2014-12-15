@@ -24,6 +24,9 @@ Booking.schema.update = {
     'eventid': {
       'format': 'object-id'
     },
+    'showid': {
+      'format': 'object-id'
+    },
     'tickets': {
       'type': 'integer',
       'minimum': 1,
@@ -58,6 +61,7 @@ Booking.schema.create = JSON.parse(JSON.stringify(Booking.schema.update));
 Booking.schema.create.required = [
   'userid',
   'eventid',
+  'showid',
   'tickets',
   'status',
   'rate',
