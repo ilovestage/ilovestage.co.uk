@@ -51,6 +51,10 @@ Payment.schema.update = {
       'type': 'string',
       'format': 'email'
     },
+    'description': {
+      'type': 'string',
+      'maxLength': 255
+    },
     'statement_description': {
       'type': 'string',
       'maxLength': 255
