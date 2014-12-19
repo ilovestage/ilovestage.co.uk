@@ -1,20 +1,18 @@
 'use strict';
 
-var packageJson = require('package.json');
-var environment = process.env.NODE_ENV ? process.env.NODE_ENV : 'development';
-
 var model = require('mongel');
 
-var mongo = require('_utilities/mongo');
 var schema = require('_utilities/schema');
 
-var connectionString = mongo.connectionString(packageJson.config.environment[environment].server.database);
+var User = model();
 
-var User = model('users', connectionString);
+User.prototype.getName = function() {
+  return this.firstname + ' ' + this.lastname;
+};
 
-User.schema = {};
+var schema = {};
 
-User.schema.update = {
+schema.update = {
   'title': 'User Schema',
   'type': 'object',
   'properties': {
@@ -184,9 +182,9 @@ User.schema.update = {
   }
 };
 
-User.schema.create = JSON.parse(JSON.stringify(User.schema.update));
+schema.create = JSON.parse(JSON.stringify(schema.update));
 
-User.schema.create.required = [
+schema.create.required = [
   'firstname',
   'lastname',
   'strategies',
@@ -194,15 +192,19 @@ User.schema.create.required = [
   'updatetime'
 ];
 
-User.validate = function(document, method) {
+User.prototype.describe = function() {
+  return schema;
+};
+
+User.prototype.validate = function(document, method) {
   var currentSchema;
 
   document.phone.countrycallingcode = '+' + document.phone.countrycallingcode;
 
   if (method === 'create') {
-    currentSchema = User.schema.create;
+    currentSchema = schema.create;
   } else if (method === 'update') {
-    currentSchema = User.schema.update;
+    currentSchema = schema.update;
   }
 
   return schema.check(document, currentSchema);

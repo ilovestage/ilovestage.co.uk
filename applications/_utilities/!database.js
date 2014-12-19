@@ -1,12 +1,12 @@
 'use strict';
 
-var packageJson = require('package.json');
-var environment = process.env.NODE_ENV ? process.env.NODE_ENV : 'development';
+// var packageJson = require('package.json');
+// var environment = process.env.NODE_ENV ? process.env.NODE_ENV : 'development';
 
 var wrap = require('co-monk');
 var monk = require('monk');
 
-var mongo = require(__dirname + '/mongo');
+var mongo = require('_utilities/mongo');
 
 var database = function(configuration) {
 	if (typeof configuration === 'undefined') {

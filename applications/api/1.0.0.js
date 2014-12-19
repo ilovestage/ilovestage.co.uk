@@ -162,11 +162,11 @@ app.use(function* (next) {
   yield next;
 });
 
-app.use(mount('/bookings', require(__dirname + '/1.0.0/bookings')));
-app.use(mount('/events', require(__dirname + '/1.0.0/events')));
-app.use(mount('/notes', require(__dirname + '/1.0.0/notes')));
-app.use(mount('/payments', require(__dirname + '/1.0.0/payments')));
-app.use(mount('/shows', require(__dirname + '/1.0.0/shows')));
+// app.use(mount('/bookings', require(__dirname + '/1.0.0/bookings')));
+// app.use(mount('/events', require(__dirname + '/1.0.0/events')));
+// app.use(mount('/notes', require(__dirname + '/1.0.0/notes')));
+// app.use(mount('/payments', require(__dirname + '/1.0.0/payments')));
+// app.use(mount('/shows', require(__dirname + '/1.0.0/shows')));
 app.use(mount('/users', require(__dirname + '/1.0.0/users')));
 
 app.use(router(app));

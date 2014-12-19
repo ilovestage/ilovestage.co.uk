@@ -11,6 +11,7 @@ var bodyParser = require('koa-bodyparser');
 var deleteKey = require('key-del');
 var stripe = require('stripe')(packageJson.config.environment[environment].api.stripe.key);
 var thunkify = require('thunkify');
+var wrap = require('mongodb-next').collection;
 
 var setResponse = require('_middleware/setResponse');
 
@@ -21,6 +22,12 @@ var cryptography = require('_utilities/cryptography');
 var email = require('_utilities/email');
 // var internationalization = require('_utilities/internationalization');
 var mongo = require('_utilities/mongo');
+
+var db = mongo.connect(packageJson.config.environment[environment].server.database);
+console.log('db', db);
+
+var users = wrap(db.collection('users'));
+console.log('users', users);
 
 // var Booking = require('_models/booking');
 // var Event = require('_models/event');
@@ -46,7 +53,7 @@ app.del('/:id', authentication, function* (next) {
   searchFields._id = mongo.toObjectId(this.params.id);
 
   if (authorization.apply(this, [this.params.id]) === true) {
-    user = yield User.remove(searchFields);
+    user = yield users.remove(searchFields).then(User);
 
     if (user instanceof Object) {
       this.locals.result = user;
@@ -97,7 +104,7 @@ app.get('/', function* (next) {
 
     returnFields['strategies.' + this.query.provider + '.token'] = 1;
 
-    user = yield User.findOne(searchFields, returnFields);
+    user = yield users.findOne(searchFields, returnFields).then(User);
 
     if (user instanceof Object) {
       if (
@@ -143,7 +150,7 @@ app.get('/', function* (next) {
 
     searchFields['strategies.local.email'] = this.query.email;
 
-    user = yield User.findOne(searchFields, returnFields);
+    user = yield users.findOne(searchFields, returnFields).then(User);
 
     if (user instanceof Object) {
       token = cryptography.encryptPasswordResetToken(user._id.toString());
@@ -178,7 +185,7 @@ app.get('/', function* (next) {
     searchFields['strategies.local.email'] = this.query.email;
     searchFields.passwordresettoken = this.query.token;
 
-    user = yield User.findOne(searchFields, returnFields);
+    user = yield users.findOne(searchFields, returnFields).then(User);
 
     if (user instanceof Object) {
 
@@ -211,7 +218,7 @@ app.get('/', function* (next) {
     returnFields['strategies.local.password'] = 1;
     returnFields.uid = 1;
 
-    user = yield User.findOne(searchFields, returnFields);
+    user = yield users.findOne(searchFields, returnFields).then(User);
 
     if (user instanceof Object) {
       if (
@@ -253,11 +260,10 @@ app.get('/', function* (next) {
       this.locals.result = user;
     }
   } else {
-
     if (authorization.apply(this, ['admin']) === true) {
-      users = yield User.find(searchFields, returnFields, {
+      users = yield users.find(searchFields, returnFields, {
         limit: limit
-      });
+      }).then(User);
 
       if (users.length > 0) {
         this.locals.result = users;
@@ -305,7 +311,7 @@ app.get('/:id', authentication, function* (next) {
       }
     }
 
-    user = yield User.findOne(searchFields, returnFields);
+    user = yield users.findOne(searchFields, returnFields).then(User);
 
     if (user instanceof Object) {
       if (authorization.apply(this, [user._id]) === true) {
@@ -376,7 +382,7 @@ app.post('/', function* (next) {
       searchFields.$or = orParameters;
     }
 
-    user = yield User.findOne(searchFields);
+    user = yield users.findOne(searchFields).then(User);
 
     if (user instanceof Object) {
       user = null;
@@ -390,7 +396,7 @@ app.post('/', function* (next) {
 
       this.locals.document.strategies.local.password = password;
 
-      user = yield User.createOne(this.locals.document);
+      user = yield users.insert(this.locals.document).then(User);
 
       if (user instanceof Object) {
         card = yield createCardBoundThunk({
@@ -459,7 +465,7 @@ app.put('/:id', authentication, function* (next) {
   }
 
   if (authorization.apply(this, [this.params.id]) === true) {
-    user = yield User.update(searchFields, updateFields);
+    user = yield users.update(searchFields, updateFields).then(User);
 
     if (user instanceof Object) {
       this.locals.result = user;
