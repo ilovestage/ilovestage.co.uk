@@ -11,7 +11,6 @@ var bodyParser = require('koa-bodyparser');
 var deleteKey = require('key-del');
 var stripe = require('stripe')(packageJson.config.environment[environment].api.stripe.key);
 var thunkify = require('thunkify');
-var wrap = require('mongodb-next').collection;
 
 var setResponse = require('_middleware/setResponse');
 
@@ -24,15 +23,23 @@ var email = require('_utilities/email');
 var mongo = require('_utilities/mongo');
 
 var db = mongo.connect(packageJson.config.environment[environment].server.database);
-console.log('db', db);
 
-var users = wrap(db.collection('users'));
-console.log('users', users);
+var bookings;
+var events;
+var payments;
+var users;
 
-// var Booking = require('_models/booking');
-// var Event = require('_models/event');
-// var Payment = require('_models/payment');
-// var Show = require('_models/show');
+db.then(function() {
+  bookings = db.collection('bookings');
+  events = db.collection('events');
+  payments = db.collection('payments');
+  users = db.collection('users');
+});
+
+var Booking = require('_models/booking');
+var Event = require('_models/event');
+var Payment = require('_models/payment');
+var Show = require('_models/show');
 var User = require('_models/user');
 
 var createCardThunk = thunkify(stripe.customers.create);

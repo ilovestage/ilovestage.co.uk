@@ -1,20 +1,14 @@
 'use strict';
 
-var packageJson = require('package.json');
-var environment = process.env.NODE_ENV ? process.env.NODE_ENV : 'development';
-
 var model = require('mongel');
 
-var mongo = require('_utilities/mongo');
 var schema = require('_utilities/schema');
 
-var connectionString = mongo.connectionString(packageJson.config.environment[environment].server.database);
+var Payment = model();
 
-var Payment = model('payments', connectionString);
+var schema = {};
 
-Payment.schema = {};
-
-Payment.schema.update = {
+schema.update = {
   'title': 'Payment Schema',
   'type': 'object',
   'properties': {
@@ -68,9 +62,9 @@ Payment.schema.update = {
   }
 };
 
-Payment.schema.create = JSON.parse(JSON.stringify(Payment.schema.update));
+schema.create = JSON.parse(JSON.stringify(schema.update));
 
-Payment.schema.create.required = [
+schema.create.required = [
   'userid',
   'bookingid',
   'processor',
@@ -80,7 +74,11 @@ Payment.schema.create.required = [
   'updatetime'
 ];
 
-Payment.validate = function(document, method) {
+Payment.prototype.describe = function() {
+  return schema;
+};
+
+Payment.prototype.validate = function(document, method) {
   var currentSchema;
 
   if (method === 'create') {

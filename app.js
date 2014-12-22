@@ -3,6 +3,9 @@
 require('app-module-path').addPath(__dirname + '/applications');
 require('app-module-path').addPath(__dirname);
 
+var packageJson = require('package.json');
+var environment = process.env.NODE_ENV ? process.env.NODE_ENV : 'development';
+
 var argv = require('yargs').argv;
 var debug = require('debug');
 // var forceSSL = require('koa-force-ssl');
@@ -13,9 +16,6 @@ var koa = require('koa');
 // var logger = require('koa-logger');
 var mount = require('koa-mount');
 var router = require('koa-router');
-
-var packageJson = require('package.json');
-var environment = process.env.NODE_ENV ? process.env.NODE_ENV : 'development';
 
 var port = {};
 port.http = process.env.PORT ? process.env.PORT : packageJson.config.applications[argv.application].http.port;
@@ -32,24 +32,8 @@ port.https = process.env.PORT ? process.env.PORT : packageJson.config.applicatio
 
 var app = koa();
 
-console.log('Requiring ' + argv.application + ' application.');
-
-var application = require(__dirname + '/applications/' + argv.application);
-
 // wrap subsequent middleware in a logger
 // app.use(logger()); // very verbose
-
-if (typeof process.env.DEBUG !== 'undefined') {
-  console.log('process.env.DEBUG', process.env.DEBUG);
-}
-
-app.keys = [packageJson.config.redis.key];
-// app.keys = ['some secret hurr'];
-
-app.use(function* (next) {
-  this.locals = this.locals || {};
-  yield next;
-});
 
 // use logger
 app.use(function* (next) {
@@ -58,6 +42,21 @@ app.use(function* (next) {
   console.log('%s %s - %s', this.method, this.url, ms);
   // console.log(this, this.request, this.response);
   // console.log(this.request.header);
+  yield next;
+});
+
+console.log('Requiring ' + argv.application + ' application.');
+
+var application = require(__dirname + '/applications/' + argv.application);
+
+if (typeof process.env.DEBUG !== 'undefined') {
+  console.log('process.env.DEBUG', process.env.DEBUG);
+}
+
+app.keys = [packageJson.config.redis.key];
+
+app.use(function* (next) {
+  this.locals = this.locals || {};
   yield next;
 });
 

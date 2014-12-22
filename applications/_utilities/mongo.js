@@ -1,53 +1,31 @@
 'use strict';
 
+var packageJson = require('package.json');
+var environment = process.env.NODE_ENV ? process.env.NODE_ENV : 'development';
+
 var bson = require('bson');
-// var MongoClient = require('mongodb').MongoClient;
-var monk = require('monk');
-// var thunkify = require('thunkify');
-// var wrap = require('mongodb-next').collection;
-// var wrap = require('co-monk');
+
+// var assert = require('assert');
+var DB = require('mongodb-next');
+// var MongoDB = require('mongodb');
+// var Promise = require('native-or-bluebird');
 
 var mongo = {
-  connect: function(configuration) {
-    // var connect = thunkify(MongoClient.connect);
-    // return connect(mongo.connectionString(configuration));
-    return monk(mongo.connectionString(configuration));
-  },
-
-  // connection: function(configuration) {
-  //   if (typeof configuration === 'undefined') {
-  //     return false;
-  //   }
-  //
-  //   // private property
-  //   var connection;
-  //
-  //   // private constructor
-  //   var __construct = (function(configuration) {
-  //     var connectionString;
-  //
-  //     if (typeof configuration === 'string') {
-  //       connectionString = configuration;
-  //     } else {
-  //       connectionString = mongo.connectionString(configuration);
-  //     }
-  //
-  //     connection = monk(connectionString);
-  //
-  //     return connection;
-  //   })(configuration);
-  //
-  //   mongo.connection.collection = function(collection, thunk) {
-  //     if (thunk === true) {
-  //       console.log('thunk', true);
-  //       return wrap(connection.get(collection));
-  //     } else {
-  //       console.log('thunk', false);
-  //       return connection.get(collection);
-  //     }
-  //   };
-  //
+  // collection: function(collectionName) {
+  //   return db.then(function() {
+  //     var collection = db.collection(collectionName);
+  //     // console.log('collection', collection);
+  //     // var results = collection.find({}).then(function(docs) {
+  //     //   console.log('results', docs);
+  //     // });
+  //     return collection;
+  //   });
   // },
+
+  connect: function(configuration) {
+    db = new DB(mongo.connectionString(configuration));
+    return db;
+  },
 
   connectionString: function(configuration) {
     if (typeof configuration === 'undefined') {
@@ -97,15 +75,18 @@ var mongo = {
     }
 
     return bool;
-  },
-
-  wrap: function(collection) {
-    console.log('wrap', wrap);
-    return wrap(connection.collection(collection));
   }
+
+  // wrap: function(collectionName) {
+  //   db.then(function() {
+  //     console.log('wrap before', wrap);
+  //     var wrap = wrap(mongo.collection(collectionName));
+  //     console.log('wrap after', wrap);
+  //     return wrap;
+  //   });
+  // }
 };
 
-// var db = mongo.connect();
-// db();
+var db = new DB(mongo.connectionString(packageJson.config.environment[environment].server.database));
 
 module.exports = mongo;

@@ -6,10 +6,6 @@ var schema = require('_utilities/schema');
 
 var User = model();
 
-User.prototype.getName = function() {
-  return this.firstname + ' ' + this.lastname;
-};
-
 var schema = {};
 
 schema.update = {
@@ -208,6 +204,10 @@ User.prototype.validate = function(document, method) {
   }
 
   return schema.check(document, currentSchema);
+};
+
+User.prototype.getFullName = function() {
+  return this.firstname + ' ' + this.lastname;
 };
 
 module.exports = User;

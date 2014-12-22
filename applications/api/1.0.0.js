@@ -23,9 +23,19 @@ var responseTime = require('koa-response-time');
 var router = require('koa-router');
 // var session = require('koa-generic-session');
 
+var mongo = require('_utilities/mongo');
+
 var setResponse = require('_middleware/setResponse');
 
 var messages = require('_data/messages');
+
+var db = mongo.connect(packageJson.config.environment[environment].server.database);
+
+var users;
+
+db.then(function() {
+  users = db.collection('users');
+});
 
 var User = require('_models/user');
 
@@ -129,7 +139,20 @@ app.use(function* (next) {
       searchFields.uid = this.request.header.uid;
       // searchFields.uid = mongo.toObjectId(this.request.header.uid);
 
-      var currentUser = yield User.findOne(searchFields, returnFields);
+      console.log('users2', users);
+
+      // var currentUser = yield users.findOne(searchFields, returnFields);
+
+      // var currentUser = users.find({}).then(function(docs) {
+      //   console.log('currentUser', docs);
+      // });
+
+      var currentUser = yield users.findOne(searchFields).then(User);
+      // var currentUser = users.findOne(searchFields).then(User);
+
+      var currentUser = yield users.findOne(searchFields).then(User);
+
+      console.log('currentUser', currentUser);
 
       if (currentUser instanceof Object) {
         this.locals.currentUser = currentUser;
@@ -167,7 +190,7 @@ app.use(function* (next) {
 // app.use(mount('/notes', require(__dirname + '/1.0.0/notes')));
 // app.use(mount('/payments', require(__dirname + '/1.0.0/payments')));
 // app.use(mount('/shows', require(__dirname + '/1.0.0/shows')));
-app.use(mount('/users', require(__dirname + '/1.0.0/users')));
+// app.use(mount('/users', require(__dirname + '/1.0.0/users')));
 
 app.use(router(app));
 

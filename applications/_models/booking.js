@@ -1,20 +1,14 @@
 'use strict';
 
-var packageJson = require('package.json');
-var environment = process.env.NODE_ENV ? process.env.NODE_ENV : 'development';
-
 var model = require('mongel');
 
-var mongo = require('_utilities/mongo');
 var schema = require('_utilities/schema');
 
-var connectionString = mongo.connectionString(packageJson.config.environment[environment].server.database);
+var Booking = model();
 
-var Booking = model('bookings', connectionString);
+var schema = {};
 
-Booking.schema = {};
-
-Booking.schema.update = {
+schema.update = {
   'title': 'Booking Schema',
   'type': 'object',
   'properties': {
@@ -56,9 +50,9 @@ Booking.schema.update = {
   }
 };
 
-Booking.schema.create = JSON.parse(JSON.stringify(Booking.schema.update));
+schema.create = JSON.parse(JSON.stringify(schema.update));
 
-Booking.schema.create.required = [
+schema.create.required = [
   'userid',
   'eventid',
   'showid',
@@ -69,7 +63,11 @@ Booking.schema.create.required = [
   'updatetime'
 ];
 
-Booking.validate = function(document, method) {
+Booking.prototype.describe = function() {
+  return schema;
+};
+
+Booking.prototype.validate = function(document, method) {
   var currentSchema;
 
   if (method === 'create') {
