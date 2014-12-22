@@ -1,7 +1,7 @@
 'use strict';
 
-var packageJson = require('package.json');
-var environment = process.env.NODE_ENV ? process.env.NODE_ENV : 'development';
+// var packageJson = require('package.json');
+// var environment = process.env.NODE_ENV ? process.env.NODE_ENV : 'development';
 
 var bson = require('bson');
 
@@ -23,7 +23,7 @@ var mongo = {
   // },
 
   connect: function(configuration) {
-    db = new DB(mongo.connectionString(configuration));
+    var db = new DB(mongo.connectionString(configuration));
     return db;
   },
 
@@ -87,6 +87,6 @@ var mongo = {
   // }
 };
 
-var db = new DB(mongo.connectionString(packageJson.config.environment[environment].server.database));
+// var db = new DB(mongo.connectionString(packageJson.config.environment[environment].server.database));
 
 module.exports = mongo;
