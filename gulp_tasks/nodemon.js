@@ -15,6 +15,8 @@ var BROWSER_SYNC_RELOAD_DELAY = 1500;
 gulp.task('nodemon', function(cb) {
   var called = false;
 
+  console.log('argv.application', argv.application, 'argv.version', argv.version);
+
   return nodemon(
     {
       // exec: 'node',
@@ -22,7 +24,7 @@ gulp.task('nodemon', function(cb) {
       // execArgs: ['--application ' + argv.application],
       // args: ['-exec', '-- --application ' + argv.application],
       // args: ['--application', argv.application, '--debug'],
-      args: ['--application', argv.application],
+      args: ['--application', argv.application, '--version', argv.version],
       // args: '--application www',
       // args: argv,
       // application: argv.application,

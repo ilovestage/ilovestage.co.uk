@@ -31,7 +31,7 @@
   },
   "main": "app.js",
   "scripts": {
-    "start": "gulp --debug --application",
+    "start": "gulp --debug",
     "test": "env NODE_ENV=test node --harmony node_modules/istanbul/lib/cli.js cover _mocha -- -u exports -R spec",
     "teststanbul": "env NODE_ENV=test istanbul test _mocha -- -R spec",
     "testgulp": "env NODE_ENV=test gulp test --debug --application",
@@ -115,7 +115,7 @@
     "portscanner": "^1.0.0",
     "psi": "^0.1.5",
     "qs": "2.3.3",
-    "require-dir": "^0.1.0",
+    "requiredir": "^1.0.6",
     "restangular": "^1.4.0",
     "socket.io": "^1.2.0",
     "stripe": "^3.0.0",

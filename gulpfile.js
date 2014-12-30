@@ -3,6 +3,9 @@
 var argv = require('yargs').argv;
 var requireDir = require('require-dir');
 
+console.log('argv.application', argv.application);
+console.log('argv.version', argv.version);
+
 if (argv.application) {
   console.log('Building ' + argv.application + ' application.');
 
