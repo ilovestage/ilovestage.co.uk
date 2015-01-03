@@ -1,24 +1,22 @@
 'use strict';
 
 module.exports = function* authentication(next) {
-  console.log('called 2', next);
   if (this.request.header.uid) {
-    console.log('case 1');
+    console.log('uid set in header', this.request.header.uid);
     if (this.locals.currentUser) {
-      console.log('case 1a');
+      console.log('currentUser: ', this.locals.currentUser);
       this.locals.status = 404;
     } else {
-      console.log('case 1b');
+      console.log('currentUser not set');
       this.locals.message = this.locals.messages.noUserForUid;
       this.locals.status = 401;
     }
   } else {
-    console.log('case 2');
     if (!this.request.header.uid) {
-      console.log('case 2a');
+      console.log('uid not set in header');
       this.locals.message = this.locals.messages.noUid;
     } else {
-      console.log('case 2b');
+      console.log('uid in header is invalid');
       this.locals.message = this.locals.messages.invalidUid;
     }
 
@@ -28,8 +26,6 @@ module.exports = function* authentication(next) {
   this.locals.body.status = this.locals.status; // use HTTP status code
   this.locals.body.error = this.locals.message;
   this.locals.body.result = this.locals.result;
-
-  console.log('here at end', next);
 
   yield next;
 };

@@ -4,13 +4,15 @@ var cryptography = require('application/utilities/cryptography');
 
 module.exports = function authorization(_id) {
   var authorizationStatus;
-  var uid;
 
-  if (typeof _id === 'undefined') {
-    uid = null;
-  } else {
-    uid = cryptography.encryptId(_id.toString()); // to be sent encrypted
-  }
+  var uid = (typeof _id === 'undefined') ? null : cryptography.encryptId(_id.toString()); // to be sent encrypted
+
+  // var uid;
+  // if (typeof _id === 'undefined') {
+  //   uid = null;
+  // } else {
+  //   uid = cryptography.encryptId(_id.toString()); // to be sent encrypted
+  // }
 
   // console.log('_id', _id);
   // console.log('uid', uid);

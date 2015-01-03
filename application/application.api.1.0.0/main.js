@@ -10,11 +10,10 @@ var Web = require('application/application.web');
 var Database = require('application/functions/database');
 
 module.exports = function ApiVersion(configuration) {
-  // var db = new Database(configuration.database);
-  var db = null;
+  var db = new Database(configuration.database);
 
-  var models = requiredir('application.' + configuration.application + '.' + configuration.version + '/models');
-  var routes = requiredir('application.' + configuration.application + '.' + configuration.version + '/routes');
+  var models = requiredir(__dirname + '/models');
+  var routes = requiredir(__dirname + '/routes');
 
   var appMain = new Web(configuration);
   var appApi = new Web(configuration);

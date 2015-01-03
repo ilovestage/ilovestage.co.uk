@@ -1,13 +1,15 @@
 'use strict';
 
-require('app-module-path').addPath(__dirname + '/custom_modules');
+// require('app-module-path').addPath(__dirname + '/application');
 require('app-module-path').addPath(__dirname);
 
 var argv = require('yargs').argv;
 var debug = require('debug');
+var fs = require('fs');
+
+var environment = process.env.NODE_ENV ? process.env.NODE_ENV : 'development';
 
 var manifest = require('package.json');
-var environment = process.env.NODE_ENV ? process.env.NODE_ENV : 'development';
 
 var configuration = {
   name: manifest.name,
@@ -22,23 +24,34 @@ var configuration = {
   }
 };
 
-var applicationPath = 'application/application.';
-
 if (configuration.application) {
-  console.log('Running ' + configuration.application + ' application.');
+  var applicationPath = 'application/application.';
 
   if (configuration.version) {
     applicationPath += configuration.application + '.' + configuration.version;
-    console.log('Running version ' + configuration.version + ' of application.');
+    console.log('Running version ' + configuration.version + ' of ' + configuration.application + ' application.');
   } else {
     applicationPath += configuration.application;
-    console.log('No version of application defined.');
+    console.log('Running ' + configuration.application + ' application.  No version defined.');
+  }
+
+  if (fs.existsSync(applicationPath + '.js')) {
+    console.log('Searching for module:' + applicationPath + '.js');
+  } else if (fs.existsSync(applicationPath + '/main.js')) {
+    console.log('Searching for module:' + applicationPath + '/main.js');
+    applicationPath += '/main.js';
+  } else {
+    console.log('Cannot find module for version ' + configuration.version + ' of ' + configuration.application + ' application.');
+    process.exit();
   }
 
   var Application = require(applicationPath);
+
   var application = new Application(configuration);
+
+  console.log('Application environment: ', application.env);
 
   debug('booting %s', configuration.application);
 } else {
-  console.log('No application defined');
+  console.log('No application defined by command line parameter.');
 }

@@ -1,17 +1,26 @@
 'use strict';
 
 var cors = require('koa-cors');
+var etag = require('koa-etag');
 // var forceSSL = require('koa-force-ssl');
+var fresh = require('koa-fresh');
 // var http = require('http');
 // var https = require('https');
+var gzip = require('koa-gzip');
 var koa = require('koa');
 // var mount = require('koa-mount');
-// var router = require('koa-router');
+var Qs = require('qs');
+var responseTime = require('koa-response-time');
+var router = require('koa-router');
 var ua = require('universal-analytics');
 
-module.exports = function Application(configuration, parentApp) {
-  // var optionsSSL;
+// var authentication = require('application/generators/authentication');
 
+// var authorization = require('application/functions/authorization');
+// var Logger = require('application/functions/logger');
+var Messages = require('application/functions/messages');
+
+module.exports = function Application(configuration) {
   var app = koa();
   var visitor = ua(configuration.global.applications.api.googleanalytics.key);
 
@@ -19,15 +28,11 @@ module.exports = function Application(configuration, parentApp) {
   app.name = configuration.application;
   app.poweredBy = false;
 
-  app.use(function* (next) {
-    this.locals = this.locals || {};
-    yield next;
-  });
-
+  app.use(responseTime());
   app.use(cors());
 
-  // app.use(router(app));
-
+  // var optionsSSL;
+  //
   // if (environment === 'production') {
   //   optionsSSL = {
   //     key: fs.readFileSync('server.key'),
@@ -36,6 +41,21 @@ module.exports = function Application(configuration, parentApp) {
   //
   //   app.use(forceSSL());
   // }
+
+  app.use(function* (next) {
+    this.locals = this.locals || {};
+    this.locals.body = {};
+    this.locals.lang = (typeof this.query.lang !== 'undefined') ? this.query.lang : 'en';
+    this.locals.messages = new Messages(this.locals.lang);
+    this.locals.querystringParameters = Qs.parse(this.querystring);
+
+    yield next;
+  });
+
+  app.use(function* (next) {
+    this.locals = this.locals || {};
+    yield next;
+  });
 
   app.use(function* (next) {
     if (configuration.environment !== 'development') {
@@ -47,24 +67,11 @@ module.exports = function Application(configuration, parentApp) {
     yield next;
   });
 
-  // if (parentApp) {
-  //   var route = '/' + configuration.version;
-  //
-  //   parentApp.use(mount(route, app));
-  //   console.log('Mounted to parent application');
-  // } else {
-  //   if (configuration.environment === 'production') {
-  //     http.createServer(app.callback()).listen(configuration.port.http);
-  //     // https.createServer(optionsSSL, app.callback()).listen(configuration.port.https);
-  //     // console.log('Process running on ports ' + configuration.port.http + ' and ' + configuration.port.https +'.');
-  //   } else {
-  //     console.log('Process running on port ' + configuration.port.http + '.');
-  //     app.listen(configuration.port.http);
-  //   }
-  // }
+  app.use(router(app));
 
-  // var url = 'http://localhost:' + configuration.port.http + '/' + configuration.version;
-  // console.log('Application ' + configuration.application + ' available at ' + url);
+  app.use(gzip());
+  app.use(fresh());
+  app.use(etag());
 
   return app;
 };
