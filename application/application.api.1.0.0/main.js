@@ -18,8 +18,8 @@ module.exports = function ApiVersion(configuration) {
   var appMain = new Web(configuration);
   var appApi = new Web(configuration);
 
-  var apiMain = new Api(configuration, appMain, router);
-  var apiVersion = new Api(configuration, appApi, router, db, routes, models);
+  var apiMain = new Api(configuration, appMain, router, db, models);
+  var apiVersion = new Api(configuration, appApi, router, db, models, routes);
 
   var route = '/' + configuration.version;
 

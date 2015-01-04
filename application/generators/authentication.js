@@ -1,6 +1,8 @@
 'use strict';
 
 module.exports = function* authentication(next) {
+  console.log('authentication');
+
   if (this.request.header.uid) {
     console.log('uid set in header', this.request.header.uid);
     if (this.locals.currentUser) {

@@ -74,11 +74,11 @@ schema.create.required = [
   'updatetime'
 ];
 
-Model.prototype.describe = function() {
+Model.describe = function() {
   return schema;
 };
 
-Model.prototype.validate = function(document, method) {
+Model.validate = function(document, method) {
   var currentSchema;
 
   if (method === 'create') {

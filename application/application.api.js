@@ -14,17 +14,17 @@ var Qs = require('qs');
 var responseTime = require('koa-response-time');
 // var session = require('koa-generic-session');
 
-var authentication = require('application/middleware/authentication');
-
 // var authorization = require('application/functions/authorization');
 // var Logger = require('application/functions/logger');
 var Messages = require('application/functions/messages');
+
+// var authentication = require('application/generators/authentication');
 
 var body = require('application/middleware/body');
 var authSetup = require('application/middleware/authSetup');
 var response = require('application/middleware/response');
 
-module.exports = function Api(configuration, app, router, db, routes, models) {
+module.exports = function Api(configuration, app, router, db, models, routes) {
   // var logger = new Logger(configuration, app);
   // var messages = new Messages(language);
 
@@ -36,18 +36,10 @@ module.exports = function Api(configuration, app, router, db, routes, models) {
   app.use(bodyParser());
   // app.use(session());
 
-  // if ((configuration.environment !== 'development') && (this.locals.bypassAuthentication !== true)) {
-    app.use(auth(configuration.global.http.auth));
-    if (models) {
-      console.log('models', models);
-      app.use(authSetup(db, models.user));
-    }
-    app.use(authentication());
-    // app.use(authorization());
-  // }
-
   app.use(function* (next) {
     this.locals = this.locals || {};
+    this.locals.db = db;
+    this.locals.models = models;
     this.locals.body = {};
     this.locals.lang = (typeof this.query.lang !== 'undefined') ? this.query.lang : 'en';
     this.locals.messages = new Messages(this.locals.lang);
@@ -55,6 +47,15 @@ module.exports = function Api(configuration, app, router, db, routes, models) {
 
     yield next;
   });
+
+  // if ((configuration.environment !== 'development') && (this.locals.bypass !== true)) {
+    app.use(auth(configuration.global.http.auth));
+    app.use(authSetup());
+    // app.use(authSetup.apply(this, [db, models.user]));
+
+    // app.use(authentication());
+    // app.use(authorization());
+  // }
 
   app.use(body());
   app.use(router(app));

@@ -4,58 +4,72 @@ var js2xmlparser = require('js2xmlparser');
 
 module.exports = function() {
 
-  return function* authSetup(next, db, User) {
-    console.log('next, db, User', next, db, User);
-    var returnFields = {};
-    var searchFields = {};
+  return function* authSetup(next) {
+    // console.log('authSetup', this.locals.db, this.locals.models);
 
-    console.log('this.query.bypass', this.query.bypass);
+    if (this.locals.db && this.locals.models) {
+      // console.log('this.locals.db && this.locals.models');
 
-    if (this.query.bypass === 'true') {
-      this.locals.bypassAuth = true;
-      this.locals.currentUser = 'bypassed';
-    } else {
-      this.locals.bypassAuth = false;
+      var db = this.locals.db;
+      var models = this.locals.models;
 
-      if (this.request.header.uid) {
-        returnFields = {
-          _id: 1,
-          uid: 1,
-          role: 1
-        };
+      var User = models.user;
 
-        searchFields.uid = this.request.header.uid;
-        // searchFields.uid = mongo.toObjectId(this.request.header.uid);
+      // console.log('this.locals.db', this.locals.db);
+      // console.log('this.locals.models', this.locals.models);
 
-        console.log('users2', users);
+      var returnFields = {};
+      var searchFields = {};
 
-        // var currentUser = yield users.findOne(searchFields, returnFields);
+      // console.log('this.query.bypass', this.query.bypass);
 
-        // var currentUser = users.find({}).then(function(docs) {
-        //   console.log('currentUser', docs);
-        // });
-
-        var currentUser = yield db.users.findOne(searchFields).then(User);
-        // var currentUser = db.users.findOne(searchFields).then(User);
-
-        var currentUser = yield db.users.findOne(searchFields).then(User);
-
-        console.log('currentUser', currentUser);
-
-        if (currentUser instanceof Object) {
-          this.locals.currentUser = currentUser;
-        } else {
-          this.locals.currentUser = {};
-        }
-
-        this.locals.status = (typeof this.locals.currentUser !== 'undefined') ? 404 : 403;
-
-        console.log('this.locals.currentUser', this.locals.currentUser);
-        console.log('this.request.header.uid', this.request.header.uid);
-        console.log('searchFields.uid', searchFields.uid);
+      if (this.query.bypass === 'true') {
+        this.locals.bypassAuthentication = true;
+        this.locals.currentUser = 'bypassed';
       } else {
-        this.locals.status = 401;
+        this.locals.bypassAuthentication = false;
+
+        if (this.request.header.uid) {
+          returnFields = {
+            _id: 1,
+            uid: 1,
+            role: 1
+          };
+
+          searchFields.uid = this.request.header.uid;
+          // searchFields.uid = mongo.toObjectId(this.request.header.uid);
+
+          // console.log('users2', users);
+
+          // var currentUser = yield users.findOne(searchFields, returnFields);
+
+          // var currentUser = users.find({}).then(function(docs) {
+          //   console.log('currentUser', docs);
+          // });
+
+          // var currentUser = yield db.users.findOne(searchFields).then(User);
+          // var currentUser = db.users.findOne(searchFields).then(User);
+
+          var currentUser = yield db.collection('users').findOne(searchFields).then(User);
+
+          console.log('currentUser', currentUser);
+
+          if (currentUser instanceof Object) {
+            this.locals.currentUser = currentUser;
+          } else {
+            this.locals.currentUser = {};
+          }
+
+          this.locals.status = (typeof this.locals.currentUser !== 'undefined') ? 404 : 403;
+
+          console.log('this.locals.currentUser', this.locals.currentUser);
+          console.log('this.request.header.uid', this.request.header.uid);
+          console.log('searchFields.uid', searchFields.uid);
+        } else {
+          this.locals.status = 401;
+        }
       }
+
     }
 
     try {
@@ -88,7 +102,6 @@ module.exports = function() {
 
     }
 
-    // yield next;
   };
 
 };

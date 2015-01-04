@@ -188,11 +188,11 @@ schema.create.required = [
   'updatetime'
 ];
 
-Model.prototype.describe = function() {
+Model.describe = function() {
   return schema;
 };
 
-Model.prototype.validate = function(document, method) {
+Model.validate = function(document, method) {
   var currentSchema;
 
   document.phone.countrycallingcode = '+' + document.phone.countrycallingcode;
@@ -206,7 +206,7 @@ Model.prototype.validate = function(document, method) {
   return validator.check(document, currentSchema);
 };
 
-Model.prototype.getFullName = function() {
+Model.getFullName = function() {
   return this.firstname + ' ' + this.lastname;
 };
 

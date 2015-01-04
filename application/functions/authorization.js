@@ -14,32 +14,32 @@ module.exports = function authorization(_id) {
   //   uid = cryptography.encryptId(_id.toString()); // to be sent encrypted
   // }
 
-  // console.log('_id', _id);
-  // console.log('uid', uid);
-  // console.log('this.locals.currentUser', this.locals.currentUser);
+  console.log('authorization: _id', _id);
+  console.log('authorization: uid', uid);
+  console.log('authorization: this.locals.currentUser', this.locals.currentUser);
 
   if (this.locals.bypassAuthentication === true) {
-    console.log('case 1');
+    console.log('authorization: this.locals.bypassAuthentication === true');
     this.locals.status = 404;
     authorizationStatus = true;
   } else if (!this.locals.currentUser || !this.locals.currentUser.uid) {
-    console.log('case 2');
+    console.log('authorization: !this.locals.currentUser || !this.locals.currentUser.uid');
     this.locals.status = 401;
     authorizationStatus = false;
   } else if (this.locals.currentUser.role === 'admin') {
-    console.log('case 3');
+    console.log('authorization: this.locals.currentUser.role === \'admin\'');
     this.locals.status = 404;
     authorizationStatus = true;
   } else if (!_id) {
-    console.log('case 4');
+    console.log('authorization: !_id');
     this.locals.status = 500;
     authorizationStatus = false;
   } else if (uid === this.locals.currentUser.uid) {
-    console.log('case 5');
+    console.log('authorization: uid === this.locals.currentUser.uid');
     this.locals.status = 404;
     authorizationStatus = true;
   } else {
-    console.log('case 6');
+    console.log('authorization: else');
     this.locals.status = 403;
     authorizationStatus = false;
   }

@@ -1,17 +1,25 @@
 'use strict';
 
-// var moment = require('moment');
+var moment = require('moment');
 
 var authentication = require('application/generators/authentication');
 
 var authorization = require('application/functions/authorization');
 
-// var dateQuery = require('application/utilities/dateQuery');
 var mongo = require('application/utilities/mongo');
 var email = require('application/utilities/email');
+var operators = require('application/utilities/operators');
 
 module.exports = function Routes(configuration, router, db, models) {
   var routes = new router();
+
+  var Booking = models.booking;
+  var Event = models.event;
+  // var Payment = models.payment;
+  var Show = models.show;
+  var User = models.user;
+
+  var schema = Booking.describe();
 
   routes.name = 'bookings';
 
@@ -22,13 +30,13 @@ module.exports = function Routes(configuration, router, db, models) {
     if (authorization.apply(this, ['admin']) === true) {
       searchFields._id = mongo.toObjectId(this.params.id);
 
-      booking = yield Booking.findOne(searchFields);
+      booking = yield db.collection('bookings').findOne(searchFields).then(Booking);
 
       if (booking instanceof Object) {
         if (authorization.apply(this, [booking.userid]) === true) {
           booking = null;
 
-          booking = yield Booking.remove({
+          booking = yield db.collection('bookings').remove({
             _id: this.params.id
           });
 
@@ -50,7 +58,7 @@ module.exports = function Routes(configuration, router, db, models) {
     var sortParameters = [];
 
     if (authorization.apply(this, [this.query.userid])) {
-      searchFields = dateQuery(searchFields, this.query, 'createtime');
+      searchFields = operators.date(searchFields, this.query, 'createtime');
 
       if (typeof this.query.userid !== 'undefined') {
         searchFields.userid = this.query.userid;
@@ -82,14 +90,13 @@ module.exports = function Routes(configuration, router, db, models) {
         limit: limit
       };
 
-      bookings = yield Booking.find(searchFields, returnFields, options);
+      bookings = yield db.collection('bookings').find(searchFields, returnFields, options);
 
       if (bookings.length > 0) {
         this.locals.result = bookings;
         this.locals.status = 200;
       }
 
-      console.log('I don\'t believe it!!!');
     }
 
     yield next;
@@ -97,8 +104,6 @@ module.exports = function Routes(configuration, router, db, models) {
 
   routes.get('/schema', authentication, function* (next) {
     if (authorization.apply(this, ['admin']) === true) {
-      var schema = Booking.schema;
-
       this.locals.result = schema;
       this.locals.status = 200;
     }
@@ -117,7 +122,7 @@ module.exports = function Routes(configuration, router, db, models) {
     if (id) {
       searchFields._id = id;
 
-      booking = yield Booking.findOne(searchFields);
+      booking = yield db.collection('bookings').findOne(searchFields).then(Booking);
 
       if (booking instanceof Object) {
         if (authorization.apply(this, [booking.userid]) === true) {
@@ -136,7 +141,7 @@ module.exports = function Routes(configuration, router, db, models) {
             _id: booking.eventid
           };
 
-          event = yield Event.findOne(searchFields, returnFields);
+          event = yield db.collection('events').findOne(searchFields, returnFields).then(Event);
 
           if (event instanceof Object) {
             booking.event = event;
@@ -170,16 +175,16 @@ module.exports = function Routes(configuration, router, db, models) {
     if (authorization.apply(this, [this.locals.document.userid]) === true) {
       this.locals.document.status = 'pending';
 
-      validator = Booking.validate(this.locals.document, 'create');
+      validator = db.collection('bookings').validate(this.locals.document, 'create');
 
       if (validator.valid === true) {
-        event = yield Event.findOne({
+        event = yield db.collection('events').findOne({
           _id: mongo.toObjectId(this.locals.document.eventid),
-        }, {});
+        }, {}).then(Event);
 
-        user = yield User.findOne({
+        user = yield db.collection('users').findOne({
           _id: mongo.toObjectId(this.locals.document.userid)
-        }, {});
+        }, {}).then(User);
 
         if (!user) {
           this.locals.message = 'User referenced by booking could not be found.';
@@ -188,7 +193,7 @@ module.exports = function Routes(configuration, router, db, models) {
           this.locals.message = 'Event referenced by booking could not be found.';
           this.locals.status = 409;
         } else {
-          booking = yield Booking.createOne(this.locals.document);
+          booking = yield db.collection('bookings').createOne(this.locals.document);
 
           console.log('booking', booking);
           console.log('event', event);
@@ -202,7 +207,7 @@ module.exports = function Routes(configuration, router, db, models) {
 
             console.log('test123', test123);
 
-            show = yield Show.findOne(test123, {});
+            show = yield Show.findOne(test123, {}).then(Show);
 
             console.log('show', show);
 
@@ -252,7 +257,7 @@ module.exports = function Routes(configuration, router, db, models) {
     }
 
     if (authorization.apply(this, [this.locals.document.userid]) === true) {
-      booking = yield Booking.update(searchFields, updateFields);
+      booking = yield db.collection('bookings').update(searchFields, updateFields);
 
       // if (booking && this.locals.document.tickets >= 8) {
       //   returnFields = {
@@ -262,24 +267,24 @@ module.exports = function Routes(configuration, router, db, models) {
       //     'strategies.local.email': 1
       //   };
       //
-      //   user = yield User.findById(booking.userid, returnFields);
+      //   user = yield db.collection('users').findById(booking.userid, returnFields).then(User);
       //
       //   if (user && user.length > 0) {
       //     email.send({
-      //       subject: 'Booking confirmed',
+      //       subject: 'db.collection('bookings') confirmed',
       //       email: user.strategies.local.email,
       //       user: user
       //     }, 'user-booking');
       //
       //     email.send({
-      //       subject: 'Booking target reached',
+      //       subject: 'db.collection('bookings') target reached',
       //       email: email.sender.address
       //     }, 'admin-booking');
       //
       //     notification = {
       //       channels: [''],
       //       data: {
-      //         alert: 'Booking target reached for booking reference #' + booking._id
+      //         alert: 'db.collection('bookings') target reached for booking reference #' + booking._id
       //       }
       //     };
       //
