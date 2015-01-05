@@ -9,7 +9,6 @@ var gzip = require('koa-gzip');
 var health = require('koa-ping');
 var helmet = require('koa-helmet');
 var mount = require('koa-mount');
-// var qs = require('koa-qs');
 var Qs = require('qs');
 var responseTime = require('koa-response-time');
 // var session = require('koa-generic-session');
@@ -26,7 +25,6 @@ var response = require('application/middleware/response');
 
 module.exports = function Api(configuration, app, router, db, models, routes) {
   // var logger = new Logger(configuration, app);
-  // var messages = new Messages(language);
 
   app.version = configuration.version;
 
@@ -48,14 +46,8 @@ module.exports = function Api(configuration, app, router, db, models, routes) {
     yield next;
   });
 
-  // if ((configuration.environment !== 'development') && (this.locals.bypass !== true)) {
-    app.use(auth(configuration.global.http.auth));
-    app.use(authSetup());
-    // app.use(authSetup.apply(this, [db, models.user]));
-
-    // app.use(authentication());
-    // app.use(authorization());
-  // }
+  app.use(auth(configuration.global.http.auth));
+  app.use(authSetup());
 
   app.use(body());
   app.use(router(app));
@@ -74,8 +66,13 @@ module.exports = function Api(configuration, app, router, db, models, routes) {
   if (routes) {
     var routesArray = routes.toArray();
     for (var i = 0; i < routesArray.length; i++) {
-      var noun = new routesArray[i](configuration, router, db, models);
-      app.use(mount('/' + noun.name, noun.middleware()));
+      try {
+        // throw 'thrown message';
+        var noun = new routesArray[i](configuration, router, db, models);
+        app.use(mount('/' + noun.name, noun.middleware()));
+      } catch (error) {
+        console.log(error, routesArray[i]);
+      }
     }
   }
 

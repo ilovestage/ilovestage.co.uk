@@ -206,7 +206,7 @@ Model.validate = function(document, method) {
   return validator.check(document, currentSchema);
 };
 
-Model.getFullName = function() {
+Model.prototype.getFullName = function() {
   return this.firstname + ' ' + this.lastname;
 };
 

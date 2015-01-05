@@ -21,7 +21,7 @@ module.exports = function() {
       var returnFields = {};
       var searchFields = {};
 
-      // console.log('this.query.bypass', this.query.bypass);
+      console.log('this.query.bypass', this.query.bypass);
 
       if (this.query.bypass === 'true') {
         this.locals.bypassAuthentication = true;

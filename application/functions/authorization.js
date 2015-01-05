@@ -17,6 +17,7 @@ module.exports = function authorization(_id) {
   console.log('authorization: _id', _id);
   console.log('authorization: uid', uid);
   console.log('authorization: this.locals.currentUser', this.locals.currentUser);
+  console.log('authorization: this.locals.bypassAuthentication', this.locals.bypassAuthentication);
 
   if (this.locals.bypassAuthentication === true) {
     console.log('authorization: this.locals.bypassAuthentication === true');

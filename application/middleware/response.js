@@ -5,33 +5,36 @@ var js2xmlparser = require('js2xmlparser');
 module.exports = function() {
 
   return function* Response(next) {
-    if (!this.locals.message) {
-      switch (this.locals.status) {
-        case 400:
-          this.locals.message = this.locals.messages.badRequest;
-          break;
-        case 401:
-          this.locals.message = this.locals.messages.unauthorised;
-          break;
-        case 403:
-          this.locals.message = this.locals.messages.forbidden;
-          break;
-        case 404:
-          this.locals.message = this.locals.messages.resourceNotFound;
-          break;
-        case 413:
-          this.locals.message = this.locals.messages.requestEntityTooLarge;
-          break;
-        case 415:
-          this.locals.message = this.locals.messages.specifyContentType;
-          break;
-        case 422:
-          this.locals.message = this.locals.messages.unprocessableEntity;
-          break;
-        case null:
-          this.locals.message = this.locals.messages.unknownError;
-          break;
-      }
+
+    switch (this.locals.status) {
+      case 200:
+        this.locals.message = this.locals.messages.ok;
+        // this.locals.message = null;
+        break;
+      case 400:
+        this.locals.message = this.locals.messages.badRequest;
+        break;
+      case 401:
+        this.locals.message = this.locals.messages.unauthorised;
+        break;
+      case 403:
+        this.locals.message = this.locals.messages.forbidden;
+        break;
+      case 404:
+        this.locals.message = this.locals.messages.resourceNotFound;
+        break;
+      case 413:
+        this.locals.message = this.locals.messages.requestEntityTooLarge;
+        break;
+      case 415:
+        this.locals.message = this.locals.messages.specifyContentType;
+        break;
+      case 422:
+        this.locals.message = this.locals.messages.unprocessableEntity;
+        break;
+      case null:
+        this.locals.message = this.locals.messages.unknownError;
+        break;
     }
 
     this.locals = this.locals || {};
@@ -55,6 +58,7 @@ module.exports = function() {
     }
 
     this.status = this.locals.status;
+
     yield next;
   };
 

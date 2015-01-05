@@ -15,6 +15,7 @@ var configuration = {
   name: manifest.name,
   environment: environment,
   global: manifest.config,
+  local: manifest.config.environment[environment],
   application: argv.application,
   version: argv.version,
   database: manifest.config.environment[environment].server.database,
@@ -23,6 +24,8 @@ var configuration = {
     https: (process.env.PORT ? process.env.PORT : manifest.config.applications[argv.application].https.port)
   }
 };
+
+// console.log('configuration', configuration);
 
 if (configuration.application) {
   var applicationPath = 'application/application.';

@@ -10,16 +10,15 @@ var mongo = require('application/utilities/mongo');
 var email = require('application/utilities/email');
 var operators = require('application/utilities/operators');
 
-module.exports = function Routes(configuration, router, db, models) {
+module.exports = function BookingsRoutes(configuration, router, db, models) {
   var routes = new router();
 
   var Booking = models.booking;
   var Event = models.event;
-  // var Payment = models.payment;
+  var Note = models.note;
+  var Payment = models.payment;
   var Show = models.show;
   var User = models.user;
-
-  var schema = Booking.describe();
 
   routes.name = 'bookings';
 
@@ -51,7 +50,7 @@ module.exports = function Routes(configuration, router, db, models) {
 
   routes.get('/', function* (next) {
     var bookings;
-    var limit = 50;
+    var limit = this.query.limit ? parseInt(this.query.limit) : 50;
     var options;
     var returnFields = {};
     var searchFields = {};
@@ -77,20 +76,12 @@ module.exports = function Routes(configuration, router, db, models) {
         sortParameters[this.query.sort] = (this.query.order !== 'ascending') ? -1 : 1;
       }
 
-      if (this.query.limit && (typeof parseInt(this.query.limit) === 'number')) {
-        limit = parseInt(this.query.limit);
-
-        if (limit > 50) {
-          limit = 50;
-        }
-      }
-
       options = {
         sort: sortParameters,
         limit: limit
       };
 
-      bookings = yield db.collection('bookings').find(searchFields, returnFields, options);
+      bookings = yield db.collection('bookings').find(searchFields, returnFields, options).then(Booking);
 
       if (bookings.length > 0) {
         this.locals.result = bookings;
@@ -103,6 +94,8 @@ module.exports = function Routes(configuration, router, db, models) {
   });
 
   routes.get('/schema', authentication, function* (next) {
+    var schema = Booking.describe();
+
     if (authorization.apply(this, ['admin']) === true) {
       this.locals.result = schema;
       this.locals.status = 200;
@@ -175,7 +168,7 @@ module.exports = function Routes(configuration, router, db, models) {
     if (authorization.apply(this, [this.locals.document.userid]) === true) {
       this.locals.document.status = 'pending';
 
-      validator = db.collection('bookings').validate(this.locals.document, 'create');
+      validator = Booking.validate(this.locals.document, 'create');
 
       if (validator.valid === true) {
         event = yield db.collection('events').findOne({
@@ -193,7 +186,7 @@ module.exports = function Routes(configuration, router, db, models) {
           this.locals.message = 'Event referenced by booking could not be found.';
           this.locals.status = 409;
         } else {
-          booking = yield db.collection('bookings').createOne(this.locals.document);
+          booking = yield db.collection('bookings').insert(this.locals.document).then(Booking);
 
           console.log('booking', booking);
           console.log('event', event);
@@ -201,13 +194,9 @@ module.exports = function Routes(configuration, router, db, models) {
           console.log('mongo.toObjectId(event.showid)', mongo.toObjectId(event.showid));
 
           if (booking instanceof Object) {
-            var test123 = {
+            show = yield db.collection('shows').findOne({
               _id: mongo.toObjectId(event.showid)
-            };
-
-            console.log('test123', test123);
-
-            show = yield Show.findOne(test123, {}).then(Show);
+            }, {}).then(Show);
 
             console.log('show', show);
 
