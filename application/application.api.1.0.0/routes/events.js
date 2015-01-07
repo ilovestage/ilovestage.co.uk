@@ -9,7 +9,7 @@ var authentication = require('application/generators/authentication');
 var authorization = require('application/functions/authorization');
 
 var mongo = require('application/utilities/mongo');
-var operators = require('application/utilities/operators');
+// var operators = require('application/utilities/operators');
 
 module.exports = function EventsRoutes(configuration, router, db, models) {
   var routes = new router();

@@ -8,7 +8,7 @@ var authorization = require('application/functions/authorization');
 
 var mongo = require('application/utilities/mongo');
 var email = require('application/utilities/email');
-var operators = require('application/utilities/operators');
+// var operators = require('application/utilities/operators');
 
 module.exports = function BookingsRoutes(configuration, router, db, models) {
   var routes = new router();

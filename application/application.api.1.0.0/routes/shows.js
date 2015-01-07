@@ -8,7 +8,7 @@ var authorization = require('application/functions/authorization');
 
 var mongo = require('application/utilities/mongo');
 var internationalization = require('application/utilities/internationalization');
-var operators = require('application/utilities/operators');
+// var operators = require('application/utilities/operators');
 
 module.exports = function ShowsRoutes(configuration, router, db, models) {
   var routes = new router();
@@ -38,13 +38,13 @@ module.exports = function ShowsRoutes(configuration, router, db, models) {
   };
 
   routes.del('/:id', authentication, function* (next) {
-    var searchFields = {};
+    // var this.locals.queryOperators = {};
     var show;
 
-    searchFields._id = mongo.toObjectId(this.params.id);
+    this.locals.queryOperators._id = mongo.toObjectId(this.params.id);
 
     if (authorization.apply(this, ['admin']) === true) {
-      show = yield Show.remove(searchFields);
+      show = yield Show.remove(this.locals.queryOperators);
 
       if (show instanceof Object) {
         this.locals.result = show;
@@ -58,7 +58,6 @@ module.exports = function ShowsRoutes(configuration, router, db, models) {
   routes.get('/', function* (next) {
     var limit = 50;
     var returnFields = {};
-    var searchFields = {};
     var _this = this;
     var shows;
     var showsModified = [];
@@ -82,9 +81,9 @@ module.exports = function ShowsRoutes(configuration, router, db, models) {
     }
 
     if (typeof this.query.name !== 'undefined') {
-      searchFields.translations[this.locals.lang].name = this.query.name;
+      this.locals.queryOperators.translations[this.locals.lang].name = this.query.name;
     } else if (typeof this.query.theatre !== 'undefined') {
-      searchFields.theatre = this.query.theatre;
+      this.locals.queryOperators.theatre = this.query.theatre;
     }
 
     if (this.query.limit && (typeof parseInt(this.query.limit) === 'number')) {
@@ -95,7 +94,7 @@ module.exports = function ShowsRoutes(configuration, router, db, models) {
       }
     }
 
-    shows = yield db.collection('shows').find(searchFields, returnFields, {
+    shows = yield db.collection('shows').find(this.locals.queryOperators, returnFields, {
       limit: limit
     }).then(Show);
 
@@ -128,13 +127,13 @@ module.exports = function ShowsRoutes(configuration, router, db, models) {
 
   routes.get('/:id', function* (next) {
     var returnFields = {};
-    var searchFields = {};
+    // var this.locals.queryOperators = {};
     var show;
 
     var id = mongo.toObjectId(this.params.id);
 
     if (id) {
-      searchFields._id = id;
+      this.locals.queryOperators._id = id;
 
       returnFields = returnFieldsShow;
 
@@ -154,7 +153,7 @@ module.exports = function ShowsRoutes(configuration, router, db, models) {
         }
       }
 
-      show = yield db.collection('shows').findOne(searchFields, returnFields).then(Show);
+      show = yield db.collection('shows').findOne(this.locals.queryOperators, returnFields).then(Show);
 
       if (show instanceof Object) {
         if (this.query.view !== 'detailed') {
@@ -226,9 +225,9 @@ module.exports = function ShowsRoutes(configuration, router, db, models) {
   routes.post('/:id/reviews', function* (next) {
     var updateFields = {};
     var show;
-    var searchFields = {};
+    // var this.locals.queryOperators = {};
 
-    searchFields._id = mongo.toObjectId(this.params.id);
+    this.locals.queryOperators._id = mongo.toObjectId(this.params.id);
 
     // KJP: Add comment, don't update
     // if (this.query.replace === 'true') {
@@ -244,7 +243,7 @@ module.exports = function ShowsRoutes(configuration, router, db, models) {
     // }
 
     if (authorization.apply(this, ['admin']) === true) {
-      show = yield db.collection('shows').update(searchFields, updateFields).then(Show);
+      show = yield db.collection('shows').update(this.locals.queryOperators, updateFields).then(Show);
 
       if (show instanceof Object) {
         this.locals.result = show;
@@ -258,9 +257,9 @@ module.exports = function ShowsRoutes(configuration, router, db, models) {
   routes.put('/:id/reviews', function* (next) {
     var updateFields = {};
     var show;
-    var searchFields = {};
+    // var this.locals.queryOperators = {};
 
-    searchFields._id = mongo.toObjectId(this.params.id);
+    this.locals.queryOperators._id = mongo.toObjectId(this.params.id);
 
     if (this.query.replace === 'true') {
       updateFields = {
@@ -275,7 +274,7 @@ module.exports = function ShowsRoutes(configuration, router, db, models) {
     }
 
     if (authorization.apply(this, ['admin']) === true) {
-      show = yield db.collection('shows').update(searchFields, updateFields);
+      show = yield db.collection('shows').update(this.locals.queryOperators, updateFields);
 
       if (show instanceof Object) {
         this.locals.result = show;

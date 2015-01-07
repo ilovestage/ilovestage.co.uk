@@ -12,7 +12,7 @@ var authorization = require('application/functions/authorization');
 var cryptography = require('application/utilities/cryptography');
 var email = require('application/utilities/email');
 var mongo = require('application/utilities/mongo');
-var operators = require('application/utilities/operators');
+// var operators = require('application/utilities/operators');
 
 module.exports = function UserRoutes(configuration, router, db, models) {
   var stripe = require('stripe')(configuration.local.api.stripe.key);
@@ -35,13 +35,13 @@ module.exports = function UserRoutes(configuration, router, db, models) {
   routes.del('/:id', authentication, function* (next) {
     console.log('this.locals', this.locals);
     console.log('this.locals.currentUser', this.locals.currentUser);
-    var searchFields = {};
+    // var this.locals.queryOperators = {};
     var user;
 
-    searchFields._id = mongo.toObjectId(this.params.id);
+    this.locals.queryOperators._id = mongo.toObjectId(this.params.id);
 
     if (authorization.apply(this, [this.params.id]) === true) {
-      user = yield users.remove(searchFields).then(User);
+      user = yield users.remove(this.locals.queryOperators).then(User);
 
       if (user instanceof Object) {
         this.locals.result = user;
@@ -56,7 +56,7 @@ module.exports = function UserRoutes(configuration, router, db, models) {
     var limit = this.query.limit ? parseInt(this.query.limit) : 50;
     var password;
     var returnFields = {};
-    var searchFields = {};
+    // var this.locals.queryOperators = {};
     var token;
     var updateFields = {};
     var user;
@@ -80,11 +80,11 @@ module.exports = function UserRoutes(configuration, router, db, models) {
     }
 
     if ((typeof this.query.provider !== 'undefined') && (typeof this.query.uid !== 'undefined')) {
-      searchFields['strategies.' + this.query.provider + '.uid'] = this.query.uid;
+      this.locals.queryOperators['strategies.' + this.query.provider + '.uid'] = this.query.uid;
 
       returnFields['strategies.' + this.query.provider + '.token'] = 1;
 
-      user = yield db.collection('users').findOne(searchFields, returnFields).then(User);
+      user = yield db.collection('users').findOne(this.locals.queryOperators, returnFields).then(User);
 
       if (user instanceof Object) {
         if (
@@ -128,9 +128,9 @@ module.exports = function UserRoutes(configuration, router, db, models) {
       (this.query.forgot === 'password')
     ) {
 
-      searchFields['strategies.local.email'] = this.query.email;
+      this.locals.queryOperators['strategies.local.email'] = this.query.email;
 
-      user = yield db.collection('users').findOne(searchFields, returnFields).then(User);
+      user = yield db.collection('users').findOne(this.locals.queryOperators, returnFields).then(User);
 
       if (user instanceof Object) {
         token = cryptography.encryptPasswordResetToken(user._id.toString());
@@ -162,10 +162,10 @@ module.exports = function UserRoutes(configuration, router, db, models) {
       (typeof this.query.password !== 'undefined')
     ) {
 
-      searchFields['strategies.local.email'] = this.query.email;
-      searchFields.passwordresettoken = this.query.token;
+      this.locals.queryOperators['strategies.local.email'] = this.query.email;
+      this.locals.queryOperators.passwordresettoken = this.query.token;
 
-      user = yield db.collection('users').findOne(searchFields, returnFields).then(User);
+      user = yield db.collection('users').findOne(this.locals.queryOperators, returnFields).then(User);
 
       if (user instanceof Object) {
 
@@ -193,12 +193,12 @@ module.exports = function UserRoutes(configuration, router, db, models) {
 
     } else if ((typeof this.query.email !== 'undefined') && (typeof this.query.password !== 'undefined')) {
 
-      searchFields['strategies.local.email'] = this.query.email;
+      this.locals.queryOperators['strategies.local.email'] = this.query.email;
 
       returnFields['strategies.local.password'] = 1;
       returnFields.uid = 1;
 
-      user = yield db.collection('users').findOne(searchFields, returnFields).then(User);
+      user = yield db.collection('users').findOne(this.locals.queryOperators, returnFields).then(User);
 
       if (user instanceof Object) {
         if (
@@ -241,7 +241,8 @@ module.exports = function UserRoutes(configuration, router, db, models) {
       }
     } else {
       if (authorization.apply(this, ['admin']) === true) {
-        users = yield db.collection('users').find(searchFields, returnFields, {
+        console.log('this.locals.queryOperators', this.locals.queryOperators);
+        users = yield db.collection('users').find(this.locals.queryOperators, returnFields, {
           limit: limit
         }).then(User);
 
@@ -270,13 +271,13 @@ module.exports = function UserRoutes(configuration, router, db, models) {
 
   routes.get('/:id', authentication, function* (next) {
     var returnFields = {};
-    var searchFields = {};
+    // var this.locals.queryOperators = {};
     var user;
 
     var id = mongo.toObjectId(this.params.id);
 
     if (id) {
-      searchFields._id = id;
+      this.locals.queryOperators._id = id;
 
       returnFields = {
         _id: 1,
@@ -291,7 +292,7 @@ module.exports = function UserRoutes(configuration, router, db, models) {
         }
       }
 
-      user = yield db.collection('users').findOne(searchFields, returnFields).then(User);
+      user = yield db.collection('users').findOne(this.locals.queryOperators, returnFields).then(User);
 
       if (user instanceof Object) {
         user.fullname = user.getFullName();
@@ -310,7 +311,7 @@ module.exports = function UserRoutes(configuration, router, db, models) {
     var card;
     var mailFields = {};
     var orParameters = [];
-    var searchFields = {};
+    // var this.locals.queryOperators = {};
     var updateFields = {};
     var user;
     var validator;
@@ -361,10 +362,10 @@ module.exports = function UserRoutes(configuration, router, db, models) {
       }
 
       if (orParameters.length > 0) {
-        searchFields.$or = orParameters;
+        this.locals.queryOperators.$or = orParameters;
       }
 
-      user = yield db.collection('users').findOne(searchFields).then(User);
+      user = yield db.collection('users').findOne(this.locals.queryOperators).then(User);
 
       if (user instanceof Object) {
         user = null;
@@ -426,7 +427,7 @@ module.exports = function UserRoutes(configuration, router, db, models) {
   });
 
   routes.put('/:id', authentication, function* (next) {
-    var searchFields = {};
+    // var this.locals.queryOperators = {};
     var updateFields = {};
     var user;
 
@@ -436,7 +437,7 @@ module.exports = function UserRoutes(configuration, router, db, models) {
       }
     }
 
-    searchFields._id = mongo.toObjectId(this.params.id);
+    this.locals.queryOperators._id = mongo.toObjectId(this.params.id);
 
     if (this.query.replace === 'true') {
       updateFields = this.locals.document;
@@ -447,7 +448,7 @@ module.exports = function UserRoutes(configuration, router, db, models) {
     }
 
     if (authorization.apply(this, [this.params.id]) === true) {
-      user = yield db.collection('users').update(searchFields, updateFields).then(User);
+      user = yield db.collection('users').update(this.locals.queryOperators, updateFields).then(User);
 
       if (user instanceof Object) {
         this.locals.result = user;

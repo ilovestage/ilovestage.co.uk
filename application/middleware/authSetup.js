@@ -21,7 +21,7 @@ module.exports = function() {
       var returnFields = {};
       var searchFields = {};
 
-      console.log('this.query.bypass', this.query.bypass);
+      console.log('authSetup: this.query.bypass', this.query.bypass);
 
       if (this.query.bypass === 'true') {
         this.locals.bypassAuthentication = true;
@@ -52,7 +52,7 @@ module.exports = function() {
 
           var currentUser = yield db.collection('users').findOne(searchFields).then(User);
 
-          console.log('currentUser', currentUser);
+          console.log('authSetup: currentUser', currentUser);
 
           if (currentUser instanceof Object) {
             this.locals.currentUser = currentUser;
@@ -62,9 +62,9 @@ module.exports = function() {
 
           this.locals.status = (typeof this.locals.currentUser !== 'undefined') ? 404 : 403;
 
-          console.log('this.locals.currentUser', this.locals.currentUser);
-          console.log('this.request.header.uid', this.request.header.uid);
-          console.log('searchFields.uid', searchFields.uid);
+          console.log('authSetup: this.locals.currentUser', this.locals.currentUser);
+          console.log('authSetup: this.request.header.uid', this.request.header.uid);
+          console.log('authSetup: searchFields.uid', searchFields.uid);
         } else {
           this.locals.status = 401;
         }

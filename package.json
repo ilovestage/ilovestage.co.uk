@@ -115,6 +115,7 @@
     "portscanner": "^1.0.0",
     "psi": "^0.1.5",
     "qs": "2.3.3",
+    "qs-numbers": "0.0.1",
     "requiredir": "^1.0.6",
     "restangular": "^1.4.0",
     "socket.io": "^1.2.0",
