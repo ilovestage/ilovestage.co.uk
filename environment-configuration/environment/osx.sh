@@ -28,6 +28,7 @@ brew install imagemagick
 brew install graphicsmagick
 brew install mongodb
 brew install node
+brew install shellcheck
 
 brew cask install atom
 brew cask install cakebrew
