@@ -41,7 +41,7 @@ module.exports = function UserRoutes(configuration, router, db, models) {
     this.locals.queryOperators._id = mongo.toObjectId(this.params.id);
 
     if (authorization.apply(this, [this.params.id]) === true) {
-      user = yield users.remove(this.locals.queryOperators).then(User);
+      user = yield db.collection('users').remove(this.locals.queryOperators).then(User);
 
       if (user instanceof Object) {
         this.locals.result = user;

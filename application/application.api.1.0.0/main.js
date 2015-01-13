@@ -24,7 +24,7 @@ module.exports = function ApiVersion(configuration) {
     type: 'version'
   });
 
-  var models = requiredir(__dirname + '/models');
+  var models = requiredir(__dirname + '/../models');
   var routes = requiredir(__dirname + '/routes');
 
   var appMain = new Web(configuration);
@@ -43,6 +43,7 @@ module.exports = function ApiVersion(configuration) {
   // });
 
   apiMain.listen(configuration.port.http);
+  console.log('Application listening on port:', configuration.port.http);
 
   return apiMain;
 };

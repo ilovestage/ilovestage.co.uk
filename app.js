@@ -52,7 +52,7 @@ if (configuration.application) {
 
   var application = new Application(configuration);
 
-  console.log('Application environment: ', application.env);
+  console.log('Application environment:', application.env);
 
   debug('booting %s', configuration.application);
 } else {

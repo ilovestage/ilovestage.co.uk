@@ -45,6 +45,7 @@ module.exports = function Application(configuration) {
   app.use(function* (next) {
     this.locals = this.locals || {};
     this.locals.body = {};
+    this.locals.date = new Date();
     this.locals.lang = (typeof this.query.lang !== 'undefined') ? this.query.lang : 'en';
     this.locals.messages = new Messages(this.locals.lang);
     this.locals.querystringParameters = Qs.parse(this.querystring);

@@ -44,7 +44,7 @@ module.exports = function ShowsRoutes(configuration, router, db, models) {
     this.locals.queryOperators._id = mongo.toObjectId(this.params.id);
 
     if (authorization.apply(this, ['admin']) === true) {
-      show = yield Show.remove(this.locals.queryOperators);
+      show = yield db.collection('shows').remove(this.locals.queryOperators).then(Show);
 
       if (show instanceof Object) {
         this.locals.result = show;
@@ -80,11 +80,11 @@ module.exports = function ShowsRoutes(configuration, router, db, models) {
       }
     }
 
-    if (typeof this.query.name !== 'undefined') {
-      this.locals.queryOperators.translations[this.locals.lang].name = this.query.name;
-    } else if (typeof this.query.theatre !== 'undefined') {
-      this.locals.queryOperators.theatre = this.query.theatre;
-    }
+    // if (typeof this.query.name !== 'undefined') {
+    //   this.locals.queryOperators.translations[this.locals.lang].name = this.query.name;
+    // } else if (typeof this.query.theatre !== 'undefined') {
+    //   this.locals.queryOperators.theatre = this.query.theatre;
+    // }
 
     if (this.query.limit && (typeof parseInt(this.query.limit) === 'number')) {
       limit = parseInt(this.query.limit);
