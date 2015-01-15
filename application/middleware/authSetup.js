@@ -1,27 +1,28 @@
 'use strict';
 
+var debug = require('debug');
 var js2xmlparser = require('js2xmlparser');
 
 module.exports = function() {
 
   return function* authSetup(next) {
-    // console.log('authSetup', this.locals.db, this.locals.models);
+    // debug('authSetup', this.locals.db, this.locals.models);
 
     if (this.locals.db && this.locals.models) {
-      // console.log('this.locals.db && this.locals.models');
+      // debug('this.locals.db && this.locals.models');
 
       var db = this.locals.db;
       var models = this.locals.models;
 
       var User = models.user;
 
-      // console.log('this.locals.db', this.locals.db);
-      // console.log('this.locals.models', this.locals.models);
+      // debug('this.locals.db', this.locals.db);
+      // debug('this.locals.models', this.locals.models);
 
       var returnFields = {};
       var searchFields = {};
 
-      console.log('authSetup: this.query.bypass', this.query.bypass);
+      debug('authSetup: this.query.bypass', this.query.bypass);
 
       if (this.query.bypass === 'true') {
         this.locals.bypassAuthentication = true;
@@ -39,12 +40,12 @@ module.exports = function() {
           searchFields.uid = this.request.header.uid;
           // searchFields.uid = mongo.toObjectId(this.request.header.uid);
 
-          // console.log('users2', users);
+          // debug('users2', users);
 
           // var currentUser = yield users.findOne(searchFields, returnFields);
 
           // var currentUser = users.find({}).then(function(docs) {
-          //   console.log('currentUser', docs);
+          //   debug('currentUser', docs);
           // });
 
           // var currentUser = yield db.users.findOne(searchFields).then(User);
@@ -52,7 +53,7 @@ module.exports = function() {
 
           var currentUser = yield db.collection('users').findOne(searchFields).then(User);
 
-          console.log('authSetup: currentUser', currentUser);
+          debug('authSetup: currentUser', currentUser);
 
           if (currentUser instanceof Object) {
             this.locals.currentUser = currentUser;
@@ -62,9 +63,9 @@ module.exports = function() {
 
           this.locals.status = (typeof this.locals.currentUser !== 'undefined') ? 404 : 403;
 
-          console.log('authSetup: this.locals.currentUser', this.locals.currentUser);
-          console.log('authSetup: this.request.header.uid', this.request.header.uid);
-          console.log('authSetup: searchFields.uid', searchFields.uid);
+          debug('authSetup: this.locals.currentUser', this.locals.currentUser);
+          debug('authSetup: this.request.header.uid', this.request.header.uid);
+          debug('authSetup: searchFields.uid', searchFields.uid);
         } else {
           this.locals.status = 401;
         }

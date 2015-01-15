@@ -42,6 +42,7 @@
 */
 
 var _ = require('lodash');
+var debug = require('debug');
 var moment = require('moment');
 
 module.exports = function Operators(query) {
@@ -60,13 +61,13 @@ module.exports = function Operators(query) {
 
   if (query.hasOwnProperty('date')) {
     var mappedDate = _.transform(query.date, function(result, time, key) {
-      // console.log('time', time);
-      // console.log('key', key);
+      debug('time', time);
+      debug('key', key);
 
       var date = {};
 
       _.forEach(time, function(value, operator) {
-        // console.log('value', value, 'operator', operator);
+        // debug('value', value, 'operator', operator);
 
         date[operator] = moment.utc(value);
       });
@@ -87,16 +88,16 @@ module.exports = function Operators(query) {
 
   if (query.hasOwnProperty('timeframe')) {
     var mappedTimeframe = _.transform(query.timeframe, function(result, time, key) {
-      // console.log('time', time);
-      // console.log('key', key);
+      debug('time', time);
+      debug('key', key);
 
       var timeframe = {};
 
       _.forEach(time, function(value, direction) {
-        // console.log('value', value, 'direction', direction);
+        debug('value', value, 'direction', direction);
 
         _.forEach(value, function(units, measurement) {
-          // console.log('units', units, 'measurement', measurement);
+          debug('units', units, 'measurement', measurement);
 
           var from;
           var to;
@@ -115,7 +116,7 @@ module.exports = function Operators(query) {
             timeframe.$lte = to.toDate();
           }
 
-          // console.log('value', value, 'direction', direction);
+          debug('value', value, 'direction', direction);
         });
       });
 
@@ -132,8 +133,8 @@ module.exports = function Operators(query) {
     operators = comparison;
   }
 
-  // console.log('query', query);
-  // console.log('operators', operators);
+  debug('query', query);
+  debug('operators', operators);
 
   return operators;
 };
