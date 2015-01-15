@@ -6,10 +6,23 @@ module.exports = function() {
 
   return function* Response(next) {
 
+    this.locals = this.locals || {};
+
+    this.locals.body = this.locals.body || {};
+    this.locals.status = this.locals.status || 500;
+
     switch (this.locals.status) {
+      case 100:
+        this.locals.message = this.locals.messages.continue;
+        break;
       case 200:
         this.locals.message = this.locals.messages.ok;
-        // this.locals.message = null;
+        break;
+      case 201:
+        this.locals.message = this.locals.messages.created;
+        break;
+      case 202:
+        this.locals.message = this.locals.messages.accepted;
         break;
       case 400:
         this.locals.message = this.locals.messages.badRequest;
@@ -32,15 +45,17 @@ module.exports = function() {
       case 422:
         this.locals.message = this.locals.messages.unprocessableEntity;
         break;
+      case 500:
+        this.locals.message = this.locals.messages.internalServerError;
+        break;
+      case 501:
+        this.locals.message = this.locals.messages.notImplemented;
+        break;
       case null:
+        this.locals.status = 500;
         this.locals.message = this.locals.messages.unknownError;
         break;
     }
-
-    this.locals = this.locals || {};
-
-    this.locals.body = this.locals.body || {};
-    this.locals.status = this.locals.status || 500;
 
     this.locals.body.originalUrl = this.request.originalUrl;
     this.locals.body.status = this.locals.status; // use HTTP status code
