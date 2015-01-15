@@ -27,6 +27,11 @@ schema.update = {
         'Best Available'
       ]
     },
+    'availability': {
+      'type': 'number',
+      'minimum': 0,
+      'maximum': 200
+    },
     'singlefacevalue': {
       'type': 'number',
       'minimum': 0,
@@ -74,9 +79,9 @@ Model.validate = function(document, method) {
   var currentSchema;
 
   if (method === 'create') {
-    currentSchema = Model.schema.create;
+    currentSchema = schema.create;
   } else if (method === 'update') {
-    currentSchema = Model.schema.update;
+    currentSchema = schema.update;
   }
 
   return validator.check(document, currentSchema);

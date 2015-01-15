@@ -45,9 +45,9 @@ Model.validate = function(document, method) {
   var currentSchema;
 
   if (method === 'create') {
-    currentSchema = Model.schema.create;
+    currentSchema = schema.create;
   } else if (method === 'update') {
-    currentSchema = Model.schema.update;
+    currentSchema = schema.update;
   }
 
   return validator.check(document, currentSchema);
