@@ -94,12 +94,7 @@ module.exports = function Www(configuration, app, router, db, models, routes, re
       try {
         // throw 'thrown message';
         var noun = new routesArray[i](configuration, router, db, models, render);
-
-        if (noun.name === 'general') {
-          app.use(mount('/', noun.middleware()));
-        } else {
-          app.use(mount('/' + noun.name, noun.middleware()));
-        }
+        app.use(mount('/' + noun.name, noun.middleware()));
       } catch (error) {
         console.log(error, routesArray[i]);
       }

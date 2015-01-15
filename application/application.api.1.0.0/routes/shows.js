@@ -1,6 +1,6 @@
 'use strict';
 
-var moment = require('moment');
+// var moment = require('moment');
 
 var authentication = require('application/generators/authentication');
 
@@ -37,7 +37,7 @@ module.exports = function ShowsRoutes(configuration, router, db, models) {
     videourl: 1
   };
 
-  routes.del('/:id', authentication, function* (next) {
+  routes.del('delete show', '/:id', authentication, function* (next) {
     // var this.locals.queryOperators = {};
     var show;
 
@@ -55,7 +55,7 @@ module.exports = function ShowsRoutes(configuration, router, db, models) {
     yield next;
   });
 
-  routes.get('/', function* (next) {
+  routes.get('read shows', '/', function* (next) {
     var limit = 50;
     var returnFields = {};
     var _this = this;
@@ -114,7 +114,7 @@ module.exports = function ShowsRoutes(configuration, router, db, models) {
     yield next;
   });
 
-  routes.get('/schema', authentication, function* (next) {
+  routes.get('describe show', '/schema', authentication, function* (next) {
     var schema = Show.describe();
 
     if (authorization.apply(this, ['admin']) === true) {
@@ -125,7 +125,7 @@ module.exports = function ShowsRoutes(configuration, router, db, models) {
     yield next;
   });
 
-  routes.get('/:id', function* (next) {
+  routes.get('read show', '/:id', function* (next) {
     var returnFields = {};
     // var this.locals.queryOperators = {};
     var show;
@@ -168,7 +168,7 @@ module.exports = function ShowsRoutes(configuration, router, db, models) {
     yield next;
   });
 
-  routes.post('/', authentication, function* (next) {
+  routes.post('create show', '/', authentication, function* (next) {
     var show;
     var validator;
 
@@ -191,7 +191,7 @@ module.exports = function ShowsRoutes(configuration, router, db, models) {
     yield next;
   });
 
-  routes.put('/:id', authentication, function* (next) {
+  routes.put('update show', '/:id', authentication, function* (next) {
     var updateFields = {};
     var show;
     var validator;
@@ -222,7 +222,7 @@ module.exports = function ShowsRoutes(configuration, router, db, models) {
     yield next;
   });
 
-  routes.post('/:id/reviews', function* (next) {
+  routes.post('create show review', '/:id/reviews', function* (next) {
     var updateFields = {};
     var show;
     // var this.locals.queryOperators = {};
@@ -254,7 +254,7 @@ module.exports = function ShowsRoutes(configuration, router, db, models) {
     yield next;
   });
 
-  routes.put('/:id/reviews', function* (next) {
+  routes.put('update show review', '/:id/reviews', function* (next) {
     var updateFields = {};
     var show;
     // var this.locals.queryOperators = {};
@@ -285,7 +285,7 @@ module.exports = function ShowsRoutes(configuration, router, db, models) {
     yield next;
   });
 
-  routes.get(/^([^.]+)$/, function* (next) {
+  routes.get('show not found', /^([^.]+)$/, function* (next) {
     this.locals.status = 404;
 
     yield next;

@@ -1,8 +1,8 @@
 'use strict';
 
-var _ = require('lodash');
-var co = require('co');
-var moment = require('moment');
+// var _ = require('lodash');
+// var co = require('co');
+// var moment = require('moment');
 
 var authentication = require('application/generators/authentication');
 
@@ -29,14 +29,14 @@ module.exports = function PaymentsRoutes(configuration, router, db, models) {
 
   routes.name = 'payments';
 
-  routes.del('/:id', function* (next) {
+  routes.del('delete payment', '/:id', function* (next) {
     var payment;
-    var searchFields = {};
+    // var this.locals.queryOperators = {};
 
-    searchFields._id = mongo.toObjectId(this.params.id);
+    this.locals.queryOperators._id = mongo.toObjectId(this.params.id);
 
     if (authorization.apply(this, ['admin']) === true) {
-      payment = yield db.collection('payments').remove(searchFields).then(Payment);
+      payment = yield db.collection('payments').remove(this.locals.queryOperators).then(Payment);
 
       if (payment instanceof Object) {
         this.locals.result = payment;
@@ -47,21 +47,21 @@ module.exports = function PaymentsRoutes(configuration, router, db, models) {
     yield next;
   });
 
-  routes.get('/', authentication, function* (next) {
+  routes.get('read payments', '/', authentication, function* (next) {
     var limit = this.query.limit ? parseInt(this.query.limit) : 50;
     var payments;
-    var searchFields = {};
+    // var this.locals.queryOperators = {};
 
     if (typeof this.query.processor !== 'undefined') {
-      searchFields.processor = this.query.processor;
+      this.locals.queryOperators.processor = this.query.processor;
     } else if (typeof this.query.token !== 'undefined') {
-      searchFields.token = this.query.token;
+      this.locals.queryOperators.token = this.query.token;
     } else if (typeof this.query !== 'undefined') {
       this.locals.status = 400;
     }
 
     if (authorization.apply(this, ['admin']) === true) {
-      payments = yield db.collection('payments').find(searchFields, {
+      payments = yield db.collection('payments').find(this.locals.queryOperators, {
         limit: limit
       }).then(Payment);
 
@@ -74,7 +74,7 @@ module.exports = function PaymentsRoutes(configuration, router, db, models) {
     yield next;
   });
 
-  routes.get('/schema', authentication, function* (next) {
+  routes.get('describe payment', '/schema', authentication, function* (next) {
     var schema = Payment.describe();
 
     if (authorization.apply(this, ['admin']) === true) {
@@ -85,18 +85,18 @@ module.exports = function PaymentsRoutes(configuration, router, db, models) {
     yield next;
   });
 
-  routes.get('/:id', authentication, function* (next) {
+  routes.get('read payment', '/:id', authentication, function* (next) {
     var booking;
     var payment;
     var returnFields = {};
-    var searchFields = {};
+    // var this.locals.queryOperators = {};
 
     var id = mongo.toObjectId(this.params.id);
 
     if (id) {
-      searchFields._id = id;
+      this.locals.queryOperators._id = id;
 
-      payment = yield db.collection('payments').findOne(searchFields, returnFields).then(Payment);
+      payment = yield db.collection('payments').findOne(this.locals.queryOperators, returnFields).then(Payment);
 
       if (payment instanceof Object) {
         booking = yield db.collection('bookings').findOne({
@@ -115,14 +115,14 @@ module.exports = function PaymentsRoutes(configuration, router, db, models) {
     yield next;
   });
 
-  routes.post('/', function* (next) {
+  routes.post('create payment', '/', function* (next) {
     var booking;
     var charge;
     var chargeInfo;
     var payment;
     // var returnFields = {};
     var user;
-    var searchFields = {};
+    // var this.locals.queryOperators = {};
     var validator;
 
     // console.log('this.locals.document', this.locals.document);
@@ -131,18 +131,18 @@ module.exports = function PaymentsRoutes(configuration, router, db, models) {
     validator = Payment.validate(this.locals.document, 'create');
 
     if (validator.valid === true) {
-      searchFields._id = mongo.toObjectId(this.locals.document.bookingid);
+      this.locals.queryOperators._id = mongo.toObjectId(this.locals.document.bookingid);
 
-      booking = yield db.collection('bookings').findOne(searchFields, {}).then(Booking);
+      booking = yield db.collection('bookings').findOne(this.locals.queryOperators, {}).then(Booking);
 
       if (booking instanceof Object) {
         this.locals.status = 201;
 
-        searchFields = {
+        this.locals.queryOperators = {
           _id: booking.userid
         };
 
-        user = yield db.collection('users').findOne(searchFields, {}).then(User);
+        user = yield db.collection('users').findOne(this.locals.queryOperators, {}).then(User);
 
         if (user instanceof Object) {
           if (authorization.apply(this, [user._id]) === true) {
@@ -178,7 +178,7 @@ module.exports = function PaymentsRoutes(configuration, router, db, models) {
     yield next;
   });
 
-  routes.get(/^([^.]+)$/, function* (next) {
+  routes.get('payment not found', /^([^.]+)$/, function* (next) {
     this.locals.status = 404;
 
     yield next;

@@ -1,9 +1,9 @@
 'use strict';
 
-var _ = require('lodash');
-var co = require('co');
+// var _ = require('lodash');
+// var co = require('co');
 var deleteKey = require('key-del');
-var moment = require('moment');
+// var moment = require('moment');
 
 var authentication = require('application/generators/authentication');
 
@@ -17,6 +17,9 @@ var mongo = require('application/utilities/mongo');
 module.exports = function UserRoutes(configuration, router, db, models) {
   var stripe = require('stripe')(configuration.local.api.stripe.key);
   var thunkify = require('thunkify');
+
+  // var createCustomerThunk = thunkify(stripe.customers.create);
+  // var createCustomerBoundThunk = createChargeThunk.bind(stripe.customers);
 
   var createChargeThunk = thunkify(stripe.charges.create);
   var createChargeBoundThunk = createChargeThunk.bind(stripe.charges);
@@ -32,9 +35,9 @@ module.exports = function UserRoutes(configuration, router, db, models) {
 
   routes.name = 'users';
 
-  routes.del('/:id', authentication, function* (next) {
-    console.log('this.locals', this.locals);
-    console.log('this.locals.currentUser', this.locals.currentUser);
+  routes.del('delete user', '/:id', authentication, function* (next) {
+    // console.log('this.locals', this.locals);
+    // console.log('this.locals.currentUser', this.locals.currentUser);
     // var this.locals.queryOperators = {};
     var user;
 
@@ -52,7 +55,7 @@ module.exports = function UserRoutes(configuration, router, db, models) {
     yield next;
   });
 
-  routes.get('/', function* (next) {
+  routes.get('read users', '/', function* (next) {
     var limit = this.query.limit ? parseInt(this.query.limit) : 50;
     var password;
     var returnFields = {};
@@ -241,7 +244,7 @@ module.exports = function UserRoutes(configuration, router, db, models) {
       }
     } else {
       if (authorization.apply(this, ['admin']) === true) {
-        console.log('this.locals.queryOperators', this.locals.queryOperators);
+        // console.log('this.locals.queryOperators', this.locals.queryOperators);
         users = yield db.collection('users').find(this.locals.queryOperators, returnFields, {
           limit: limit
         }).then(User);
@@ -258,7 +261,7 @@ module.exports = function UserRoutes(configuration, router, db, models) {
     yield next;
   });
 
-  routes.get('/schema', authentication, function* (next) {
+  routes.get('describe user', '/schema', authentication, function* (next) {
     var schema = User.describe();
 
     if (authorization.apply(this, ['admin']) === true) {
@@ -307,7 +310,7 @@ module.exports = function UserRoutes(configuration, router, db, models) {
     yield next;
   });
 
-  routes.post('/', function* (next) {
+  routes.post('create user', '/', function* (next) {
     var card;
     var mailFields = {};
     var orParameters = [];
@@ -382,16 +385,16 @@ module.exports = function UserRoutes(configuration, router, db, models) {
         user = yield db.collection('users').insert(this.locals.document).then(User);
 
         if (user instanceof Object) {
-          card = yield createCardBoundThunk({
-            metadata: {
-              userid: user._id.toString()
-            },
-            email: user.strategies.local.email
-          });
+          // card = yield createCardBoundThunk({
+          //   metadata: {
+          //     userid: user._id.toString()
+          //   },
+          //   email: user.strategies.local.email
+          // });
 
           updateFields.$set = {
             uid: cryptography.encryptId(user._id.toString()),
-            stripeid: card.id
+            // stripeid: card.id
           };
 
           user = yield db.collection('users').update(updateFields).then(User);
@@ -426,7 +429,7 @@ module.exports = function UserRoutes(configuration, router, db, models) {
     yield next;
   });
 
-  routes.put('/:id', authentication, function* (next) {
+  routes.put('update user', '/:id', authentication, function* (next) {
     // var this.locals.queryOperators = {};
     var updateFields = {};
     var user;
@@ -459,7 +462,7 @@ module.exports = function UserRoutes(configuration, router, db, models) {
     yield next;
   });
 
-  routes.get(/^([^.]+)$/, function* (next) {
+  routes.get('user not found', /^([^.]+)$/, function* (next) {
     this.locals.status = 404;
 
     yield next;

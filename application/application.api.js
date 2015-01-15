@@ -53,18 +53,38 @@ module.exports = function Api(configuration, app, router, db, models, routes) {
   app.use(body());
   app.use(router(app));
 
+  // if (router) {
+  //     app.all('root test', '/test', function* (next) {
+  //       console.log('this', this);
+  //       this.locals.status = 202;
+  //       yield next;
+  //     });
+  //
+  //     app.get('read root', '/', function* (next) {
+  //       if (this.request.originalUrl === '/') {
+  //         this.locals.message = configuration.name + ' API';
+  //       } else {
+  //         this.locals.message = configuration.name + ' API version ' + configuration.version;
+  //       }
+  //
+  //       this.locals.status = 200;
+  //       yield next;
+  //     });
+  //
+  //   app.get('root not found', /^([^.]+)$/, function* (next) {
+  //     this.locals.status = 404;
+  //
+  //     yield next;
+  //   }); //matches everything without an extension
+  // }
+
   if (routes) {
     var routesArray = routes.toArray();
     for (var i = 0; i < routesArray.length; i++) {
       try {
         // throw 'thrown message';
         var noun = new routesArray[i](configuration, router, db, models);
-
-        if (noun.name === 'general') {
-          app.use(mount('/', noun.middleware()));
-        } else {
-          app.use(mount('/' + noun.name, noun.middleware()));
-        }
+        app.use(mount('/' + noun.name, noun.middleware()));
       } catch (error) {
         console.log(error, routesArray[i]);
       }

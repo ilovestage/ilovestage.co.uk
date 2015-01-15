@@ -21,11 +21,9 @@ module.exports = function EventsRoutes(configuration, router, db, models) {
   var Show = models.show;
   var User = models.user;
 
-  var schema = Event.describe();
-
   routes.name = 'events';
 
-  routes.del('/:id', authentication, function* (next) {
+  routes.del('delete event', '/:id', authentication, function* (next) {
     var event;
 
     if (authorization.apply(this, ['admin']) === true) {
@@ -42,102 +40,92 @@ module.exports = function EventsRoutes(configuration, router, db, models) {
     yield next;
   });
 
-  routes.get('/', function* (next) {
+  routes.get('read events', '/', function* (next) {
     var events;
     var limit = this.query.limit ? parseInt(this.query.limit) : 50;
     var manipulatedEvents = [];
+    // var manipulatedEvents;
     // var operators = ['gt', 'gte', 'lt', 'lte'];
     // var operatorIndex = operators.indexOf(this.query.operator);
     var returnFields = {};
-    var searchFields = {};
+    // var this.locals.queryOperators = {};
     // var show;
 
-    searchFields = operators.date(searchFields, this.querystring, 'starttime');
-    // searchFields = operatorQuery(searchFields, this.querystring, 'bookings');
+    // this.locals.queryOperators = this.locals.queryOperators.date(this.locals.queryOperators, this.querystring, 'starttime');
+    // this.locals.queryOperators = operatorQuery(this.locals.queryOperators, this.querystring, 'bookings');
 
-    if (typeof this.query.showid !== 'undefined') {
-      searchFields.showid = this.query.showid;
-    }
+    // if (typeof this.query.showid !== 'undefined') {
+    //   this.locals.queryOperators.showid = this.query.showid;
+    // }
+    //
+    // if (typeof this.query.eventid !== 'undefined') {
+    //   this.locals.queryOperators.eventid = this.query.eventid;
+    // }
 
-    if (typeof this.query.eventid !== 'undefined') {
-      searchFields.eventid = this.query.eventid;
-    }
-
-    events = yield db.collection('events').find(searchFields, returnFields, {
+    events = yield db.collection('events').find(this.locals.queryOperators, returnFields, {
       limit: limit
-    }).then(Event);
+    }).map(function(event) {
+      // co(function* () {
+      //   var bookings = yield db.collection('bookings').count({
+      //     eventid: event._id.toString()
+      //   });
+      //
+      //   return bookings;
+      // }).then(function(bookings) {
+      //   event.bookings = bookings;
+      // }, function(err) {
+      //   console.error(err.stack);
+      // });
 
-    if (events.length > 0) {
-      _(events).forEach(function(document) {
-
-        co(function* () {
-          var bookings = yield Booking.count({
-            eventid: document._id.toString()
-          });
-
-          return bookings;
-        }).then(function(bookings) {
-          document.bookings = bookings;
-
-          if (bookings > 0) {
-            Booking.collection.aggregate(
-            [
-              {
-                $match: {
-                  eventid: document._id.toString()
-                }
-              },
-              {
-                $group: {
-                  _id: '$eventid',
-                  total: {
-                    $sum: '$tickets'
-                  }
-                }
-              },
-              {
-                $sort: {
-                  total: -1
-                }
-              }
-            ],
-            function(err, result) {
-              if (result && result[0] && result[0].total) {
-                document.ticketsBooked = result[0].total;
-              } else {
-                document.ticketsBooked = 0;
-              }
-
-              // if (typeof this.query.bookings !== 'undefined') {
-              //   if (operatorIndex >= 0) {
-              //     searchFields.bookings = {};
-              //     searchFields.bookings['$' + this.query.operator] = parseInt(this.query.bookings);
-              //   }
-              //   console.log('searchFields', searchFields);
-              // }
-
-              manipulatedEvents.push(document);
-            });
-          } else {
-            document.ticketsBooked = 0;
-
-            manipulatedEvents.push(document);
-          }
-
-        }, function(err) {
-          console.error(err.stack);
+      co(function* () {
+        var bookings = yield db.collection('bookings').count({
+          eventid: event._id.toString()
         });
+
+        var ticketsBooked = yield db.collection('bookings').aggregate()
+        .match({
+          eventid: event._id.toString()
+        })
+        .group({
+          // _id: '$eventid',
+          _id: null,
+          total: {
+            $sum: '$tickets'
+          }
+        });
+
+        var results = {};
+
+        results.bookings = bookings;
+
+        if (ticketsBooked.length && ticketsBooked[0].total) {
+          results.ticketsBooked = ticketsBooked[0].total
+        } else {
+          results.ticketsBooked = 0
+        }
+
+        // console.log('results', results);
+
+        return results;
+      }).then(function(results) {
+        event.bookings = results.bookings;
+        event.ticketsBooked = results.ticketsBooked;
+      }, function(err) {
+        console.error(err.stack);
       });
 
-      this.locals.result = manipulatedEvents;
-      this.locals.status = 200;
-    }
+      // console.log('document', document);
+      return event;
+    }).then(Event);
+
+    this.locals.result = events;
+    this.locals.status = 200;
 
     yield next;
   });
 
-  routes.get('/schema', authentication, function* (next) {
-    var schema = Event.schema;
+  routes.get('describe event', '/schema', authentication, function* (next) {
+    var schema = Event.describe();
 
     if (authorization.apply(this, ['admin']) === true) {
       this.locals.result = schema;
@@ -147,21 +135,21 @@ module.exports = function EventsRoutes(configuration, router, db, models) {
     yield next;
   });
 
-  routes.get('/:id', function* (next) {
+  routes.get('read event', '/:id', function* (next) {
     var event;
     var returnFields = {};
-    var searchFields = {};
+    // var this.locals.queryOperators = {};
     var show;
 
     var id = mongo.toObjectId(this.params.id);
 
     if (id) {
-      searchFields._id = id;
+      this.locals.queryOperators._id = id;
 
-      event = yield db.collection('events').findOne(searchFields, returnFields).then(Event);
+      event = yield db.collection('events').findOne(this.locals.queryOperators, returnFields).then(Event);
 
       if (event instanceof Object) {
-        event.bookings = yield Booking.count({
+        event.bookings = yield db.collection('bookings').count({
           eventid: this.params.id
         });
 
@@ -175,9 +163,9 @@ module.exports = function EventsRoutes(configuration, router, db, models) {
             'images': 1
           };
 
-          searchFields._id = mongo.toObjectId(event.showid);
+          this.locals.queryOperators._id = mongo.toObjectId(event.showid);
 
-          show = yield db.collection('shows').findOne(searchFields, returnFields).then(Show);
+          show = yield db.collection('shows').findOne(this.locals.queryOperators, returnFields).then(Show);
 
           event.show = show;
         }
@@ -190,16 +178,16 @@ module.exports = function EventsRoutes(configuration, router, db, models) {
     yield next;
   });
 
-  routes.post('/', authentication, function* (next) {
+  routes.post('create event', '/', authentication, function* (next) {
     var event;
     var validator;
 
     this.locals.document.starttime = moment(this.locals.document.starttime).toDate();
     this.locals.document.endtime = moment(this.locals.document.endtime).toDate();
 
-    if (!this.locals.document.status) {
-      this.locals.document.status = 'pending';
-    }
+    // if (!this.locals.document.status) {
+    //   this.locals.document.status = 'pending';
+    // }
 
     if (authorization.apply(this, ['admin']) === true) {
       validator = Event.validate(this.locals.document, 'create');
@@ -220,12 +208,12 @@ module.exports = function EventsRoutes(configuration, router, db, models) {
     yield next;
   });
 
-  routes.put('/:id', authentication, function* (next) {
+  routes.put('update event', '/:id', authentication, function* (next) {
     var event;
-    var searchFields = {};
+    // var this.locals.queryOperators = {};
     var updateFields = {};
 
-    searchFields._id = mongo.toObjectId(this.params.id);
+    this.locals.queryOperators._id = mongo.toObjectId(this.params.id);
 
     if (this.query.replace === 'true') {
       updateFields = this.locals.document;
@@ -236,7 +224,7 @@ module.exports = function EventsRoutes(configuration, router, db, models) {
     }
 
     if (authorization.apply(this, ['admin']) === true) {
-      event = yield db.collection('events').update(searchFields, updateFields).then(Event);
+      event = yield db.collection('events').update(this.locals.queryOperators, updateFields).then(Event);
 
       if (event instanceof Object) {
         this.locals.result = event;
@@ -247,7 +235,7 @@ module.exports = function EventsRoutes(configuration, router, db, models) {
     yield next;
   });
 
-  routes.get(/^([^.]+)$/, function* (next) {
+  routes.get('event not found', /^([^.]+)$/, function* (next) {
     this.locals.status = 404;
 
     yield next;

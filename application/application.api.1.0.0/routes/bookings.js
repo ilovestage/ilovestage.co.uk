@@ -22,14 +22,14 @@ module.exports = function BookingsRoutes(configuration, router, db, models) {
 
   routes.name = 'bookings';
 
-  routes.del('/:id', authentication, function* (next) {
+  routes.del('delete booking', '/:id', authentication, function* (next) {
     var booking;
-    var searchFields = {};
+    // var this.locals.queryOperators = {};
 
     if (authorization.apply(this, ['admin']) === true) {
-      searchFields._id = mongo.toObjectId(this.params.id);
+      this.locals.queryOperators._id = mongo.toObjectId(this.params.id);
 
-      booking = yield db.collection('bookings').findOne(searchFields).then(Booking);
+      booking = yield db.collection('bookings').findOne(this.locals.queryOperators).then(Booking);
 
       if (booking instanceof Object) {
         if (authorization.apply(this, [booking.userid]) === true) {
@@ -48,40 +48,39 @@ module.exports = function BookingsRoutes(configuration, router, db, models) {
     yield next;
   });
 
-  routes.get('/', function* (next) {
+  routes.get('read bookings', '/', function* (next) {
     var bookings;
     var limit = this.query.limit ? parseInt(this.query.limit) : 50;
     var options;
     var returnFields = {};
-    var searchFields = {};
+    // var this.locals.queryOperators = {};
     var sortParameters = [];
 
     if (authorization.apply(this, [this.query.userid])) {
-      searchFields = operators.date(searchFields, this.query, 'createtime');
+      // this.locals.queryOperators = this.locals.queryOperators.date(this.locals.queryOperators, this.query, 'createtime');
 
-      if (typeof this.query.userid !== 'undefined') {
-        searchFields.userid = this.query.userid;
-      }
-
-      if (typeof this.query.eventid !== 'undefined') {
-        searchFields.eventid = this.query.eventid;
-      }
-
-      if (typeof this.query.status !== 'undefined') {
-        searchFields.status = this.query.status;
-      }
-
-      if (typeof this.query.sort !== 'undefined') {
-        // searchFields.bookings = this.query.bookings;
-        sortParameters[this.query.sort] = (this.query.order !== 'ascending') ? -1 : 1;
-      }
+      // if (typeof this.query.userid !== 'undefined') {
+      //   this.locals.queryOperators.userid = this.query.userid;
+      // }
+      //
+      // if (typeof this.query.eventid !== 'undefined') {
+      //   this.locals.queryOperators.eventid = this.query.eventid;
+      // }
+      //
+      // if (typeof this.query.status !== 'undefined') {
+      //   this.locals.queryOperators.status = this.query.status;
+      // }
+      //
+      // if (typeof this.query.sort !== 'undefined') {
+      //   sortParameters[this.query.sort] = (this.query.order !== 'ascending') ? -1 : 1;
+      // }
 
       options = {
         sort: sortParameters,
         limit: limit
       };
 
-      bookings = yield db.collection('bookings').find(searchFields, returnFields, options).then(Booking);
+      bookings = yield db.collection('bookings').find(this.locals.queryOperators, returnFields, options).then(Booking);
 
       if (bookings.length > 0) {
         this.locals.result = bookings;
@@ -93,7 +92,7 @@ module.exports = function BookingsRoutes(configuration, router, db, models) {
     yield next;
   });
 
-  routes.get('/schema', authentication, function* (next) {
+  routes.get('describe booking', '/schema', authentication, function* (next) {
     var schema = Booking.describe();
 
     if (authorization.apply(this, ['admin']) === true) {
@@ -104,18 +103,18 @@ module.exports = function BookingsRoutes(configuration, router, db, models) {
     yield next;
   });
 
-  routes.get('/:id', authentication, function* (next) {
+  routes.get('read booking', '/:id', authentication, function* (next) {
     var booking;
     var event;
     var returnFields = {};
-    var searchFields = {};
+    // var this.locals.queryOperators = {};
 
     var id = mongo.toObjectId(this.params.id);
 
     if (id) {
-      searchFields._id = id;
+      this.locals.queryOperators._id = id;
 
-      booking = yield db.collection('bookings').findOne(searchFields).then(Booking);
+      booking = yield db.collection('bookings').findOne(this.locals.queryOperators).then(Booking);
 
       if (booking instanceof Object) {
         if (authorization.apply(this, [booking.userid]) === true) {
@@ -130,11 +129,11 @@ module.exports = function BookingsRoutes(configuration, router, db, models) {
           //   };
           // }
 
-          searchFields = {
+          this.locals.queryOperators = {
             _id: booking.eventid
           };
 
-          event = yield db.collection('events').findOne(searchFields, returnFields).then(Event);
+          event = yield db.collection('events').findOne(this.locals.queryOperators, returnFields).then(Event);
 
           if (event instanceof Object) {
             booking.event = event;
@@ -149,11 +148,11 @@ module.exports = function BookingsRoutes(configuration, router, db, models) {
     yield next;
   });
 
-  routes.post('/', function* (next) {
+  routes.post('create booking', '/', function* (next) {
     var booking;
     var event;
     // var returnFields;
-    // var searchFields;
+    // var this.locals.queryOperators;
     var show;
     var user;
     var validator;
@@ -227,15 +226,15 @@ module.exports = function BookingsRoutes(configuration, router, db, models) {
     yield next;
   });
 
-  routes.put('/:id', function* (next) {
+  routes.put('update booking', '/:id', function* (next) {
     var booking;
     var updateFields = {};
     // var returnFields = {};
-    var searchFields = {};
+    // var this.locals.queryOperators = {};
 
-    searchFields._id = mongo.toObjectId(this.params.id);
+    this.locals.queryOperators._id = mongo.toObjectId(this.params.id);
 
-    this.locals.document.updatetime = moment().toDate();
+    // this.locals.document.updatetime = moment().toDate();
 
     if (this.query.replace === 'true') {
       updateFields = this.locals.document;
@@ -246,7 +245,7 @@ module.exports = function BookingsRoutes(configuration, router, db, models) {
     }
 
     if (authorization.apply(this, [this.locals.document.userid]) === true) {
-      booking = yield db.collection('bookings').update(searchFields, updateFields);
+      booking = yield db.collection('bookings').update(this.locals.queryOperators, updateFields);
 
       // if (booking && this.locals.document.tickets >= 8) {
       //   returnFields = {
@@ -296,7 +295,7 @@ module.exports = function BookingsRoutes(configuration, router, db, models) {
     yield next;
   });
 
-  routes.get(/^([^.]+)$/, function* (next) {
+  routes.get('booking not found', /^([^.]+)$/, function* (next) {
     this.locals.status = 404;
 
     yield next;
