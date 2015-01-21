@@ -172,11 +172,11 @@ module.exports = function BookingsRoutes(configuration, router, db, models) {
       if (validator.valid === true) {
         event = yield db.collection('events').findOne({
           _id: mongo.toObjectId(this.locals.document.eventid),
-        }, {}).then(Event);
+        }).then(Event);
 
         user = yield db.collection('users').findOne({
           _id: mongo.toObjectId(this.locals.document.userid)
-        }, {}).then(User);
+        }).then(User);
 
         if (!user) {
           this.locals.message = 'User referenced by booking could not be found.';
@@ -187,29 +187,44 @@ module.exports = function BookingsRoutes(configuration, router, db, models) {
         } else {
           booking = yield db.collection('bookings').insert(this.locals.document).then(Booking);
 
-          console.log('booking', booking);
-          console.log('event', event);
-          console.log('typeof event.showid', typeof event.showid);
-          console.log('mongo.toObjectId(event.showid)', mongo.toObjectId(event.showid));
-
           if (booking instanceof Object) {
-            show = yield db.collection('shows').findOne({
-              _id: mongo.toObjectId(event.showid)
-            }, {}).then(Show);
+            console.log('booking', booking);
 
-            console.log('show', show);
+            event = yield db
+            .collection('events')
+            .findOne({
+              _id: mongo.toObjectId(this.locals.document.eventid),
+            })
+            .updateOne({
+              $inc: {
+                totalbookingsmade: 1,
+                totalticketsbooked: booking.tickets
+              }
+            })
+            .then(Event);
 
-            if (show instanceof Object) {
-              email.send({
-                subject: 'Booking confirmed',
-                email: user.strategies.local.email,
-                user: user,
-                show: show,
-                date: moment(event.starttime).format('dddd, MMMM Do YYYY, h:mm:ss a')
-              }, 'user-booking');
+            if (event instanceof Object) {
+              console.log('event', event);
 
-              this.locals.result = booking;
-              this.locals.status = 201;
+              show = yield db.collection('shows').findOne({
+                _id: mongo.toObjectId(event.showid)
+              }).then(Show);
+
+              if (show instanceof Object) {
+                console.log('show', show);
+
+                email.send({
+                  subject: 'Booking confirmed',
+                  email: user.strategies.local.email,
+                  user: user,
+                  show: show,
+                  date: moment(event.starttime).format('dddd, MMMM Do YYYY, h:mm:ss a')
+                }, 'user-booking');
+
+                this.locals.result = booking;
+                this.locals.status = 201;
+              }
+
             }
 
           }
@@ -228,6 +243,8 @@ module.exports = function BookingsRoutes(configuration, router, db, models) {
 
   routes.put('update booking', '/:id', function* (next) {
     var booking;
+    var event;
+    var existingBooking;
     var updateFields = {};
     // var returnFields = {};
     // var this.locals.queryOperators = {};
@@ -245,7 +262,38 @@ module.exports = function BookingsRoutes(configuration, router, db, models) {
     }
 
     if (authorization.apply(this, [this.locals.document.userid]) === true) {
-      booking = yield db.collection('bookings').update(this.locals.queryOperators, updateFields);
+      booking = yield db
+      .collection('bookings')
+      .findOne(this.locals.queryOperators)
+      .then(Booking);
+
+      if (booking instanceof Object) {
+        console.log('booking', booking);
+
+        event = yield db
+        .collection('events')
+        .findOne({
+          _id: mongo.toObjectId(this.locals.document.eventid),
+        })
+        .updateOne({
+          $inc: {
+            totalbookingsmade: (booking.tickets > 0) ? 0 : -1,
+            totalticketsbooked: booking.tickets
+          }
+        })
+        .then(Event);
+
+        booking = yield db
+        .collection('bookings')
+        .findOne(this.locals.queryOperators)
+        .updateOne(updateFields)
+        .then(Booking);
+
+        if (event instanceof Object) {
+          console.log('event', event);
+        }
+
+      }
 
       // if (booking && this.locals.document.tickets >= 8) {
       //   returnFields = {

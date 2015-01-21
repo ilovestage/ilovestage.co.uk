@@ -20,7 +20,7 @@ var ua = require('universal-analytics');
 // var Logger = require('application/functions/logger');
 var Messages = require('application/functions/messages');
 
-module.exports = function Application(configuration) {
+module.exports = function ApplicationWeb(configuration) {
   var app = koa();
   var visitor = ua(configuration.global.applications.api.googleanalytics.key);
 

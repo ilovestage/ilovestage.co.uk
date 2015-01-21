@@ -64,59 +64,56 @@ module.exports = function EventsRoutes(configuration, router, db, models) {
 
     events = yield db.collection('events').find(this.locals.queryOperators, returnFields, {
       limit: limit
-    }).map(function(event) {
-      // co(function* () {
-      //   var bookings = yield db.collection('bookings').count({
-      //     eventid: event._id.toString()
-      //   });
-      //
-      //   return bookings;
-      // }).then(function(bookings) {
-      //   event.bookings = bookings;
-      // }, function(err) {
-      //   console.error(err.stack);
-      // });
-
-      co(function* () {
-        var bookings = yield db.collection('bookings').count({
-          eventid: event._id.toString()
-        });
-
-        var ticketsBooked = yield db.collection('bookings').aggregate()
-        .match({
-          eventid: event._id.toString()
-        })
-        .group({
-          // _id: '$eventid',
-          _id: null,
-          total: {
-            $sum: '$tickets'
-          }
-        });
-
-        var results = {};
-
-        results.bookings = bookings;
-
-        if (ticketsBooked.length && ticketsBooked[0].total) {
-          results.ticketsBooked = ticketsBooked[0].total
-        } else {
-          results.ticketsBooked = 0
-        }
-
-        // console.log('results', results);
-
-        return results;
-      }).then(function(results) {
-        event.bookings = results.bookings;
-        event.ticketsBooked = results.ticketsBooked;
-      }, function(err) {
-        console.error(err.stack);
-      });
-
-      // console.log('document', document);
-      return event;
-    }).then(Event);
+    })
+    // .map(function(event) {
+    //   co(function* () {
+    //     var bookings = yield db.collection('bookings').count({
+    //       eventid: event._id.toString()
+    //     });
+    //
+    //     return bookings;
+    //   }).then(function(bookings) {
+    //     console.log(bookings, event._id);
+    //
+    //     event.bookings = bookings;
+    //   }, function(error) {
+    //     console.error(error.stack);
+    //   });
+    //
+    //   return event;
+    // })
+    // .map(function(event) {
+    //   co(function* () {
+    //     var ticketsBooked = yield db.collection('bookings').aggregate()
+    //     .match({
+    //       eventid: event._id.toString()
+    //     })
+    //     .group({
+    //       _id: null,
+    //       total: {
+    //         $sum: '$tickets'
+    //       }
+    //     });
+    //
+    //     if (ticketsBooked.length && ticketsBooked[0] && ticketsBooked[0].total) {
+    //       return ticketsBooked[0].total;
+    //     } else {
+    //       return 0;
+    //     }
+    //   }).then(function(ticketsBooked) {
+    //     console.log(ticketsBooked, event._id);
+    //
+    //     event.ticketsBooked = ticketsBooked;
+    //   }, function(error) {
+    //     console.error(error.stack);
+    //   });
+    //
+    //   return event;
+    // })
+    // .end(function(error, doc) {
+    //   console.log(error, doc);
+    // })
+    .then(Event);
 
     this.locals.result = events;
     this.locals.status = 200;

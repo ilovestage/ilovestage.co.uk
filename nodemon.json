@@ -1,13 +1,18 @@
 {
+  "env": {
+    "NODE_ENV": "development"
+  },
+  "execMap": {
+    "js": "node --harmony",
+    "py": "python",
+    "rb": "ruby"
+  },
+  "ext": "js json",
   "ignore": [
     "logs/",
     "node_modules/",
     "bower_components/"
   ],
-  "verbose": true,
-  "execMap": {
-    "js": "node --harmony",
-    "py": "python",
-    "rb": "ruby"
-  }
+  "restartable": "rs",
+  "verbose": true
 }

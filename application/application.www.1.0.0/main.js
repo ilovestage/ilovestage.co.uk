@@ -14,8 +14,8 @@ var router = require('koa-router');
 // var redisStore = require('koa-redis');
 var views = require('co-views');
 
-var Www = require('application/application.www');
-var Web = require('application/application.web');
+var ApplicationWww = require('application/application.www');
+var ApplicationWeb = require('application/application.web');
 
 var Database = require('application/functions/database');
 
@@ -50,10 +50,10 @@ module.exports = function WwwVersion(configuration) {
     }
   });
 
-  var appMain = new Web(configuration);
+  var appMain = new ApplicationWeb(configuration);
   // var appVersion = new Web(configuration);
 
-  var wwwMain = new Www(configurationMain, appMain, router, db, models, routes, render);
+  var wwwMain = new ApplicationWww(configurationMain, appMain, router, db, models, routes, render);
   // var wwwVersion = new Www(configurationVersion, appVersion, router, render, db, models, routes);
 
   // var route = '/' + configuration.version;

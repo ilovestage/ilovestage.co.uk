@@ -7,15 +7,10 @@ var emailTemplates = require('email-templates');
 var mcapi = require('mailchimp-api/mailchimp');
 var nodemailer = require('nodemailer');
 var path = require('path');
-// var Q = require('q');
-// var thunkify = require('thunkify');
 
-var templatesDir = path.resolve(__dirname, '../..', 'source/emails');
+var templatesDir = path.resolve(__dirname + '/../emails');
 
 var mc = new mcapi.Mailchimp(packageJson.config.api.mailchimp.key);
-
-// var emailTemplatesThunk = thunkify(emailTemplates);
-// var emailTemplatesBoundThunk = emailTemplatesThunk.bind(stripe.customers);
 
 var email = {
 
@@ -61,9 +56,9 @@ var email = {
   },
 
   send: function(locals, layout) {
-    var self = this;
+    var _this = this;
 
-    self.locals = self.locals || {};
+    _this.locals = _this.locals || {};
 
     emailTemplates(templatesDir, function(err, template) {
 
@@ -86,14 +81,14 @@ var email = {
 
           email.transporter.sendMail(mailOptions, function(error, info) {
             if (error) {
-              self.locals.status = 400;
-              self.locals.error = error;
+              _this.locals.status = 400;
+              _this.locals.error = error;
             } else {
-              self.locals.message = info;
-              // self.locals.message = 'Email sent';
+              _this.locals.message = info;
+              // _this.locals.message = 'Email sent';
             }
 
-            // console.log('self.locals', self.locals);
+            // console.log('_this.locals', _this.locals);
             // console.log('error', error);
             // console.log('mailOptions', mailOptions);
 

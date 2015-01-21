@@ -22,7 +22,7 @@ var body = require('application/middleware/body');
 var authSetup = require('application/middleware/authSetup');
 var response = require('application/middleware/response');
 
-module.exports = function Api(configuration, app, router, db, models, routes) {
+module.exports = function ApplicationApi(configuration, app, router, db, models, routes) {
   // var logger = new Logger(configuration, app);
 
   app.version = configuration.version;

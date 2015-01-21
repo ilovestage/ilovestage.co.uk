@@ -22,7 +22,7 @@ var Operators = require('application/functions/operators');
 var body = require('application/middleware/body');
 var authSetup = require('application/middleware/authSetup');
 
-module.exports = function Www(configuration, app, router, db, models, routes, render) {
+module.exports = function ApplicationWww(configuration, app, router, db, models, routes, render) {
   // var logger = new Logger(configuration, app);
 
   app.version = configuration.version;

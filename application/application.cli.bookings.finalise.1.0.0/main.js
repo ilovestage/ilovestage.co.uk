@@ -84,7 +84,7 @@ insertFields.payments = {
 };
 
 function processBooking(booking) {
-  co(function *() {
+  co(function* () {
     // console.log('booking', booking);
     searchFields.Events._id = booking.eventid.toString(); //reset variable;
 
@@ -149,7 +149,7 @@ function processBooking(booking) {
               email: user.strategies.local.email
             });
           }
-        } catch(error) {
+        } catch (error) {
           console.log('error', error); // ENOTFOUND
 
           insertFields.Payments.status = 'failure';

@@ -20,13 +20,13 @@ Connect to database:
 mongo ds063889.mongolab.com:63889/ilovestage -u ilovestage -p curtaincall1
 
 Run via npm:
-nodemon --harmony app.js --application api --debug
+node --harmony --debug app.js --application api --version 1.0.0
 
 Run via nodemon:
-nodemon --harmony app.js --application api --debug
+nodemon --harmony --debug app.js -- --application api --version 1.0.0
 
 Debug Monk queries:
-DEBUG="monk:*" nodemon --harmony app.js --application api --debug
+DEBUG="monk:*" nodemon --harmony app.js --application api --version 1.0.0 --debug
 
 pm2 resurrect
 
@@ -46,7 +46,7 @@ node --harmony app.js --application cron --job events-populate
 Run mongodump cron job
 /var/www/ilovestage.co.uk/server-configuration/cron/mongodump.sh
 
-node --harmony app.js --application api
+node --harmony app.js --application api --version 1.0.0
 npm start app.js --application api
 
 redis-cli -h localhost -p 6379
