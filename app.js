@@ -17,20 +17,31 @@ var configuration = {
   global: manifest.config,
   local: manifest.config.environment[environment],
   application: argv.application,
+  procedure: argv.procedure,
   version: argv.version,
   database: manifest.config.environment[environment].server.database,
-  port: {
-    http: (process.env.PORT ? process.env.PORT : manifest.config.applications[argv.application].http.port),
-    https: (process.env.PORT ? process.env.PORT : manifest.config.applications[argv.application].https.port)
-  }
+  port: {}
 };
+
+if ((argv.application === 'api') || (argv.application === 'web') || (argv.application === 'www')) {
+  if (manifest.config.applications[argv.application].http) {
+    configuration.port.http = process.env.PORT ? process.env.PORT : manifest.config.applications[argv.application].http.port;
+  }
+
+  if (manifest.config.applications[argv.application].https) {
+    configuration.port.https = process.env.PORT ? process.env.PORT : manifest.config.applications[argv.application].https.port;
+  }
+}
 
 // console.log('configuration', configuration);
 
 if (configuration.application) {
   var applicationPath = 'application/application.';
 
-  if (configuration.version) {
+  if (configuration.procedure && configuration.version) {
+    applicationPath += configuration.application + '.' + configuration.procedure + '.' + configuration.version;
+    console.log('Running version ' + configuration.version + ' of ' + configuration.procedure + ' procedure for ' + configuration.application + ' application.');
+  } else if (configuration.version) {
     applicationPath += configuration.application + '.' + configuration.version;
     console.log('Running version ' + configuration.version + ' of ' + configuration.application + ' application.');
   } else {
